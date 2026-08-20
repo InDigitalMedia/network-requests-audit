@@ -127,6 +127,17 @@ assume specialist-only is the default.
 - Don't host this on SharePoint or Google Drive for direct preview — both block inline JS from
   running, so the page loads and *looks* correct while every interactive feature is silently dead.
   Vercel/Netlify static hosting (or a downloaded local copy) work correctly.
+- **After any change that touches `index.html` or `bookmarklet.source.js`, run
+  `./scripts/network-guard.sh`.** It checks the property this tool's whole reputation rests on:
+  that nothing pasted, filled in, or captured ever leaves the browser. Two layers — a static grep
+  sweep (instant, catches a banned API/tag appearing at all) and a headless-browser pass that
+  clicks through every interactive feature and asserts zero network requests/WebSocket connections
+  (catches a reachable call actually firing). The one documented exception is the `BM` bookmarklet
+  string, which legitimately references `fetch`/`XMLHttpRequest`/`sendBeacon` because it
+  monkey-patches them on a *third-party* page to observe calls that page already makes — the guard
+  verifies this stays observation-only rather than just trusting it. See `AUDIT.md` for the full
+  writeup and `scripts/network-guard-dynamic.js`'s header comment for the checklist to extend when
+  a new interactive feature is added — a feature the script never exercises is one it can't check.
 
 ## AUDIT.md
 

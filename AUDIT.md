@@ -373,6 +373,46 @@ theme. Screenshotted the on-screen form in both themes. Re-ran the full existing
 network listener recorded zero requests beyond the initial local `file://` load - the property
 that matters most here, since this is the first feature added that writes/reads a local file.
 
+## 2026-08-21: dedicated network-isolation audit, and a re-runnable guard
+
+Requested directly: audit the app for one property specifically — that nothing a user pastes,
+fills in, or captures ever leaves the browser — because the tool handles real visitor PII and
+"everything stays local" is a core claim, and the export/import/clipboard features added over the
+last few sessions are exactly the kind of thing that could quietly break it.
+
+- [x] **Static sweep of every line of `index.html` and `bookmarklet.source.js`** for
+  `fetch`/`XMLHttpRequest`/`sendBeacon`/`WebSocket`/`EventSource`, external `<script src>`/`<link
+  href>`/`<img src>` (both `@font-face` rules are `data:font/woff2;base64,...`, both logo `<img>`s
+  are `data:image/png;base64,...`), `<form>`, `@import`, `url(http...)`, resource hints, `eval`/
+  `Function(...)`/string-form `setTimeout`. **Zero violations found.** The only place any of the
+  banned APIs appear is the `BM` bookmarklet string (line ~1897) and its readable twin
+  `bookmarklet.source.js` — both already documented as running on a *third-party* page, monkey-
+  patching those functions to observe calls the host page already makes rather than ever calling
+  them itself.
+- [x] **Verified that claim empirically rather than taking the comment's word for it**: ran the
+  decoded `BM` code against a simulated host page that fired a real `fetch`, `sendBeacon` and XHR —
+  all three passed through to their real destinations unchanged, the bookmarklet added zero
+  requests of its own, captured metadata went only into an in-memory array, and "Copy all for the
+  decoder" touched only the clipboard.
+- [x] **Ran a full feature walk of the tool's own page** (every tab, both audience views, all 7
+  Decode examples plus a paste with a real unhashed email and phone number, ignore/severity-filter/
+  platform-filter/expand, both Decode exports, the full "Your setup" fill → export JSON → clear →
+  re-import → export PDF cycle, search, theme toggle) with a Playwright network + WebSocket listener
+  attached: zero requests beyond the initial local `file://` load, zero WebSocket attempts, zero
+  console/page errors.
+- [x] **Built `scripts/network-guard.sh` + `scripts/network-guard-dynamic.js`** as the re-runnable
+  guard, chosen over a manual checklist because the static half is cheap and reliable for "was one
+  of these tokens typed at all" on a file this size, while the dynamic half is what actually catches
+  "the new feature I just added makes the call I didn't expect" — a manual checklist relies on a
+  human reading every line correctly by eye each time, which decays fast on a solo project. Playwright
+  installs on first run into `.guard-deps/` (git-ignored, no `package.json` added — this repo stays
+  dependency-free) rather than as a tracked dependency.
+  **Verified the guard itself catches real violations**, not just trivially passes: temporarily
+  injected a `fetch()` call and an external `<img src="https://...">` into a scratch copy of
+  `index.html`, confirmed both the static sweep (exact file:line) and the dynamic sweep (exact URLs
+  requested) failed correctly, then reverted via `git checkout` and re-ran clean to confirm it
+  passes again on the real file.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow
