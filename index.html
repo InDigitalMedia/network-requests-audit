@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try { if (localStorage.getItem('id-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch(e){}</script>
 <title>Tracking network requests — field reference | In Digital</title>
 <style>
 /* ============================================================
@@ -130,7 +131,7 @@ a { color:var(--navy); }
 }
 .id-stat .lbl { font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
 .id-stat .val { font-size:26px; letter-spacing:-0.01em; line-height:1.1; color:var(--head); font-variant-numeric:tabular-nums; }
-.id-stat .note { font-size:11.5px; color:var(--ink-4); margin-top:3px; }
+.id-stat .note { font-size:11.5px; color:var(--ink-3); margin-top:3px; }
 .id-stat--gold { border-left-color:var(--gold); }
 .stats > .id-stat:nth-child(2) { border-left-color:var(--gold); }
 .stats > .id-stat:nth-child(3) { border-left-color:var(--green); }
@@ -260,7 +261,7 @@ p.tight { margin:7px 0 0; }
 /* text-oriented tables */
 .id-table--text th, .id-table--text td { text-align:left; vertical-align:top; line-height:1.55; }
 .id-table--text td { padding:9px 10px; font-size:13px; }
-.id-table--text .sub { display:block; color:var(--ink-4); font-size:11.5px; margin-top:3px; }
+.id-table--text .sub { display:block; color:var(--ink-3); font-size:11.5px; margin-top:3px; }
 .tbl-scroll { overflow-x:auto; }
 .tbl-scroll table { min-width:840px; }
 .id-table--text:not(.id-table--p):not(.id-table--d):not(.id-table--f) td:first-child,
@@ -688,22 +689,22 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       <input id="q" type="search" placeholder="Search every tab…" aria-label="Search endpoints">
       <span id="qcount">—</span>
     </div>
-    <div class="id-tabs" role="tablist" id="tabs">
-      <button role="tab" aria-selected="true" data-p="check">Check</button>
-      <button role="tab" aria-selected="false" data-p="start">Basics</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="google">Google &amp; GA4</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="sgtm">Server-side</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="consent">Consent</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="platforms">Platforms</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="ft">Your setup</button>
-      <button role="tab" aria-selected="false" class="aud-spec" data-p="debug">Debugging</button>
-      <button role="tab" aria-selected="false" data-p="decode">Decode</button>
+    <div class="id-tabs" role="tablist" id="tabs" aria-label="Sections">
+      <button role="tab" id="tab-check" aria-selected="true" tabindex="0" aria-controls="p-check" data-p="check">Check</button>
+      <button role="tab" id="tab-start" aria-selected="false" tabindex="-1" aria-controls="p-start" data-p="start">Basics</button>
+      <button role="tab" id="tab-google" aria-selected="false" tabindex="-1" aria-controls="p-google" class="aud-spec" data-p="google">Google &amp; GA4</button>
+      <button role="tab" id="tab-sgtm" aria-selected="false" tabindex="-1" aria-controls="p-sgtm" class="aud-spec" data-p="sgtm">Server-side</button>
+      <button role="tab" id="tab-consent" aria-selected="false" tabindex="-1" aria-controls="p-consent" class="aud-spec" data-p="consent">Consent</button>
+      <button role="tab" id="tab-platforms" aria-selected="false" tabindex="-1" aria-controls="p-platforms" class="aud-spec" data-p="platforms">Platforms</button>
+      <button role="tab" id="tab-ft" aria-selected="false" tabindex="-1" aria-controls="p-ft" class="aud-spec" data-p="ft">Your setup</button>
+      <button role="tab" id="tab-debug" aria-selected="false" tabindex="-1" aria-controls="p-debug" class="aud-spec" data-p="debug">Debugging</button>
+      <button role="tab" id="tab-decode" aria-selected="false" tabindex="-1" aria-controls="p-decode" data-p="decode">Decode</button>
     </div>
   </div>
   <div class="no-hits" id="nohits">Nothing in the document matches that search.</div>
 
   <!-- ================= PANEL: CHECK ================= -->
-  <div class="panel" id="p-check">
+  <div class="panel" id="p-check" role="tabpanel" aria-labelledby="tab-check" tabindex="0">
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:11px"><h2 class="id-h2">What do you want to check?</h2></div>
@@ -715,6 +716,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <p class="bm-p">Drag the black button on the right onto your browser's bookmarks bar. Then on any page, click it and you will get a list of the tracking that page has fired. This replaces every fiddly step involving developer tools — it is the single thing that makes the rest of this quick.</p>
             <p class="bm-p"><strong>Two platforms need one extra click.</strong> TikTok and Snapchat hide their data inside the request rather than in its address, so the panel will name them but show no detail. Click <strong>Record payloads</strong> in the panel, repeat the action, then click the bookmark again. It only works for actions that stay on the same page.</p>
             <p class="bm-p"><strong>Can't see your bookmarks bar?</strong> Press Cmd+Shift+B on a Mac, or Ctrl+Shift+B on Windows. If dragging does not work, use <strong>Copy the code</strong> instead, then create a new bookmark manually and paste it into the address or URL field.</p>
+            <p class="bm-p"><strong>On a phone or tablet?</strong> Bookmarklets are unreliable on mobile browsers — do this step on a desktop browser instead.</p>
           </div>
           <div class="bm-r">
             <a class="bm-btn" id="bm-link" href="#">Check tracking</a>
@@ -809,7 +811,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: START HERE ================= -->
-  <div class="panel" id="p-start" hidden>
+  <div class="panel" id="p-start" role="tabpanel" aria-labelledby="tab-start" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Start here — if you have never opened the Network tab</h2></div>
@@ -925,7 +927,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: GOOGLE ================= -->
-  <div class="panel" id="p-google" hidden>
+  <div class="panel" id="p-google" role="tabpanel" aria-labelledby="tab-google" tabindex="0" hidden>
 
     <section class="sec">
       <div class="id-card--open">
@@ -1083,7 +1085,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: SGTM ================= -->
-  <div class="panel" id="p-sgtm" hidden>
+  <div class="panel" id="p-sgtm" role="tabpanel" aria-labelledby="tab-sgtm" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Server-side GTM endpoints</h2></div>
@@ -1246,7 +1248,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: CONSENT ================= -->
-  <div class="panel" id="p-consent" hidden>
+  <div class="panel" id="p-consent" role="tabpanel" aria-labelledby="tab-consent" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Consent signals on Google requests</h2></div>
@@ -1296,7 +1298,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: PLATFORMS ================= -->
-  <div class="panel" id="p-platforms" hidden>
+  <div class="panel" id="p-platforms" role="tabpanel" aria-labelledby="tab-platforms" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Ad platform endpoints</h2></div>
@@ -1394,7 +1396,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: YOUR SETUP ================= -->
-  <div class="panel" id="p-ft" hidden>
+  <div class="panel" id="p-ft" role="tabpanel" aria-labelledby="tab-ft" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:11px"><h2 class="id-h2">Record your own setup</h2></div>
@@ -1488,7 +1490,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: DEBUG ================= -->
-  <div class="panel" id="p-debug" hidden>
+  <div class="panel" id="p-debug" role="tabpanel" aria-labelledby="tab-debug" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Which requests actually tell you something</h2></div>
@@ -1543,7 +1545,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </div>
 
   <!-- ================= PANEL: DECODE ================= -->
-  <div class="panel" id="p-decode" hidden>
+  <div class="panel" id="p-decode" role="tabpanel" aria-labelledby="tab-decode" tabindex="0" hidden>
     <section class="sec">
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Decode a request</h2></div>
@@ -1668,17 +1670,59 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     nohits.style.display = hits ? 'none' : 'block';
   }
 
+  /* ---- shareable state: #p=<tab>&q=<search term>, so a link can point at a specific
+     tab or search rather than always landing on Check / no search ---- */
+  function readHash(){
+    var out = {};
+    location.hash.replace(/^#/, '').split('&').forEach(function(pair){
+      if (!pair) return;
+      var kv = pair.split('=');
+      out[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    });
+    return out;
+  }
+  function writeHash(){
+    var parts = [];
+    var a = activePanel();
+    if (a !== 'check') parts.push('p=' + encodeURIComponent(a));
+    var term = q.value.trim();
+    if (term) parts.push('q=' + encodeURIComponent(term));
+    var hash = parts.length ? '#' + parts.join('&') : '';
+    if (hash !== location.hash) {
+      history.replaceState(null, '', location.pathname + location.search + hash);
+    }
+  }
+
+  function selectTab(b, focus){
+    buttons.forEach(function(x){
+      var on = x === b;
+      x.setAttribute('aria-selected', String(on));
+      x.setAttribute('tabindex', on ? '0' : '-1');
+    });
+    if (focus) b.focus();
+    q.value = '';
+    render();
+    writeHash();
+    window.scrollTo({ top: document.querySelector('.bar').offsetTop - 8, behavior: 'smooth' });
+  }
   buttons.forEach(function(b){
-    b.addEventListener('click', function(){
-      buttons.forEach(function(x){ x.setAttribute('aria-selected', String(x === b)); });
-      q.value = '';
-      render();
-      window.scrollTo({ top: document.querySelector('.bar').offsetTop - 8, behavior: 'smooth' });
+    b.addEventListener('click', function(){ selectTab(b, false); });
+    b.addEventListener('keydown', function(e){
+      var visible = buttons.filter(function(x){ return !x.classList.contains('aud-spec') || document.documentElement.getAttribute('data-view') === 'specialist'; });
+      var pos = visible.indexOf(b);
+      var next = null;
+      if (e.key === 'ArrowRight') next = visible[(pos + 1) % visible.length];
+      else if (e.key === 'ArrowLeft') next = visible[(pos - 1 + visible.length) % visible.length];
+      else if (e.key === 'Home') next = visible[0];
+      else if (e.key === 'End') next = visible[visible.length - 1];
+      if (next) { e.preventDefault(); selectTab(next, true); }
     });
   });
-  q.addEventListener('input', render);
+  q.addEventListener('input', function(){ render(); writeHash(); });
 
-  /* ---- bookmarklet: set via JS so the javascript: URL needs no HTML escaping ---- */
+  /* ---- bookmarklet: set via JS so the javascript: URL needs no HTML escaping ----
+     Readable, commented source for this string lives in bookmarklet.source.js —
+     see that file's header for how to regenerate this line after editing it. */
   var BM = "javascript:!function()%7Bvar%20t%3D%5B%5B%2Fgoogle-analytics%5C.com%7Canalytics%5C.google%5C.com%2Fi%2C'Google%20Analytics'%5D%2C%5B%2Fstats%5C.g%5C.doubleclick%5C.net%2Fi%2C'GA%20ads%20domain'%5D%2C%5B%2Fgoogleadservices%5C.com%7Cgoogleads%5C.g%5C.doubleclick%5C.net%7Cgoogle%5C.%5Ba-z.%5D%2B%5C%2F(ccm%5C%2F)%3Fcollect%7Cpagead%5C%2F1p-user-list%2Fi%2C'Google%20Ads'%5D%2C%5B%2Fddm%5C%2Factivity%7Cactivityi%7Cfls%5C.doubleclick%2Fi%2C'Floodlight'%5D%2C%5B%2Ffacebook%5C.com%5C%2Ftr%7Cconnect%5C.facebook%5C.net%2Fi%2C'Meta'%5D%2C%5B%2Fpx%5C.ads%5C.linkedin%5C.com%7Csnap%5C.licdn%5C.com%2Fi%2C'LinkedIn'%5D%2C%5B%2Fanalytics%5C.tiktok%5C.com%7Ctiktokw%5C.us%2Fi%2C'TikTok'%5D%2C%5B%2Fbat%5C.bing%5C.(com%7Cnet)%2Fi%2C'Microsoft%20Ads'%5D%2C%5B%2Falb%5C.reddit%5C.com%7Credditstatic%7Cpixel-config%5C.reddit%2Fi%2C'Reddit'%5D%2C%5B%2Fct%5C.pinterest%5C.com%7Cs%5C.pinimg%5C.com%5C%2Fct%2Fi%2C'Pinterest'%5D%2C%5B%2Ftr6%3F%5C.snapchat%5C.com%7Csc-static%5C.net%2Fi%2C'Snapchat'%5D%2C%5B%2Fanalytics%5C.(twitter%7Cx)%5C.com%7Ct%5C.co%5C%2Fi%5C%2Fadsct%7Cads-twitter%2Fi%2C'X%20(Twitter)'%5D%2C%5B%2Fgoogletagmanager%5C.com%2Fi%2C'Tag%20Manager'%5D%2C%5B%2Fonetrust%7Ccookielaw%7Ccookiebot%7Ccookieyes%7Cusercentrics%7Ctrustarc%7Cosano%2Fi%2C'Cookie%20banner'%5D%5D%2Ce%3D%2F(%5C%2Fcollect%7C%5B%3F%26%5Dtid%3DG-%7C%5B%3F%26%5Dv%3D2%26%7C%5C%2Ftr%5C%2F%3F%5C%3F%7C%5C%2Fadsct%7Capi%5C%2Fv2%5C%2Fpixel%7C%5C%2Faction(p)%3F%5C%2F0%7C%5B%3F%26%5Dti%3D%5Cd%7Crp%5C.gif%7Cct%5C.pinterest%5C.com%5C%2F(v3%7Cuser)%7Csnapchat%5C.com%5C%2F(p%7Ccm)%7Cviewthroughconversion%7Cpagead%5C%2Fconversion%7Cddm%5C%2Factivity%7Cactivityi%7C1p-user-list%7Cga-audiences%7Cpx%5C.ads%5C.linkedin%5C.com)%2Fi%2Co%3Dlocation.hostname.split('.')%2Cn%3D%2F%5C.(co%7Ccom%7Corg%7Cnet%7Cgov%7Cac%7Cedu%7Csch%7Cltd%7Cplc%7Cme)%5C.%5Ba-z%5D%7B2%2C3%7D%24%2Fi.test(location.hostname)%3Fo.slice(-3).join('.')%3Ao.slice(-2).join('.')%2Ci%3D%7B%7D%2Ca%3D%5B%5D%2Cr%3D%5B%5D%3Btry%7Br%3Dperformance.getEntriesByType('resource')%7Dcatch(t)%7B%7Dr.forEach(function(o)%7Bvar%20r%3Do.name%3Bif(r%26%260%3D%3D%3Dr.indexOf('http'))%7Bvar%20c%3D''%3Btry%7Bc%3Dnew%20URL(r).hostname%7Dcatch(t)%7Breturn%7Dfor(var%20d%3De.test(r)%2Cs%3Dnull%2Cl%3D0%3Bl%3Ct.length%3Bl%2B%2B)if(t%5Bl%5D%5B0%5D.test(r))%7Bs%3Dt%5Bl%5D%5B1%5D%3Bbreak%7Dvar%20p%3D-1!%3D%3Dc.indexOf(n)%3B!s%26%26p%26%26d%26%26(s%3D'Your%20own%20domain')%2C(s%7C%7Cd)%26%26(s%7C%7C(s%3D'Possible%20tracking')%2Ci%5Br%5D%7C%7C(i%5Br%5D%3D1%2Ca.push(%7Bv%3As%2Cu%3Ar%2Chost%3Ac%2Ct%3Ad%7D)))%7D%7D)%2Ca.sort(function(t%2Ce)%7Breturn%20e.t-t.t%7C%7Ct.v.localeCompare(e.v)%7D)%3Bvar%20c%3Dwindow.__idtagRec%3Bvar%20d%3Ddocument.getElementById('__idtag')%3Bd%26%26d.parentNode.removeChild(d)%3Bvar%20s%3Ddocument.createElement('div')%3Bs.id%3D'__idtag'%2Cs.setAttribute('style'%2C'all%3Ainitial%3Bposition%3Afixed%3Btop%3A14px%3Bright%3A14px%3Bwidth%3A430px%3Bmax-height%3A86vh%3Boverflow%3Aauto%3Bz-index%3A2147483647%3Bbackground%3A%23fff%3Bcolor%3A%23000%3Bborder%3A2px%20solid%20%23000%3Bbox-shadow%3A8px%208px%200%20%2300ADCD%3Bfont-family%3A-apple-system%2CBlinkMacSystemFont%2C%22Segoe%20UI%22%2Csans-serif%3Bfont-size%3A12px%3Bline-height%3A1.5%3B')%3Bvar%20l%3Da.filter(function(t)%7Breturn%20t.t%7D)%2Cp%3D(c%7C%7C%5B%5D).filter(function(t)%7Breturn%20t.b%7D)%2Cg%3Da.length-l.length%2Cu%3D'%3Cdiv%20style%3D%22display%3Aflex%3Bjustify-content%3Aspace-between%3Balign-items%3Acenter%3Bpadding%3A9px%2012px%3Bbackground%3A%23000%3Bcolor%3A%23fff%3B%22%3E%3Cstrong%20style%3D%22font-size%3A12px%3Bletter-spacing%3A.04em%3Btext-transform%3Auppercase%3B%22%3E'%2B(a.length%3Fl.length%2B'%20tracking%20event'%2B(1%3D%3D%3Dl.length%3F''%3A's')%2B(g%3F'%20%26middot%3B%20'%2Bg%2B'%20supporting%20file'%2B(1%3D%3D%3Dg%3F''%3A's')%3A'')%3A'Nothing%20found')%2B'%3C%2Fstrong%3E%3Cspan%20id%3D%22__idx%22%20style%3D%22cursor%3Apointer%3Bfont-weight%3A700%3Bpadding%3A0%204px%3B%22%3E%26times%3B%3C%2Fspan%3E%3C%2Fdiv%3E'%2Cm%3D''%3Bif(a.length)%7Bvar%20f%3D''%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A4px%200%3B%22%3E'%2Ca.forEach(function(t)%7Bt.v!%3D%3Df%26%26(f%3Dt.v%2Cm%2B%3D'%3Cdiv%20style%3D%22padding%3A7px%2012px%203px%3Bfont-weight%3A700%3Bfont-size%3A11px%3Btext-transform%3Auppercase%3Bletter-spacing%3A.05em%3Bborder-top%3A1px%20solid%20%23e5e4e4%3B%22%3E'%2Bt.v%2B'%3C%2Fdiv%3E')%3Bvar%20e%3Dt.u.length%3E96%3Ft.u.slice(0%2C96)%2B'%E2%80%A6'%3At.u%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A2px%2012px%205px%3Bfont-family%3Aui-monospace%2CMenlo%2CConsolas%2Cmonospace%3Bfont-size%3A10.5px%3Bcolor%3A%233a3a38%3Bword-break%3Abreak-all%3B%22%3E'%2Be.replace(%2F%5B%3C%3E%26%5D%2Fg%2Cfunction(t)%7Breturn%7B'%3C'%3A'%26lt%3B'%2C'%3E'%3A'%26gt%3B'%2C'%26'%3A'%26amp%3B'%7D%5Bt%5D%7D)%2B'%3C%2Fdiv%3E'%7D)%2Cm%2B%3D'%3C%2Fdiv%3E'%2Cm%2B%3D'%3Cdiv%20style%3D%22padding%3A10px%2012px%3Bborder-top%3A2px%20solid%20%23000%3B%22%3E%3Cbutton%20id%3D%22__idc%22%20style%3D%22all%3Ainitial%3Bfont-family%3Ainherit%3Bcursor%3Apointer%3Bborder%3A2px%20solid%20%23000%3Bbackground%3A%23000%3Bcolor%3A%23fff%3Bfont-weight%3A700%3Bfont-size%3A12px%3Bpadding%3A7px%2012px%3B%22%3ECopy%20all%20for%20the%20decoder%3C%2Fbutton%3E%3Cbutton%20id%3D%22__idr%22%20style%3D%22all%3Ainitial%3Bfont-family%3Ainherit%3Bcursor%3Apointer%3Bborder%3A2px%20solid%20%23000%3Bbackground%3A%23fff%3Bcolor%3A%23000%3Bfont-weight%3A700%3Bfont-size%3A12px%3Bpadding%3A7px%2012px%3Bmargin-left%3A6px%3B%22%3E'%2B(window.__idtagArmed%3F'Recording%26hellip%3B'%3A'Record%20payloads')%2B'%3C%2Fbutton%3E%3Cdiv%20id%3D%22__idm%22%20style%3D%22margin-top%3A7px%3Bcolor%3A%236e6c66%3Bfont-size%3A11px%22%3E'%2B(p.length%3F'%3Cstrong%3E'%2Bp.length%2B'%20payload'%2B(1%3D%3D%3Dp.length%3F''%3A's')%2B'%20recorded%3C%2Fstrong%3E%2C%20included%20in%20the%20copy.'%3Awindow.__idtagArmed%3F'Recording.%20Repeat%20the%20action%2C%20then%20click%20the%20bookmark%20again.'%3A'TikTok%20and%20Snapchat%20hide%20their%20data%20in%20a%20POST%20body.%20Use%20%3Cstrong%3ERecord%20payloads%3C%2Fstrong%3E%20to%20capture%20it.')%2B'%3C%2Fdiv%3E%3C%2Fdiv%3E'%7Delse%20m%3D'%3Cdiv%20style%3D%22padding%3A12px%3B%22%3E%3Cstrong%3ENothing%20found.%3C%2Fstrong%3E%3Cbr%3E%3Cbr%3ELikely%20reasons%2C%20in%20order%3A%3Cbr%3E1.%20An%20ad%20blocker%20is%20stopping%20the%20requests.%3Cbr%3E2.%20You%20have%20not%20accepted%20the%20cookie%20banner%20yet.%3Cbr%3E3.%20This%20page%20has%20no%20tracking%20on%20it.%3Cbr%3E%3Cbr%3EReload%20and%20click%20the%20bookmark%20again%20before%20deciding.%3C%2Fdiv%3E'%3Bs.innerHTML%3Du%2Bm%2Cdocument.documentElement.appendChild(s)%2Cdocument.getElementById('__idx').onclick%3Dfunction()%7Bs.parentNode.removeChild(s)%7D%3Bvar%20h%3Ddocument.getElementById('__idr')%3Bh%26%26(h.onclick%3Dfunction()%7B!function()%7Bif(!window.__idtagArmed)%7Bwindow.__idtagArmed%3D1%2Cwindow.__idtagRec%3Dc%3Dwindow.__idtagRec%7C%7C%5B%5D%3Bvar%20t%3Dfunction(t%2Co%2Cn)%7Btry%7Bif(!o)return%3Btry%7Bo%3Dnew%20URL(String(o)%2Clocation.href).href%7Dcatch(t)%7Bo%3DString(o)%7Dif(!e.test(o))return%3Bvar%20i%3Dnull%3Bif('string'%3D%3Dtypeof%20n)i%3Dn%3Belse%20if(n%26%26'undefined'!%3Dtypeof%20URLSearchParams%26%26n%20instanceof%20URLSearchParams)i%3Dn.toString()%3Belse%20if(n%26%26'undefined'!%3Dtypeof%20FormData%26%26n%20instanceof%20FormData)%7Bvar%20a%3D%5B%5D%3Bn.forEach(function(t%2Ce)%7Ba.push(encodeURIComponent(e)%2B'%3D'%2BencodeURIComponent(t))%7D)%2Ci%3Da.join('%26')%7Dc.push(%7Bm%3At%2Cu%3AString(o)%2Cb%3Ai%7D)%7Dcatch(t)%7B%7D%7D%2Co%3Dwindow.fetch%3Bo%26%26(window.fetch%3Dfunction(e%2Cn)%7Btry%7Bt(n%26%26n.method%7C%7C'GET'%2Ce%26%26e.url%7C%7Ce%2Cn%26%26n.body)%7Dcatch(t)%7B%7Dreturn%20o.apply(this%2Carguments)%7D)%3Bvar%20n%3Dnavigator.sendBeacon%3Bn%26%26(navigator.sendBeacon%3Dfunction(e%2Co)%7Breturn%20t('BEACON'%2Ce%2Co)%2Cn.apply(navigator%2Carguments)%7D)%3Bvar%20i%3DXMLHttpRequest.prototype.open%2Ca%3DXMLHttpRequest.prototype.send%3BXMLHttpRequest.prototype.open%3Dfunction(t%2Ce)%7Breturn%20this.__m%3Dt%2Cthis.__u%3De%2Ci.apply(this%2Carguments)%7D%2CXMLHttpRequest.prototype.send%3Dfunction(e)%7Breturn%20t(this.__m%7C%7C'GET'%2Cthis.__u%2Ce)%2Ca.apply(this%2Carguments)%7D%7D%7D()%2Ch.innerHTML%3D'Recording%26hellip%3B'%2Cdocument.getElementById('__idm').innerHTML%3D'%3Cstrong%3ERecording.%3C%2Fstrong%3E%20Repeat%20the%20action%2C%20then%20click%20the%20bookmark%20again.%20Only%20works%20for%20actions%20that%20stay%20on%20this%20page.'%7D)%3Bvar%20y%3Ddocument.getElementById('__idc')%3By%26%26(y.onclick%3Dfunction()%7Bvar%20t%3Dl.length%3Fl%3Aa%2Ce%3D%5B'%23%20site%3A%20'%2Blocation.hostname%5D%2Co%3D%7B%7D%3Bp.forEach(function(t)%7Bo%5Bt.u%5D%3D1%2Ce.push('curl%20%5C''%2Bt.u%2B'%5C'%20--data-raw%20%5C''%2BString(t.b).replace(%2F'%2Fg%2C'%5C'%5C%5C%5C'%5C'')%2B'%5C'')%7D)%2Ct.forEach(function(t)%7Bo%5Bt.u%5D%7C%7Ce.push(t.u)%7D)%3Bvar%20n%3De.join('%5Cn')%2Ci%3Ddocument.createElement('textarea')%3Bi.value%3Dn%2Ci.setAttribute('style'%2C'position%3Afixed%3Bopacity%3A0%3B')%2Cdocument.documentElement.appendChild(i)%2Ci.select()%3Bvar%20r%3D!1%3Btry%7Br%3Ddocument.execCommand('copy')%7Dcatch(t)%7B%7Di.parentNode.removeChild(i)%2Cdocument.getElementById('__idm').innerHTML%3Dr%3F'%3Cstrong%3ECopied%20'%2Bt.length%2B'%20request'%2B(1%3D%3D%3Dt.length%3F''%3A's')%2B'.%3C%2Fstrong%3E%20Paste%20into%20the%20Decode%20tab.'%3A'Could%20not%20copy%20automatically%20%E2%80%94%20select%20the%20addresses%20above%20and%20copy%20them%20manually.'%7D)%7D()";
   var bml = document.getElementById('bm-link');
   if (bml) {
@@ -1688,14 +1732,25 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       document.getElementById('bm-msg').textContent = 'Drag it to your bookmarks bar — clicking it here does nothing.';
     });
     document.getElementById('bm-copy').addEventListener('click', function(){
-      var ta = document.createElement('textarea');
-      ta.value = BM; ta.style.position='fixed'; ta.style.opacity='0';
-      document.body.appendChild(ta); ta.select();
-      var okc = false; try { okc = document.execCommand('copy'); } catch(e){}
-      document.body.removeChild(ta);
-      document.getElementById('bm-msg').textContent = okc
-        ? 'Copied. Make a new bookmark and paste this as its address.'
-        : 'Copy failed — drag the button instead.';
+      var msg = document.getElementById('bm-msg');
+      function fallbackCopy(){
+        var ta = document.createElement('textarea');
+        ta.value = BM; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        var okc = false; try { okc = document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(ta);
+        return okc;
+      }
+      function report(ok){
+        msg.textContent = ok
+          ? 'Copied. Make a new bookmark and paste this as its address.'
+          : 'Copy failed — drag the button instead.';
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(BM).then(function(){ report(true); }, function(){ report(fallbackCopy()); });
+      } else {
+        report(fallbackCopy());
+      }
     });
   }
 
@@ -1707,25 +1762,42 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (dt) dt.textContent = (v === 'marketing') ? 'Tag & tracking checker' : 'Tracking requests — field reference';
     document.getElementById('v-mkt').setAttribute('aria-pressed', String(v === 'marketing'));
     document.getElementById('v-spec').setAttribute('aria-pressed', String(v === 'specialist'));
-    if (v === 'marketing') { q.value = ''; render(); }
     if (v === 'marketing' && SPEC.indexOf(activePanel()) !== -1) {
-      var c = document.querySelector('#tabs button[data-p="check"]');
-      buttons.forEach(function(x){ x.setAttribute('aria-selected', String(x === c)); });
-      q.value = ''; render();
-    }
+      selectTab(document.querySelector('#tabs button[data-p="check"]'), false);
+    } else if (v === 'marketing') { q.value = ''; render(); }
   }
   document.getElementById('v-mkt').addEventListener('click', function(){ setView('marketing'); });
   document.getElementById('v-spec').addEventListener('click', function(){ setView('specialist'); });
 
   var themeBtn = document.getElementById('theme');
+  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    themeBtn.textContent = 'Light mode';
+    themeBtn.setAttribute('aria-pressed', 'true');
+  }
   themeBtn.addEventListener('click', function(){
     var dark = document.documentElement.getAttribute('data-theme') === 'dark';
     document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
     themeBtn.textContent = dark ? 'Dark mode' : 'Light mode';
     themeBtn.setAttribute('aria-pressed', String(!dark));
+    try { localStorage.setItem('id-theme', dark ? 'light' : 'dark'); } catch(e){}
   });
 
-  showTabsOnly();
+  (function restoreFromHash(){
+    var h = readHash();
+    if (h.p) {
+      var target = document.querySelector('#tabs button[data-p="' + h.p + '"]');
+      if (target) {
+        if (target.classList.contains('aud-spec')) setView('specialist');
+        buttons.forEach(function(x){
+          var on = x === target;
+          x.setAttribute('aria-selected', String(on));
+          x.setAttribute('tabindex', on ? '0' : '-1');
+        });
+      }
+    }
+    if (h.q) q.value = h.q;
+    render();
+  })();
 })();
 </script>
 <script>
@@ -1973,7 +2045,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   }
 
   /* ---------- same-site helpers ---------- */
-  var SUFFIX2 = /\.(co|com|org|net|gov|ac|edu|sch|ltd|plc|me)\.[a-z]{2,3}$/i;
+  /* Curated common second-level public-suffix labels (uk/au/nz/jp/za/in/br/cn/hk/sg/my/id and
+     similar ccTLD structures), not the authoritative Public Suffix List (publicsuffix.org) —
+     that list runs to hundreds of KB and would be a poor trade against this file's
+     zero-dependency, self-contained design. Good enough for the common case; an unlisted
+     second-level suffix falls back to the plain two-label split below. */
+  var SUFFIX2 = /\.(ac|ad|art|asn|biz|blog|co|com|ed|edu|firm|gen|go|gov|govt|gr|id|idv|ind|info|lg|ltd|me|mil|mod|name|ne|net|nhs|nic|nom|or|org|per|plc|res|sch|web)\.[a-z]{2,3}$/i;
   function registrable(h){
     if (!h) return null;
     var parts = h.toLowerCase().split('.');
@@ -2458,7 +2535,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       var ord = get('ord'), isSales = has('qty') || has('cost');
       if (isSales && ord && /^\d{6,}$/.test(ord) && !/[a-z\-]/i.test(ord)) F.push(['warn','Sales tag with a long numeric ord','On a sales tag, ord is the transaction identifier that feeds path-to-conversion reporting — not a cache-buster. If this value is randomly generated per fire rather than being the real order ID, transaction identity is corrupted and de-duplication breaks.']);
       if (!isSales && ord === '1' && !has('num')) F.push(['warn','ord=1 with no num','ord=1 is the unique-counter pattern, which moves cache-busting to num. With neither, the browser may cache the request and you will undercount.']);
-      if (!isSales && ord && ord !== '1' && !/^\d+$/.test(ord) === false && ord.length < 4) F.push(['warn','Suspiciously short ord','A standard counter needs a fresh random ord on every fire or the browser caches the request and conversions go missing.']);
+      if (!isSales && ord && ord !== '1' && /^\d+$/.test(ord) && ord.length < 4) F.push(['warn','Suspiciously short ord','A standard counter needs a fresh random ord on every fire or the browser caches the request and conversions go missing.']);
       var us = P.filter(function(p){ return /^u\d+$/.test(p[0]); });
       if (us.length) F.push(['info',us.length+' custom Floodlight variable'+(us.length===1?'':'s'),'u1-u100 carry your own values. Confirm each maps to what the reporting spec expects — they are positional, so an off-by-one mapping is silent.']);
     }
@@ -2473,13 +2550,13 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       else if (looksLikePhone(v) && /phone|ph\b|tel/i.test(p[0])) pii.push([p[0],'phone number']);
     });
     if (pii.length) F.push(['fail','Personal data appears to be sent unhashed','' +
-      pii.map(function(x){ return x[0] + ' looks like ' + x[1]; }).join('; ') +
+      pii.map(function(x){ return esc(x[0]) + ' looks like ' + x[1]; }).join('; ') +
       '. Every major platform requires user data to be SHA-256 hashed, lowercased and trimmed before sending. Sending it in the clear is both a matching failure and, for an EU visitor, a personal-data disclosure to a third party that almost certainly is not covered by your privacy notice. Treat this as urgent.']);
 
     /* undocumented parameters */
     var undoc = P.filter(function(p){ var d = plat && plat.d[p[0]]; return d && d[1] === 'u'; });
     if (undoc.length) F.push(['info',undoc.length+' undocumented parameter'+(undoc.length===1?'':'s'),
-      undoc.map(function(p){ return p[0]; }).join(', ') + ' — real, commonly observed, but with no primary source explaining them. Do not build an audit finding on any of these.']);
+      undoc.map(function(p){ return esc(p[0]); }).join(', ') + ' — real, commonly observed, but with no primary source explaining them. Do not build an audit finding on any of these.']);
 
     return F;
   }
@@ -2492,7 +2569,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var u, err = null;
     try { u = new URL(req.url); } catch(e){ err = 'Could not parse that as a URL.'; }
     if (err) {
-      if (metas) metas.push({name:'Unreadable', kind:'could not be parsed', sev:'red'});
+      if (metas) metas.push({name:'Unreadable', kind:'could not be parsed', sev:'red', findings:[]});
       return '<details class="dq-req" open><summary><span class="rq-dot rq-red"></span>'
         + '<span class="rq-name">Unreadable request</span></summary>'
         + '<div class="dq-card"><div class="dq-err">'+err+'</div></div></details>';
@@ -2502,6 +2579,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     for (var k=0;k<PLATFORMS.length;k++) if (PLATFORMS[k].t(host, path)) { plat = PLATFORMS[k]; break; }
     var P = parseParams(u, req.body);
     if (!plat) plat = inferFromParams(P);
+    var name = plat ? plat.n : null;
     var F = findings(plat, host, path, P, myHost, !!req.bare, siteHost);
 
     var h = '';
@@ -2529,7 +2607,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<div class="dq-verdict dq-v-'+V[0]+'"><div class="vsym">'+V[1]+'</div>'
        + '<div><div class="vt">'+V[2]+'</div><div class="vd">'+V[3]+'</div></div></div>';
     if (metas) metas.push({ name: plat ? plat.n : 'Unidentified endpoint',
-      kind: plat ? plat.k : 'no known vendor matches this host', host: host, sev: V[0] });
+      kind: plat ? plat.k : 'no known vendor matches this host', host: host, sev: V[0],
+      findings: F.map(function(f){ return { sev: f[0], title: f[1] }; }) });
 
     h += '<div class="dq-sub">Findings</div>';
     if (!F.length) h += '<div class="dq-kind">Nothing to raise.</div>';
@@ -2624,6 +2703,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<div class="dq-sum-head">'
       + '<div class="dq-sum-t"><span class="dq-sum-num">'+metas.length+'</span> request'+(metas.length===1?'':'s')+' decoded</div>'
       + '<div class="dq-sum-chips">'+chips+'</div>'
+      + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button">Copy summary</button>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r, i){
@@ -2643,6 +2723,34 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<div class="dq-listlabel">All requests, grouped by platform'
       + '<span> &mdash; all collapsed; <span class="mono">#n</span> shows where each sat in your paste</span></div>';
     return h;
+  }
+
+  /* Plain text so it pastes cleanly into an email, Slack message or client report —
+     no markup to strip out. */
+  function buildTextSummary(metas){
+    var lines = ['Tag & tracking check — ' + metas.length + ' request' + (metas.length===1?'':'s') + ' decoded'];
+    metas.forEach(function(m, i){
+      lines.push('');
+      lines.push((i+1) + '. ' + m.name + (m.host ? ' (' + m.host + ')' : ''));
+      if (!m.findings || !m.findings.length) lines.push('   Nothing to raise.');
+      else m.findings.forEach(function(f){ lines.push('   [' + f.sev.toUpperCase() + '] ' + f.title); });
+    });
+    return lines.join('\n');
+  }
+  function copyText(text, onDone){
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+      document.body.removeChild(ta);
+      return ok;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ onDone(true); }, function(){ onDone(fallback()); });
+    } else {
+      onDone(fallback());
+    }
   }
 
   function run(){
@@ -2703,6 +2811,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       var anyClosed = Array.prototype.some.call(all, function(d){ return !d.open; });
       Array.prototype.forEach.call(all, function(d){ d.open = anyClosed; });
       exp.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+    });
+    var copyBtn = document.getElementById('dq-copy-summary');
+    if (copyBtn) copyBtn.addEventListener('click', function(){
+      var original = copyBtn.textContent;
+      copyText(buildTextSummary(metas), function(ok){
+        copyBtn.textContent = ok ? 'Copied' : 'Copy failed';
+        setTimeout(function(){ copyBtn.textContent = original; }, 1800);
+      });
     });
   }
 
