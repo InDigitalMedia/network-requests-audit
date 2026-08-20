@@ -83,17 +83,25 @@ Everything lives in `index.html`, organized as one `<style>` block followed by t
      severity, findings — each with its `detail` text too) onto `metas` — the same array
      `buildFindingsSummary()` reads for the "Copy findings summary" button, so extend that push if a
      future summary needs more per-request detail.
-   - `buildFindingsSummary(metas)` / `stripHtml()` / `redactPii()` — the plain-text export behind
-     "Copy findings summary": verdicts and their explanations only, never the raw parameter table.
-     `redactPii()` scrubs anything email- or phone-shaped out of the text as a defensive backstop —
-     no finding today embeds a raw PII value (the PII finding itself only ever names the field), but
-     this is the one output meant to leave the browser, so it doesn't rely on that holding forever.
-   - `buildFindingsPrintHtml(metas, clientName)` — the "Export client PDF" button's counterpart to
-     `buildFindingsSummary()`: same data, same `stripHtml()`/`redactPii()` pipeline, rendered into
-     `#dq-print-view` and shown via the `print-dq-only` class (same pattern as the "Your setup"
-     tab's `#ft-print-view` / `print-ft-only`, kept as a separate id/class pair so the two export
-     flows can't collide) immediately before `window.print()`. Reads `#ft-client` if set, so a
-     client name entered on "Your setup" carries over to this report's header for free.
+   - `buildFindingsSummary(metas, filterLabel, totalCount)` / `stripHtml()` / `redactPii()` — the
+     plain-text export behind "Copy findings summary": verdicts and their explanations only, never
+     the raw parameter table. `redactPii()` scrubs anything email- or phone-shaped out of the text
+     as a defensive backstop — no finding today embeds a raw PII value (the PII finding itself only
+     ever names the field), but this is the one output meant to leave the browser, so it doesn't
+     rely on that holding forever. `filterLabel`/`totalCount` are only for the header line ("showing
+     N of TOTAL, filtered: LABEL") — the caller passes `filteredMetas()` as `metas` itself.
+   - `buildFindingsPrintHtml(metas, clientName, filterLabel, totalCount)` — the "Export client PDF"
+     button's counterpart to `buildFindingsSummary()`: same data, same filtering, same
+     `stripHtml()`/`redactPii()` pipeline, rendered into `#dq-print-view` and shown via the
+     `print-dq-only` class (same pattern as the "Your setup" tab's `#ft-print-view` /
+     `print-ft-only`, kept as a separate id/class pair so the two export flows can't collide)
+     immediately before `window.print()`. Reads `#ft-client` if set, so a client name entered on
+     "Your setup" carries over to this report's header for free.
+   - `activeFilter` / `filteredMetas()` / `applyFilter()` — a single active filter, either
+     `{type:'sev', value:'red'|'amber'|'green'}` (the summary's severity chips) or `{type:'plat',
+     value:<platform name>}` (the summary's per-platform rows — these filter now, they used to
+     scroll/anchor to the group). `filteredMetas()` is what both export functions above read, so
+     exporting always reflects whatever is currently filtered on screen, not the full paste.
    - The bottom of the script wires up the Decode tab's textarea input, the "Expand all" control, and
      the parameter table rendering.
 
