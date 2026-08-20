@@ -194,6 +194,31 @@ remain open.
   gating regex - a real tag literally named `custom` (rare but possible) would silently skip its
   dedup warning. **Not done** - very low probability, flagged for completeness only.
 
+## 2026-08-20 (later pass): bookmarklet popup restyled to match the site
+
+The "Check tracking" bookmarklet's floating results panel (injected on third-party pages) had its
+own stark black/white/hard-shadow look — 2px black borders, a `box-shadow:8px 8px 0 #00ADCD` hard
+offset, black header bar, black-bordered buttons — unrelated to the actual site's navy/cyan, soft
+rounded, soft-shadow visual language.
+
+- [x] **Restyled to match `index.html`'s design tokens**, hardcoded as inline styles since the
+  bookmarklet can't reach the page's stylesheet (and, deliberately, doesn't load a webfont or make
+  any external request either — matches the "zero external requests" principle already in place):
+  navy header (`#262453`, same as `--navy`/`.id-badge`/active tab fills) with rounded top corners,
+  soft elevated shadow instead of the hard offset one, 6-8px border-radius throughout, muted grey
+  (`#6a7282`) uppercase group labels matching `.id-label`/`.lbl`'s letter-spacing (0.12em), and
+  action buttons matching `.id-btn`'s convention exactly (uppercase, 0.09em letter-spacing, navy
+  solid primary / white-with-border secondary). The "Record payloads" button also now gets a cyan
+  (`#00adcd`) accent treatment while armed, echoing the site's accent-color usage for active states.
+  System font stack kept as-is (no custom font load, for the same reason there's no external
+  request anywhere else in the bookmarklet).
+  **Process:** edited `bookmarklet.source.js` (the readable reference), re-minified it with `terser`
+  rather than hand-minifying, verified the terser output byte-behaviourally identical to the edited
+  source with the same jsdom harness used previously, then re-encoded the result into index.html's
+  `BM` string and verified *that* matches too. Also rendered the popup in an actual headless
+  Chromium (via Playwright, installed ad hoc for this) and screenshotted it against the real site's
+  header for a direct visual comparison, rather than reasoning about the CSS blind.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

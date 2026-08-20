@@ -105,7 +105,7 @@
   var d = document.getElementById('__idtag'); // remove any panel left over from a previous click
   d && d.parentNode.removeChild(d);
   var s = document.createElement('div'); // s: the floating results panel itself.
-  s.id = '__idtag', s.setAttribute('style', 'all:initial;position:fixed;top:14px;right:14px;width:430px;max-height:86vh;overflow:auto;z-index:2147483647;background:#fff;color:#000;border:2px solid #000;box-shadow:8px 8px 0 #00ADCD;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;line-height:1.5;');
+  s.id = '__idtag', s.setAttribute('style', 'all:initial;position:fixed;top:14px;right:14px;width:430px;max-height:86vh;overflow:auto;z-index:2147483647;background:#fff;color:#101828;border:1px solid #e5e4e4;border-radius:8px;box-shadow:0 12px 32px rgba(16,24,40,.22),0 2px 6px rgba(16,24,40,.10);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:12px;line-height:1.55;');
   var l = a.filter(function(t) { // l: hits that matched a named platform (i.e. real tracking events).
       return t.t
     }),
@@ -113,22 +113,22 @@
       return t.b
     }),
     g = a.length - l.length, // g: count of "supporting file" hits (matched the broad pattern but no named platform).
-    u = '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#000;color:#fff;"><strong style="font-size:12px;letter-spacing:.04em;text-transform:uppercase;">' + (a.length ? l.length + ' tracking event' + (1 === l.length ? '' : 's') + (g ? ' &middot; ' + g + ' supporting file' + (1 === g ? '' : 's') : '') : 'Nothing found') + '</strong><span id="__idx" style="cursor:pointer;font-weight:700;padding:0 4px;">&times;</span></div>',
+    u = '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:#262453;color:#fff;border-radius:7px 7px 0 0;"><strong style="font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">' + (a.length ? l.length + ' tracking event' + (1 === l.length ? '' : 's') + (g ? ' &middot; ' + g + ' supporting file' + (1 === g ? '' : 's') : '') : 'Nothing found') + '</strong><span id="__idx" style="cursor:pointer;font-weight:700;font-size:15px;line-height:1;padding:2px 6px;border-radius:4px;">&times;</span></div>',
     m = ''; // u/m: the panel's header HTML and body HTML, concatenated into the panel below.
   if (a.length) {
     var f = ''; // f: last-seen platform label, used to only print a new group heading when it changes.
     m += '<div style="padding:4px 0;">', a.forEach(function(t) {
-      t.v !== f && (f = t.v, m += '<div style="padding:7px 12px 3px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-top:1px solid #e5e4e4;">' + t.v + '</div>');
+      t.v !== f && (f = t.v, m += '<div style="padding:9px 14px 4px;font-weight:700;font-size:10.5px;color:#6a7282;text-transform:uppercase;letter-spacing:.12em;border-top:1px solid #e5e4e4;">' + t.v + '</div>');
       var e = t.u.length > 96 ? t.u.slice(0, 96) + '…' : t.u; // e: this hit's URL, truncated for display.
-      m += '<div style="padding:2px 12px 5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:#3a3a38;word-break:break-all;">' + e.replace(/[<>&]/g, function(t) {
+      m += '<div style="padding:2px 14px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:#364153;word-break:break-all;">' + e.replace(/[<>&]/g, function(t) {
         return {
           '<': '&lt;',
           '>': '&gt;',
           '&': '&amp;'
         } [t]
       }) + '</div>'
-    }), m += '</div>', m += '<div style="padding:10px 12px;border-top:2px solid #000;"><button id="__idc" style="all:initial;font-family:inherit;cursor:pointer;border:2px solid #000;background:#000;color:#fff;font-weight:700;font-size:12px;padding:7px 12px;">Copy all for the decoder</button><button id="__idr" style="all:initial;font-family:inherit;cursor:pointer;border:2px solid #000;background:#fff;color:#000;font-weight:700;font-size:12px;padding:7px 12px;margin-left:6px;">' + (window.__idtagArmed ? 'Recording&hellip;' : 'Record payloads') + '</button><div id="__idm" style="margin-top:7px;color:#6e6c66;font-size:11px">' + (p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy.' : window.__idtagArmed ? 'Recording. Repeat the action, then click the bookmark again.' : 'TikTok and Snapchat hide their data in a POST body. Use <strong>Record payloads</strong> to capture it.') + '</div></div>'
-  } else m = '<div style="padding:12px;"><strong>Nothing found.</strong><br><br>Likely reasons, in order:<br>1. An ad blocker is stopping the requests.<br>2. You have not accepted the cookie banner yet.<br>3. This page has no tracking on it.<br><br>Reload and click the bookmark again before deciding.</div>';
+    }), m += '</div>', m += '<div style="padding:12px 14px;border-top:1px solid #e5e4e4;"><button id="__idc" style="all:initial;font-family:inherit;cursor:pointer;border:1px solid #262453;border-radius:4px;background:#262453;color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;box-shadow:0 1px 3px rgba(16,24,40,.16);">Copy all for the decoder</button><button id="__idr" style="all:initial;font-family:inherit;cursor:pointer;' + (window.__idtagArmed ? 'border:1px solid #00adcd;color:#00adcd;' : 'border:1px solid #d1d5dc;color:#364153;') + 'border-radius:4px;background:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;margin-left:8px;">' + (window.__idtagArmed ? 'Recording&hellip;' : 'Record payloads') + '</button><div id="__idm" style="margin-top:8px;color:#6a7282;font-size:11px;line-height:1.5;">' + (p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy.' : window.__idtagArmed ? 'Recording. Repeat the action, then click the bookmark again.' : 'TikTok and Snapchat hide their data in a POST body. Use <strong>Record payloads</strong> to capture it.') + '</div></div>'
+  } else m = '<div style="padding:16px 14px;color:#101828;"><strong>Nothing found.</strong><br><br>Likely reasons, in order:<br>1. An ad blocker is stopping the requests.<br>2. You have not accepted the cookie banner yet.<br>3. This page has no tracking on it.<br><br>Reload and click the bookmark again before deciding.</div>';
   s.innerHTML = u + m, document.documentElement.appendChild(s), document.getElementById('__idx').onclick = function() {
     s.parentNode.removeChild(s)
   };
