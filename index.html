@@ -2935,7 +2935,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
        + '<div><div class="vt">'+V[2]+'</div><div class="vd">'+V[3]+'</div></div></div>';
     if (metas) metas.push({ name: plat ? plat.n : 'Unidentified endpoint',
       kind: plat ? plat.k : 'no known vendor matches this host', host: host, sev: V[0],
-      findings: F.map(function(f){ return { sev: f[0], title: f[1], ignored: false }; }) });
+      findings: F.map(function(f){ return { sev: f[0], title: f[1], detail: f[2], ignored: false }; }) });
 
     h += '<div class="dq-sub">Findings</div>';
     if (!F.length) h += '<div class="dq-kind">Nothing to raise.</div>';
@@ -3009,12 +3009,16 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (s === 'red') return n === 1 ? 'needs attention' : 'need attention';
     return s === 'amber' ? 'to look at' : 'healthy';
   }
+  function computeTally(metas){
+    var tally = { red:0, amber:0, green:0 };
+    metas.forEach(function(m){ tally[m.sev] = (tally[m.sev] || 0) + 1; });
+    return tally;
+  }
 
   function renderSummary(metas, order){
     if (!metas.length) return '';
-    var byPlat = {}, tally = { red:0, amber:0, green:0 };
+    var byPlat = {}, tally = computeTally(metas);
     metas.forEach(function(m){
-      tally[m.sev] = (tally[m.sev] || 0) + 1;
       var k = m.name;
       if (!byPlat[k]) byPlat[k] = { name:m.name, kind:m.kind, n:0, worst:'green', hosts:{} };
       byPlat[k].n++;
@@ -3032,7 +3036,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<div class="dq-sum-head">'
       + '<div class="dq-sum-t"><span class="dq-sum-num">'+metas.length+'</span> request'+(metas.length===1?'':'s')+' decoded</div>'
       + '<div class="dq-sum-chips">'+chips+'</div>'
-      + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button">Copy summary</button>'
+      + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button" title="Verdicts and their business-impact explanations only - no raw parameters, no visitor data.">Copy findings summary</button>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r, i){
@@ -3054,16 +3058,55 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return h;
   }
 
-  /* Plain text so it pastes cleanly into an email, Slack message or client report -
-     no markup to strip out. */
-  function buildTextSummary(metas){
+  /* ---------- findings summary: plain text for pasting into a ticket, Slack message or
+     client email - verdicts and their business-impact explanations, never the raw parameter
+     dump, and never an actual PII value even where a finding is about one. ---------- */
+  var FINDSEV_ORDER = { fail:0, warn:1, info:2, pass:3 };
+  var EMAIL_SCRUB_RE = /[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}/g;
+  var PHONE_SCRUB_RE = /\+?\d[\d\s().-]{7,}\d/g;
+
+  /* Findings can carry inline markup (<span class="mono">, <strong>) - parsed through a
+     detached element rather than a hand-rolled tag-stripper so entities decode correctly too.
+     Never appended to the document, so nothing in it can load or run. */
+  function stripHtml(html){
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  /* Defence in depth: no finding today embeds a raw PII value (email/phone fields are only
+     ever referenced by name - see "Personal data appears to be sent unhashed" in findings()) -
+     but this summary is the one thing meant to leave the building, so it scrubs anything
+     email- or phone-shaped out of the text anyway rather than trusting that to hold forever. */
+  function redactPii(text){
+    text = text.replace(EMAIL_SCRUB_RE, '[redacted]');
+    text = text.replace(PHONE_SCRUB_RE, function(m){
+      var digits = m.replace(/[^\d]/g, '');
+      return (digits.length >= 9 && digits.length <= 15) ? '[redacted]' : m;
+    });
+    return text;
+  }
+
+  function buildFindingsSummary(metas){
+    var tally = computeTally(metas);
     var lines = ['Tag & tracking check - ' + metas.length + ' request' + (metas.length===1?'':'s') + ' decoded'];
+    var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
+      .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
+    if (tallyBits.length) lines.push(tallyBits.join(', '));
     metas.forEach(function(m, i){
       lines.push('');
       lines.push((i+1) + '. ' + m.name + (m.host ? ' (' + m.host + ')' : ''));
-      if (!m.findings || !m.findings.length) lines.push('   Nothing to raise.');
-      else m.findings.forEach(function(f){ lines.push('   [' + f.sev.toUpperCase() + ']' + (f.ignored ? ' (ignored)' : '') + ' ' + f.title); });
+      var shown = (m.findings || []).filter(function(f){ return !f.ignored; })
+        .sort(function(a,b){ return FINDSEV_ORDER[a.sev] - FINDSEV_ORDER[b.sev]; });
+      if (!shown.length) { lines.push('   Nothing to raise.'); return; }
+      shown.forEach(function(f){
+        var label = (SEV[f.sev] && SEV[f.sev][1]) || f.sev.toUpperCase();
+        var detail = f.detail ? stripHtml(f.detail) : '';
+        lines.push(redactPii('   [' + label + '] ' + f.title + (detail ? ' - ' + detail : '')));
+      });
     });
+    lines.push('');
+    lines.push('No visitor data is included above - any field that can carry personal data (email, phone, user identifiers, unhashed values) is named but its value is never shown.');
     return lines.join('\n');
   }
   function copyText(text, onDone){
@@ -3234,7 +3277,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     if ((b = e.target.closest('#dq-copy-summary'))) {
       var original = b.textContent;
-      copyText(buildTextSummary(metas), function(ok){
+      copyText(buildFindingsSummary(metas), function(ok){
         b.textContent = ok ? 'Copied' : 'Copy failed';
         setTimeout(function(){ b.textContent = original; }, 1800);
       });
