@@ -249,6 +249,87 @@ client-side-only site came back with confusing amber warnings.
   `&mdash;` entity already checked for. Fixed; there is now nothing left encoding an em-dash in
   `index.html` or `bookmarklet.source.js` in any of the three forms found so far.
 
+## 2026-08-20 (third pass): dedup toggle gap, review workflow, and the bookmarklet popup
+
+A batch of user-reported feedback from actually running audits with the tool:
+
+- [x] **"No deduplication key" ignored the server-side-tracking toggle added earlier today.**
+  The toggle added in the previous pass only gated the "Went direct" finding - the four separate
+  dedup-key checks in `findings()` (the shared `DEDUP` map block, plus Pinterest, and Snapchat's two
+  transaction_id/client_dedup_id checks) still fired `warn`/`fail` unconditionally, so a site with the
+  toggle off (the default) still got a scary-looking warning for something that cannot double-count
+  without a server-side send to double-count against.
+  **Fix:** each of the four sites now checks `hasServerSide` first and, when off, pushes an `info`
+  finding titled "No matching server-side event to deduplicate against" instead - deliberately a
+  different lead-in than "No deduplication key", not just a different suffix, since `REMEDIES`
+  regexes are prefix-matched (`/^No deduplication key/` etc.) and would otherwise still attach a
+  "how to fix this" box to a finding that has nothing to fix. Same pattern as the "Went direct" fix.
+
+- [x] **Added an "Ignore" control on any warning/fail finding**, for findings a reviewer has looked at
+  and decided don't apply. Ignoring strikes the finding through, collapses its detail/fix box, and
+  live-recomputes that request's verdict banner, its collapsed-row badge, its platform group's
+  severity dot, and the top-level tally/chips - all without re-decoding. Implemented by hoisting
+  `metas`/`order` out of `run()` to module scope and adding `verdictFor()` (shared between the initial
+  render and the recompute), `recalcRequest()`, and `refreshAfterIgnore()`. All interaction handlers
+  (jump/ignore/filter/sum-row/expand/copy) were consolidated into one delegated listener on `#dq-out`,
+  bound once - `.dq-summary`'s re-render after an ignore needs no listener rebinding as a result.
+
+- [x] **Summary severity chips are now filters.** Clicking "N to look at" etc. hides every other
+  severity from both the platform-summary grid and the request list below (click again to clear).
+
+- [x] **Clicking a summary row no longer force-expands every card in that platform group** - it
+  scrolls to and flashes the group, same as before, but leaves cards collapsed; expanding is still a
+  deliberate per-card or "Expand all" action.
+
+- [x] **Bookmarklet popup: buttons could land on separate rows, and were easy to miss.** Two issues,
+  reproduced with a synthetic "hostile" host page (`button { display:block !important; width:100%
+  !important }` - seen on a handful of real CMS/framework themes) via a headless-Chromium check:
+  the CTA buttons sat at the *bottom* of the panel, below a potentially long scrolling list of
+  events, so on a page with many hits they scrolled out of view; and a host page's own `!important`
+  button reset could still override the (non-important) `all:initial` reset, breaking the row layout.
+  **Fix:** moved the two buttons + status note to sit directly under the header, before the event
+  list. Wrapped them in a `display:flex !important` container and re-asserted `display`, `width`,
+  `flex`, and `box-sizing` on each button with `!important` too (inline-style-`!important` outranks
+  stylesheet-`!important` of the same origin) - verified this specific combination is what was needed
+  by confirming the naive fix (container flex alone) still failed against a `width:100% !important`
+  button reset before adding the per-button overrides.
+  **Also clarified "Record payloads"**: the note now explains what it's for and the exact steps
+  (click it, repeat the action, click the bookmark again) before it's ever clicked, not only once
+  armed.
+  **Verified:** re-minified `bookmarklet.source.js` with `terser` and re-encoded `BM` in index.html
+  (no build step exists for this - see the file's own header for the by-hand process); confirmed with
+  Playwright against the hostile test page that both buttons land in the same row at the same `top`
+  offset, and against a real decode (Meta + GA4 paste) that "nothing found", "Record payloads", and
+  "Copy all for the decoder" all still behave correctly with no console errors.
+
+- [x] **Decode tab had no path back to the bookmarklet for someone who lands there first.** Added a
+  collapsed disclosure right under the intro paragraph ("Don't have anything to paste yet? Get
+  requests with the one-click checker") with the install → click → Copy all for the decoder → paste
+  steps, plus a button that jumps to the Check tab (`data-goto-tab`, wired once in the page-chrome
+  script - reusable by any future cross-tab link).
+
+## 2026-08-20 (fourth pass): a dated verification changelog on the Evidence panel
+
+- [x] **Added a "Verification changelog" table** to the end of the Evidence section (Specialist-only,
+  inheriting the section's existing `aud-spec` gating - no new visibility logic). Reuses the same
+  `.tbl-scroll > table.id-table.id-table--text` component every other reference table on the page
+  already uses, with a new `id-table--v` width modifier (Date/Endpoint-claim/Outcome/Note, same
+  pattern as the existing `--p`/`--d`/`--f` variants) and one new badge color, `.ev--x` (amber, reuses
+  `--warn-line`) for a "Corrected" outcome alongside the existing green "Confirmed" (`.ev--c`) and red
+  "Unverified" (`.ev--u`). Seeded with the nine corrections/confirmations already described in the
+  section's own prose (TikTok endpoint, Reddit config host, Meta `external_id`, tag gateway `/gtm`,
+  `em=tv.1~em.e1`, `x-ga-gcs`, sGTM GA4 client's extra paths, `/g/collect` returning 204, and the
+  undocumented `region1.analytics.google.com` host), all dated 14 Aug 2026 per the user's call - the
+  page only gives day-level precision for the first three via the footer's "14 August 2026"; the
+  other six are only dated "August 2026" in the prose, so that date was a judgment call rather than
+  something the source text stated outright.
+  **Verified:** all three `<script>` blocks still parse; the table is invisible with the Marketing
+  toggle and visible with Specialist (headless Chromium); renders correctly in both light and dark
+  theme; no console errors. At a 375px viewport the page body overflows horizontally by the same
+  amount it already does on the unmodified file's other `.tbl-scroll` tables (confirmed by testing
+  the original file's sGTM panel at the same width) - this is the pre-existing, already-listed
+  "table horizontal scroll on narrow viewports" Low item above, not something this change introduces.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

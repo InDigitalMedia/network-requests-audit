@@ -116,6 +116,26 @@
     u = '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:#262453;color:#fff;border-radius:7px 7px 0 0;"><strong style="font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">' + (a.length ? l.length + ' tracking event' + (1 === l.length ? '' : 's') + (g ? ' &middot; ' + g + ' supporting file' + (1 === g ? '' : 's') : '') : 'Nothing found') + '</strong><span id="__idx" style="cursor:pointer;font-weight:700;font-size:15px;line-height:1;padding:2px 6px;border-radius:4px;">&times;</span></div>',
     m = ''; // u/m: the panel's header HTML and body HTML, concatenated into the panel below.
   if (a.length) {
+    // The two action buttons sit directly under the header, before the (possibly long)
+    // list of events, so they are never scrolled out of view. Some host pages carry a
+    // global `button { display:block !important; width:100% !important }` reset (common
+    // in a few CMS/framework themes) which used to stack these two on separate rows -
+    // an inline style with !important outranks that (inline + !important beats any
+    // stylesheet !important of the same origin), so both the wrapper's display:flex and
+    // each button's own width/display are re-asserted with !important below.
+    var y = window.__idtagArmed, // y: is a "Record payloads" capture currently armed?
+      note = p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy below.' : y ? 'Recording - repeat the action you are checking (e.g. resubmit the form), then click this bookmark again on the same page to capture it.' : 'TikTok and Snapchat put their event data in a POST body, which this panel cannot see until you capture it: click <strong>Record payloads</strong>, repeat the action you are checking, then click this bookmark again on the same page.';
+    // BTN: the layout properties a hostile `button{...!important}` reset would fight over -
+    // re-asserted with !important on every button below, on top of the plain (non-important)
+    // all:initial that resets everything else. Kept as one constant so both buttons stay identical.
+    var BTN = 'display:inline-flex!important;align-items:center!important;width:auto!important;max-width:none!important;flex:0 0 auto!important;box-sizing:border-box!important;';
+    m += '<div style="padding:12px 14px;border-top:1px solid #e5e4e4;">'
+      + '<div style="display:flex!important;flex-wrap:wrap;gap:8px;align-items:center;">'
+      + '<button id="__idc" style="all:initial;' + BTN + 'font-family:inherit;cursor:pointer;border:1px solid #262453;border-radius:4px;background:#262453;color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;box-shadow:0 1px 3px rgba(16,24,40,.16);">Copy all for the decoder</button>'
+      + '<button id="__idr" style="all:initial;' + BTN + 'font-family:inherit;cursor:pointer;' + (y ? 'border:1px solid #00adcd;color:#00adcd;' : 'border:1px solid #d1d5dc;color:#364153;') + 'border-radius:4px;background:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;">' + (y ? 'Recording&hellip;' : 'Record payloads') + '</button>'
+      + '</div>'
+      + '<div id="__idm" style="margin-top:8px;color:#6a7282;font-size:11px;line-height:1.5;">' + note + '</div>'
+      + '</div>';
     var f = ''; // f: last-seen platform label, used to only print a new group heading when it changes.
     m += '<div style="padding:4px 0;">', a.forEach(function(t) {
       t.v !== f && (f = t.v, m += '<div style="padding:9px 14px 4px;font-weight:700;font-size:10.5px;color:#6a7282;text-transform:uppercase;letter-spacing:.12em;border-top:1px solid #e5e4e4;">' + t.v + '</div>');
@@ -127,7 +147,7 @@
           '&': '&amp;'
         } [t]
       }) + '</div>'
-    }), m += '</div>', m += '<div style="padding:12px 14px;border-top:1px solid #e5e4e4;"><button id="__idc" style="all:initial;font-family:inherit;cursor:pointer;border:1px solid #262453;border-radius:4px;background:#262453;color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;box-shadow:0 1px 3px rgba(16,24,40,.16);">Copy all for the decoder</button><button id="__idr" style="all:initial;font-family:inherit;cursor:pointer;' + (window.__idtagArmed ? 'border:1px solid #00adcd;color:#00adcd;' : 'border:1px solid #d1d5dc;color:#364153;') + 'border-radius:4px;background:#fff;font-weight:700;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;padding:7px 14px;margin-left:8px;">' + (window.__idtagArmed ? 'Recording&hellip;' : 'Record payloads') + '</button><div id="__idm" style="margin-top:8px;color:#6a7282;font-size:11px;line-height:1.5;">' + (p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy.' : window.__idtagArmed ? 'Recording. Repeat the action, then click the bookmark again.' : 'TikTok and Snapchat hide their data in a POST body. Use <strong>Record payloads</strong> to capture it.') + '</div></div>'
+    }), m += '</div>'
   } else m = '<div style="padding:16px 14px;color:#101828;"><strong>Nothing found.</strong><br><br>Likely reasons, in order:<br>1. An ad blocker is stopping the requests.<br>2. You have not accepted the cookie banner yet.<br>3. This page has no tracking on it.<br><br>Reload and click the bookmark again before deciding.</div>';
   s.innerHTML = u + m, document.documentElement.appendChild(s), document.getElementById('__idx').onclick = function() {
     s.parentNode.removeChild(s)

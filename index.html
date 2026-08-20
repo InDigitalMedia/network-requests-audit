@@ -280,6 +280,9 @@ p.tight { margin:7px 0 0; }
 .id-table--d td:nth-child(2), .id-table--d th:nth-child(2) { width:22%; }
 .id-table--f td:first-child, .id-table--f th:first-child { width:31%; }
 .id-table--f td:nth-child(2), .id-table--f th:nth-child(2) { width:30%; }
+.id-table--v td:first-child, .id-table--v th:first-child { width:11%; white-space:nowrap; }
+.id-table--v td:nth-child(2), .id-table--v th:nth-child(2) { width:24%; }
+.id-table--v td:nth-child(3), .id-table--v th:nth-child(3) { width:13%; }
 
 /* evidence pills */
 .ev {
@@ -288,6 +291,7 @@ p.tight { margin:7px 0 0; }
   margin-left:6px; vertical-align:1px;
 }
 .ev--c { color:var(--good-line); } .ev--u { color:var(--bad-line); }
+.ev--x { color:var(--warn-line); }
 .ev--l { color:var(--ink-3); background:var(--muted); border-color:var(--grid); }
 a.ev { text-decoration:none; cursor:pointer; }
 a.ev:hover, a.ev:focus-visible { background:currentColor; }
@@ -438,8 +442,18 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-warn .dq-sym, .dq-warn .dq-sev { color:var(--warn); }
 .dq-info .dq-sym, .dq-info .dq-sev { color:var(--ink-3); }
 .dq-sev { font-size:10px; font-weight:700; letter-spacing:0.12em; }
-.dq-ft { font-size:14px; font-weight:700; color:var(--ink-1); }
+.dq-ft { font-size:14px; font-weight:700; color:var(--ink-1); flex:1 1 auto; }
 .dq-fd { font-size:13px; line-height:1.6; color:var(--ink-2); margin-top:3px; }
+.dq-ignore {
+  flex:0 0 auto; margin-left:auto; border:1px solid var(--line); background:var(--surface-1); color:var(--ink-3);
+  font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:3px 9px;
+  border-radius:var(--r-pill); cursor:pointer;
+}
+.dq-ignore:hover { background:var(--ghost); color:var(--ink-1); }
+.dq-find.dq-ignored { opacity:0.55; }
+.dq-find.dq-ignored .dq-ft { text-decoration:line-through; }
+.dq-find.dq-ignored .dq-ignore { border-color:var(--accent); color:var(--accent-txt); background:var(--wash); }
+.dq-find.dq-ignored .dq-fd, .dq-find.dq-ignored .fix { display:none; }
 .dq-params td { font-size:12.5px; }
 .dq-params td:first-child, .dq-params th:first-child { width:15%; }
 .dq-params td:nth-child(2), .dq-params th:nth-child(2) { width:27%; }
@@ -493,6 +507,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .rq-v-green { color:var(--good); background:var(--good-bg); border-color:var(--good-line); }
 .rq-v-amber { color:var(--warn); background:var(--warn-bg); border-color:var(--warn-line); }
 .rq-v-red   { color:var(--bad);  background:var(--bad-bg);  border-color:var(--bad-line); }
+.dq-filter-chip { cursor:pointer; transition:box-shadow .12s, opacity .12s; }
+.dq-filter-chip:hover { opacity:0.8; }
+.dq-filter-chip.is-active { box-shadow:0 0 0 2px currentColor inset; }
+.dq-sum-chips:has(.is-active) .dq-filter-chip:not(.is-active) { opacity:0.45; }
 
 /* ---- summary of everything pasted: tinted, labelled, distinct from the cards ---- */
 .dq-summary {
@@ -1544,6 +1562,20 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Decode a request</h2></div>
         <p class="lede">Paste a request from the Network tab and this will name it, translate every parameter into plain English, and raise findings. Works with a full URL, a <strong>Copy as cURL</strong> paste, a bare query string, a POST body, or several lines at once. In DevTools: right-click the request → <strong>Copy</strong> → <strong>Copy as cURL</strong>, which includes the request body. Most platforms put the event name and every parameter in the address, so a plain URL is enough; TikTok and Snapchat put theirs in the body, so those need cURL or the bookmarklet's record mode.</p>
+
+        <details class="fix">
+          <summary>Don't have anything to paste yet? Get requests with the one-click checker</summary>
+          <div class="fix-b">
+            <ol class="fix-steps">
+              <li>Go to the <strong>Check</strong> tab and drag the black <strong>Check tracking</strong> button onto your browser's bookmarks bar - if dragging doesn't work, use <strong>Copy the code</strong> there instead and paste it into a new bookmark you create yourself.</li>
+              <li>Open the page you want to check (accept the cookie banner first) and click that bookmark. A panel appears on the page listing what fired.</li>
+              <li>Click <strong>Copy all for the decoder</strong> in that panel, then come back here and paste into the box below.</li>
+              <li>If the panel names TikTok or Snapchat but shows no detail, click <strong>Record payloads</strong> in the panel, repeat whatever action you're checking, then click the bookmark again before copying - those two send their data in a way this needs an extra step to see.</li>
+            </ol>
+            <button class="id-btn" type="button" data-goto-tab="check">Go to the Check tab</button>
+          </div>
+        </details>
+
         <div class="id-note" style="margin-top:14px">
           <div class="tag">Nothing leaves your browser</div>
           All parsing happens locally in this page - there is no server, no network call and no logging. That matters because real requests contain visitor data, and pasting them into an online decoder would itself be a data protection problem.
@@ -1589,6 +1621,70 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     <p class="lede">A second verification pass in August 2026 corrected four claims that appeared in an earlier draft of this document: the tag gateway does <strong>not</strong> forbid <span class="mono">/gtm</span> as a reserved path - Google suggests it - and does not always need two paths; <span class="mono">em=tv.1~em.e1</span> signals a <strong>data</strong> problem, not a transmission failure; <span class="mono">x-ga-gcs</span> is an internal event-data parameter, not an HTTP header; and the sGTM GA4 client claims <span class="mono">/collect</span> and <span class="mono">/j/collect</span> as well as <span class="mono">/g/collect</span>. The same pass found that <span class="mono">/g/collect</span> returns 204 in practice while Google's own page says 200, and that <span class="mono">region1.analytics.google.com</span> - the host EU browser hits actually use - is undocumented.</p>
     <p class="lede">Known gaps where no citable source exists at all: the <span class="mono">en</span> parameter, any surviving Universal Analytics parameter spec, the Measurement Protocol client's default path in sGTM, which domain serves <span class="mono">sw_iframe.html</span> per product, and any decoder for <span class="mono">gtm=</span>. Four Google URLs that used to cover this ground are now dead or redirecting, and have been deliberately left uncited.</p>
     <p class="lede">Do not publish as fact: the role of <span class="mono">ccm/collect</span> or its parameters; the purpose of <span class="mono">gtag/destination</span>, <span class="mono">googletagmanager.com/a?</span>, <span class="mono">1p-user-list</span> or <span class="mono">ads/ga-audiences</span>; any decoding of <span class="mono">gtm=</span>; the <span class="mono">dma_cps</span> letter mapping; or GA4 region hosts above <span class="mono">region1</span>.</p>
+
+    <h3 class="sub3">Verification changelog</h3>
+    <p class="lede">What was checked, when, and what came of it - kept for the same reason the badges above exist, so confidence in a claim is traceable rather than assumed. Newest first.</p>
+    <div class="tbl-scroll">
+    <table class="id-table id-table--text id-table--v">
+      <thead><tr><th>Date</th><th>Endpoint / claim checked</th><th>Outcome</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td>TikTok pixel endpoint</td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>Real endpoint is <span class="mono">/api/v2/pixel</span>; <span class="mono">/api/v2/pixel/track</span> does not exist.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td>Reddit config host</td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>Real host is <span class="mono">pixel-config.reddit.com</span>, not <span class="mono">conversions-config.reddit.com</span>.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td>Meta <span class="mono">external_id</span></td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>Sent as <span class="mono">ud[external_id]</span>, not as a top-level parameter.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td>Tag gateway reserved-path rule</td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td><span class="mono">/gtm</span> is not forbidden - Google suggests it - and two paths are not always required.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td><span class="mono">em=tv.1~em.e1</span></td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>Signals a data problem, not a transmission failure.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td><span class="mono">x-ga-gcs</span></td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>An internal event-data parameter, not an HTTP header.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td>sGTM GA4 client activation paths</td>
+          <td><span class="ev ev--x">▲ Corrected</span></td>
+          <td>Also claims <span class="mono">/collect</span> and <span class="mono">/j/collect</span>, not only <span class="mono">/g/collect</span>.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td><span class="mono">/g/collect</span> response code</td>
+          <td><span class="ev ev--c">● Confirmed</span></td>
+          <td>Returns 204 in live tests; Google's own troubleshooting page states 200.</td>
+        </tr>
+        <tr>
+          <td class="mono">14 Aug 2026</td>
+          <td><span class="mono">region1.analytics.google.com</span></td>
+          <td><span class="ev ev--c">● Confirmed</span></td>
+          <td>The real EU browser host, verified live; still undocumented by Google.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
   </section>
 
   <footer class="id-footer">
@@ -1719,10 +1815,17 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   });
   q.addEventListener('input', function(){ render(); writeHash(); });
 
+  document.querySelectorAll('[data-goto-tab]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var t = document.querySelector('#tabs button[data-p="'+b.dataset.gotoTab+'"]');
+      if (t) t.click();
+    });
+  });
+
   /* ---- bookmarklet: set via JS so the javascript: URL needs no HTML escaping ----
      Readable, commented source for this string lives in bookmarklet.source.js -
      see that file's header for how to regenerate this line after editing it. */
-  var BM = "javascript:!function()%7Bvar%20t%3D%5B%5B%2Fgoogle-analytics%5C.com%7Canalytics%5C.google%5C.com%2Fi%2C%22Google%20Analytics%22%5D%2C%5B%2Fstats%5C.g%5C.doubleclick%5C.net%2Fi%2C%22GA%20ads%20domain%22%5D%2C%5B%2Fgoogleadservices%5C.com%7Cgoogleads%5C.g%5C.doubleclick%5C.net%7Cgoogle%5C.%5Ba-z.%5D%2B%5C%2F(ccm%5C%2F)%3Fcollect%7Cpagead%5C%2F1p-user-list%2Fi%2C%22Google%20Ads%22%5D%2C%5B%2Fddm%5C%2Factivity%7Cactivityi%7Cfls%5C.doubleclick%2Fi%2C%22Floodlight%22%5D%2C%5B%2Ffacebook%5C.com%5C%2Ftr%7Cconnect%5C.facebook%5C.net%2Fi%2C%22Meta%22%5D%2C%5B%2Fpx%5C.ads%5C.linkedin%5C.com%7Csnap%5C.licdn%5C.com%2Fi%2C%22LinkedIn%22%5D%2C%5B%2Fanalytics%5C.tiktok%5C.com%7Ctiktokw%5C.us%2Fi%2C%22TikTok%22%5D%2C%5B%2Fbat%5C.bing%5C.(com%7Cnet)%2Fi%2C%22Microsoft%20Ads%22%5D%2C%5B%2Falb%5C.reddit%5C.com%7Credditstatic%7Cpixel-config%5C.reddit%2Fi%2C%22Reddit%22%5D%2C%5B%2Fct%5C.pinterest%5C.com%7Cs%5C.pinimg%5C.com%5C%2Fct%2Fi%2C%22Pinterest%22%5D%2C%5B%2Ftr6%3F%5C.snapchat%5C.com%7Csc-static%5C.net%2Fi%2C%22Snapchat%22%5D%2C%5B%2Fanalytics%5C.(twitter%7Cx)%5C.com%7Ct%5C.co%5C%2Fi%5C%2Fadsct%7Cads-twitter%2Fi%2C%22X%20(Twitter)%22%5D%2C%5B%2Fgoogletagmanager%5C.com%2Fi%2C%22Tag%20Manager%22%5D%2C%5B%2Fonetrust%7Ccookielaw%7Ccookiebot%7Ccookieyes%7Cusercentrics%7Ctrustarc%7Cosano%2Fi%2C%22Cookie%20banner%22%5D%5D%2Ce%3D%2F(%5C%2Fcollect%7C%5B%3F%26%5Dtid%3DG-%7C%5B%3F%26%5Dv%3D2%26%7C%5C%2Ftr%5C%2F%3F%5C%3F%7C%5C%2Fadsct%7Capi%5C%2Fv2%5C%2Fpixel%7C%5C%2Faction(p)%3F%5C%2F0%7C%5B%3F%26%5Dti%3D%5Cd%7Crp%5C.gif%7Cct%5C.pinterest%5C.com%5C%2F(v3%7Cuser)%7Csnapchat%5C.com%5C%2F(p%7Ccm)%7Cviewthroughconversion%7Cpagead%5C%2Fconversion%7Cddm%5C%2Factivity%7Cactivityi%7C1p-user-list%7Cga-audiences%7Cpx%5C.ads%5C.linkedin%5C.com)%2Fi%2Co%3Dlocation.hostname.split(%22.%22)%2Ci%3D%2F%5C.(co%7Ccom%7Corg%7Cnet%7Cgov%7Cac%7Cedu%7Csch%7Cltd%7Cplc%7Cme)%5C.%5Ba-z%5D%7B2%2C3%7D%24%2Fi.test(location.hostname)%3Fo.slice(-3).join(%22.%22)%3Ao.slice(-2).join(%22.%22)%2Cn%3D%7B%7D%2Ca%3D%5B%5D%2Cr%3D%5B%5D%3Btry%7Br%3Dperformance.getEntriesByType(%22resource%22)%7Dcatch(t)%7B%7Dr.forEach(function(o)%7Bvar%20r%3Do.name%3Bif(r%26%260%3D%3D%3Dr.indexOf(%22http%22))%7Bvar%20d%3D%22%22%3Btry%7Bd%3Dnew%20URL(r).hostname%7Dcatch(t)%7Breturn%7Dfor(var%20c%3De.test(r)%2Cs%3Dnull%2Cl%3D0%3Bl%3Ct.length%3Bl%2B%2B)if(t%5Bl%5D%5B0%5D.test(r))%7Bs%3Dt%5Bl%5D%5B1%5D%3Bbreak%7Dvar%20p%3D-1!%3D%3Dd.indexOf(i)%3B!s%26%26p%26%26c%26%26(s%3D%22Your%20own%20domain%22)%2C(s%7C%7Cc)%26%26(s%7C%7C(s%3D%22Possible%20tracking%22)%2Cn%5Br%5D%7C%7C(n%5Br%5D%3D1%2Ca.push(%7Bv%3As%2Cu%3Ar%2Chost%3Ad%2Ct%3Ac%7D)))%7D%7D)%2Ca.sort(function(t%2Ce)%7Breturn%20e.t-t.t%7C%7Ct.v.localeCompare(e.v)%7D)%3Bvar%20d%3Dwindow.__idtagRec%2Cc%3Ddocument.getElementById(%22__idtag%22)%3Bc%26%26c.parentNode.removeChild(c)%3Bvar%20s%3Ddocument.createElement(%22div%22)%3Bs.id%3D%22__idtag%22%2Cs.setAttribute(%22style%22%2C'all%3Ainitial%3Bposition%3Afixed%3Btop%3A14px%3Bright%3A14px%3Bwidth%3A430px%3Bmax-height%3A86vh%3Boverflow%3Aauto%3Bz-index%3A2147483647%3Bbackground%3A%23fff%3Bcolor%3A%23101828%3Bborder%3A1px%20solid%20%23e5e4e4%3Bborder-radius%3A8px%3Bbox-shadow%3A0%2012px%2032px%20rgba(16%2C24%2C40%2C.22)%2C0%202px%206px%20rgba(16%2C24%2C40%2C.10)%3Bfont-family%3A-apple-system%2CBlinkMacSystemFont%2C%22Segoe%20UI%22%2CRoboto%2C%22Helvetica%20Neue%22%2CArial%2Csans-serif%3Bfont-size%3A12px%3Bline-height%3A1.55%3B')%3Bvar%20l%3Da.filter(function(t)%7Breturn%20t.t%7D)%2Cp%3D(d%7C%7C%5B%5D).filter(function(t)%7Breturn%20t.b%7D)%2Cg%3Da.length-l.length%2Cu%3D'%3Cdiv%20style%3D%22display%3Aflex%3Bjustify-content%3Aspace-between%3Balign-items%3Acenter%3Bpadding%3A11px%2014px%3Bbackground%3A%23262453%3Bcolor%3A%23fff%3Bborder-radius%3A7px%207px%200%200%3B%22%3E%3Cstrong%20style%3D%22font-size%3A11.5px%3Bfont-weight%3A700%3Bletter-spacing%3A.08em%3Btext-transform%3Auppercase%3B%22%3E'%2B(a.length%3Fl.length%2B%22%20tracking%20event%22%2B(1%3D%3D%3Dl.length%3F%22%22%3A%22s%22)%2B(g%3F%22%20%26middot%3B%20%22%2Bg%2B%22%20supporting%20file%22%2B(1%3D%3D%3Dg%3F%22%22%3A%22s%22)%3A%22%22)%3A%22Nothing%20found%22)%2B'%3C%2Fstrong%3E%3Cspan%20id%3D%22__idx%22%20style%3D%22cursor%3Apointer%3Bfont-weight%3A700%3Bfont-size%3A15px%3Bline-height%3A1%3Bpadding%3A2px%206px%3Bborder-radius%3A4px%3B%22%3E%26times%3B%3C%2Fspan%3E%3C%2Fdiv%3E'%2Cm%3D%22%22%3Bif(a.length)%7Bvar%20h%3D%22%22%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A4px%200%3B%22%3E'%2Ca.forEach(function(t)%7Bt.v!%3D%3Dh%26%26(h%3Dt.v%2Cm%2B%3D'%3Cdiv%20style%3D%22padding%3A9px%2014px%204px%3Bfont-weight%3A700%3Bfont-size%3A10.5px%3Bcolor%3A%236a7282%3Btext-transform%3Auppercase%3Bletter-spacing%3A.12em%3Bborder-top%3A1px%20solid%20%23e5e4e4%3B%22%3E'%2Bt.v%2B%22%3C%2Fdiv%3E%22)%3Bvar%20e%3Dt.u.length%3E96%3Ft.u.slice(0%2C96)%2B%22%E2%80%A6%22%3At.u%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A2px%2014px%208px%3Bfont-family%3Aui-monospace%2CSFMono-Regular%2CMenlo%2CConsolas%2Cmonospace%3Bfont-size%3A10.5px%3Bcolor%3A%23364153%3Bword-break%3Abreak-all%3B%22%3E'%2Be.replace(%2F%5B%3C%3E%26%5D%2Fg%2Cfunction(t)%7Breturn%7B%22%3C%22%3A%22%26lt%3B%22%2C%22%3E%22%3A%22%26gt%3B%22%2C%22%26%22%3A%22%26amp%3B%22%7D%5Bt%5D%7D)%2B%22%3C%2Fdiv%3E%22%7D)%2Cm%2B%3D%22%3C%2Fdiv%3E%22%2Cm%2B%3D'%3Cdiv%20style%3D%22padding%3A12px%2014px%3Bborder-top%3A1px%20solid%20%23e5e4e4%3B%22%3E%3Cbutton%20id%3D%22__idc%22%20style%3D%22all%3Ainitial%3Bfont-family%3Ainherit%3Bcursor%3Apointer%3Bborder%3A1px%20solid%20%23262453%3Bborder-radius%3A4px%3Bbackground%3A%23262453%3Bcolor%3A%23fff%3Bfont-weight%3A700%3Bfont-size%3A11.5px%3Bletter-spacing%3A.09em%3Btext-transform%3Auppercase%3Bpadding%3A7px%2014px%3Bbox-shadow%3A0%201px%203px%20rgba(16%2C24%2C40%2C.16)%3B%22%3ECopy%20all%20for%20the%20decoder%3C%2Fbutton%3E%3Cbutton%20id%3D%22__idr%22%20style%3D%22all%3Ainitial%3Bfont-family%3Ainherit%3Bcursor%3Apointer%3B'%2B(window.__idtagArmed%3F%22border%3A1px%20solid%20%2300adcd%3Bcolor%3A%2300adcd%3B%22%3A%22border%3A1px%20solid%20%23d1d5dc%3Bcolor%3A%23364153%3B%22)%2B'border-radius%3A4px%3Bbackground%3A%23fff%3Bfont-weight%3A700%3Bfont-size%3A11.5px%3Bletter-spacing%3A.09em%3Btext-transform%3Auppercase%3Bpadding%3A7px%2014px%3Bmargin-left%3A8px%3B%22%3E'%2B(window.__idtagArmed%3F%22Recording%26hellip%3B%22%3A%22Record%20payloads%22)%2B'%3C%2Fbutton%3E%3Cdiv%20id%3D%22__idm%22%20style%3D%22margin-top%3A8px%3Bcolor%3A%236a7282%3Bfont-size%3A11px%3Bline-height%3A1.5%3B%22%3E'%2B(p.length%3F%22%3Cstrong%3E%22%2Bp.length%2B%22%20payload%22%2B(1%3D%3D%3Dp.length%3F%22%22%3A%22s%22)%2B%22%20recorded%3C%2Fstrong%3E%2C%20included%20in%20the%20copy.%22%3Awindow.__idtagArmed%3F%22Recording.%20Repeat%20the%20action%2C%20then%20click%20the%20bookmark%20again.%22%3A%22TikTok%20and%20Snapchat%20hide%20their%20data%20in%20a%20POST%20body.%20Use%20%3Cstrong%3ERecord%20payloads%3C%2Fstrong%3E%20to%20capture%20it.%22)%2B%22%3C%2Fdiv%3E%3C%2Fdiv%3E%22%7Delse%20m%3D'%3Cdiv%20style%3D%22padding%3A16px%2014px%3Bcolor%3A%23101828%3B%22%3E%3Cstrong%3ENothing%20found.%3C%2Fstrong%3E%3Cbr%3E%3Cbr%3ELikely%20reasons%2C%20in%20order%3A%3Cbr%3E1.%20An%20ad%20blocker%20is%20stopping%20the%20requests.%3Cbr%3E2.%20You%20have%20not%20accepted%20the%20cookie%20banner%20yet.%3Cbr%3E3.%20This%20page%20has%20no%20tracking%20on%20it.%3Cbr%3E%3Cbr%3EReload%20and%20click%20the%20bookmark%20again%20before%20deciding.%3C%2Fdiv%3E'%3Bs.innerHTML%3Du%2Bm%2Cdocument.documentElement.appendChild(s)%2Cdocument.getElementById(%22__idx%22).onclick%3Dfunction()%7Bs.parentNode.removeChild(s)%7D%3Bvar%20f%3Ddocument.getElementById(%22__idr%22)%3Bf%26%26(f.onclick%3Dfunction()%7B!function()%7Bif(!window.__idtagArmed)%7Bwindow.__idtagArmed%3D1%2Cwindow.__idtagRec%3Dd%3Dwindow.__idtagRec%7C%7C%5B%5D%3Bvar%20t%3Dfunction(t%2Co%2Ci)%7Btry%7Bif(!o)return%3Btry%7Bo%3Dnew%20URL(String(o)%2Clocation.href).href%7Dcatch(t)%7Bo%3DString(o)%7Dif(!e.test(o))return%3Bvar%20n%3Dnull%3Bif(%22string%22%3D%3Dtypeof%20i)n%3Di%3Belse%20if(i%26%26%22undefined%22!%3Dtypeof%20URLSearchParams%26%26i%20instanceof%20URLSearchParams)n%3Di.toString()%3Belse%20if(i%26%26%22undefined%22!%3Dtypeof%20FormData%26%26i%20instanceof%20FormData)%7Bvar%20a%3D%5B%5D%3Bi.forEach(function(t%2Ce)%7Ba.push(encodeURIComponent(e)%2B%22%3D%22%2BencodeURIComponent(t))%7D)%2Cn%3Da.join(%22%26%22)%7Dd.push(%7Bm%3At%2Cu%3AString(o)%2Cb%3An%7D)%7Dcatch(t)%7B%7D%7D%2Co%3Dwindow.fetch%3Bo%26%26(window.fetch%3Dfunction(e%2Ci)%7Btry%7Bt(i%26%26i.method%7C%7C%22GET%22%2Ce%26%26e.url%7C%7Ce%2Ci%26%26i.body)%7Dcatch(t)%7B%7Dreturn%20o.apply(this%2Carguments)%7D)%3Bvar%20i%3Dnavigator.sendBeacon%3Bi%26%26(navigator.sendBeacon%3Dfunction(e%2Co)%7Breturn%20t(%22BEACON%22%2Ce%2Co)%2Ci.apply(navigator%2Carguments)%7D)%3Bvar%20n%3DXMLHttpRequest.prototype.open%2Ca%3DXMLHttpRequest.prototype.send%3BXMLHttpRequest.prototype.open%3Dfunction(t%2Ce)%7Breturn%20this.__m%3Dt%2Cthis.__u%3De%2Cn.apply(this%2Carguments)%7D%2CXMLHttpRequest.prototype.send%3Dfunction(e)%7Breturn%20t(this.__m%7C%7C%22GET%22%2Cthis.__u%2Ce)%2Ca.apply(this%2Carguments)%7D%7D%7D()%2Cf.innerHTML%3D%22Recording%26hellip%3B%22%2Cdocument.getElementById(%22__idm%22).innerHTML%3D%22%3Cstrong%3ERecording.%3C%2Fstrong%3E%20Repeat%20the%20action%2C%20then%20click%20the%20bookmark%20again.%20Only%20works%20for%20actions%20that%20stay%20on%20this%20page.%22%7D)%3Bvar%20y%3Ddocument.getElementById(%22__idc%22)%3By%26%26(y.onclick%3Dfunction()%7Bvar%20t%3Dl.length%3Fl%3Aa%2Ce%3D%5B%22%23%20site%3A%20%22%2Blocation.hostname%5D%2Co%3D%7B%7D%3Bp.forEach(function(t)%7Bo%5Bt.u%5D%3D1%2Ce.push(%22curl%20'%22%2Bt.u%2B%22'%20--data-raw%20'%22%2BString(t.b).replace(%2F'%2Fg%2C%22'%5C%5C''%22)%2B%22'%22)%7D)%2Ct.forEach(function(t)%7Bo%5Bt.u%5D%7C%7Ce.push(t.u)%7D)%3Bvar%20i%3De.join(%22%5Cn%22)%2Cn%3Ddocument.createElement(%22textarea%22)%3Bn.value%3Di%2Cn.setAttribute(%22style%22%2C%22position%3Afixed%3Bopacity%3A0%3B%22)%2Cdocument.documentElement.appendChild(n)%2Cn.select()%3Bvar%20r%3D!1%3Btry%7Br%3Ddocument.execCommand(%22copy%22)%7Dcatch(t)%7B%7Dn.parentNode.removeChild(n)%2Cdocument.getElementById(%22__idm%22).innerHTML%3Dr%3F%22%3Cstrong%3ECopied%20%22%2Bt.length%2B%22%20request%22%2B(1%3D%3D%3Dt.length%3F%22%22%3A%22s%22)%2B%22.%3C%2Fstrong%3E%20Paste%20into%20the%20Decode%20tab.%22%3A%22Could%20not%20copy%20automatically%20-%20select%20the%20addresses%20above%20and%20copy%20them%20manually.%22%7D)%7D()%3B";
+  var BM = "javascript:!function()%7Bvar%20t%3D%5B%5B%2Fgoogle-analytics%5C.com%7Canalytics%5C.google%5C.com%2Fi%2C%22Google%20Analytics%22%5D%2C%5B%2Fstats%5C.g%5C.doubleclick%5C.net%2Fi%2C%22GA%20ads%20domain%22%5D%2C%5B%2Fgoogleadservices%5C.com%7Cgoogleads%5C.g%5C.doubleclick%5C.net%7Cgoogle%5C.%5Ba-z.%5D%2B%5C%2F(ccm%5C%2F)%3Fcollect%7Cpagead%5C%2F1p-user-list%2Fi%2C%22Google%20Ads%22%5D%2C%5B%2Fddm%5C%2Factivity%7Cactivityi%7Cfls%5C.doubleclick%2Fi%2C%22Floodlight%22%5D%2C%5B%2Ffacebook%5C.com%5C%2Ftr%7Cconnect%5C.facebook%5C.net%2Fi%2C%22Meta%22%5D%2C%5B%2Fpx%5C.ads%5C.linkedin%5C.com%7Csnap%5C.licdn%5C.com%2Fi%2C%22LinkedIn%22%5D%2C%5B%2Fanalytics%5C.tiktok%5C.com%7Ctiktokw%5C.us%2Fi%2C%22TikTok%22%5D%2C%5B%2Fbat%5C.bing%5C.(com%7Cnet)%2Fi%2C%22Microsoft%20Ads%22%5D%2C%5B%2Falb%5C.reddit%5C.com%7Credditstatic%7Cpixel-config%5C.reddit%2Fi%2C%22Reddit%22%5D%2C%5B%2Fct%5C.pinterest%5C.com%7Cs%5C.pinimg%5C.com%5C%2Fct%2Fi%2C%22Pinterest%22%5D%2C%5B%2Ftr6%3F%5C.snapchat%5C.com%7Csc-static%5C.net%2Fi%2C%22Snapchat%22%5D%2C%5B%2Fanalytics%5C.(twitter%7Cx)%5C.com%7Ct%5C.co%5C%2Fi%5C%2Fadsct%7Cads-twitter%2Fi%2C%22X%20(Twitter)%22%5D%2C%5B%2Fgoogletagmanager%5C.com%2Fi%2C%22Tag%20Manager%22%5D%2C%5B%2Fonetrust%7Ccookielaw%7Ccookiebot%7Ccookieyes%7Cusercentrics%7Ctrustarc%7Cosano%2Fi%2C%22Cookie%20banner%22%5D%5D%2Ce%3D%2F(%5C%2Fcollect%7C%5B%3F%26%5Dtid%3DG-%7C%5B%3F%26%5Dv%3D2%26%7C%5C%2Ftr%5C%2F%3F%5C%3F%7C%5C%2Fadsct%7Capi%5C%2Fv2%5C%2Fpixel%7C%5C%2Faction(p)%3F%5C%2F0%7C%5B%3F%26%5Dti%3D%5Cd%7Crp%5C.gif%7Cct%5C.pinterest%5C.com%5C%2F(v3%7Cuser)%7Csnapchat%5C.com%5C%2F(p%7Ccm)%7Cviewthroughconversion%7Cpagead%5C%2Fconversion%7Cddm%5C%2Factivity%7Cactivityi%7C1p-user-list%7Cga-audiences%7Cpx%5C.ads%5C.linkedin%5C.com)%2Fi%2Co%3Dlocation.hostname.split(%22.%22)%2Ci%3D%2F%5C.(co%7Ccom%7Corg%7Cnet%7Cgov%7Cac%7Cedu%7Csch%7Cltd%7Cplc%7Cme)%5C.%5Ba-z%5D%7B2%2C3%7D%24%2Fi.test(location.hostname)%3Fo.slice(-3).join(%22.%22)%3Ao.slice(-2).join(%22.%22)%2Cn%3D%7B%7D%2Ca%3D%5B%5D%2Cr%3D%5B%5D%3Btry%7Br%3Dperformance.getEntriesByType(%22resource%22)%7Dcatch(t)%7B%7Dr.forEach(function(o)%7Bvar%20r%3Do.name%3Bif(r%26%260%3D%3D%3Dr.indexOf(%22http%22))%7Bvar%20c%3D%22%22%3Btry%7Bc%3Dnew%20URL(r).hostname%7Dcatch(t)%7Breturn%7Dfor(var%20d%3De.test(r)%2Cs%3Dnull%2Cl%3D0%3Bl%3Ct.length%3Bl%2B%2B)if(t%5Bl%5D%5B0%5D.test(r))%7Bs%3Dt%5Bl%5D%5B1%5D%3Bbreak%7Dvar%20p%3D-1!%3D%3Dc.indexOf(i)%3B!s%26%26p%26%26d%26%26(s%3D%22Your%20own%20domain%22)%2C(s%7C%7Cd)%26%26(s%7C%7C(s%3D%22Possible%20tracking%22)%2Cn%5Br%5D%7C%7C(n%5Br%5D%3D1%2Ca.push(%7Bv%3As%2Cu%3Ar%2Chost%3Ac%2Ct%3Ad%7D)))%7D%7D)%2Ca.sort(function(t%2Ce)%7Breturn%20e.t-t.t%7C%7Ct.v.localeCompare(e.v)%7D)%3Bvar%20c%3Dwindow.__idtagRec%2Cd%3Ddocument.getElementById(%22__idtag%22)%3Bd%26%26d.parentNode.removeChild(d)%3Bvar%20s%3Ddocument.createElement(%22div%22)%3Bs.id%3D%22__idtag%22%2Cs.setAttribute(%22style%22%2C'all%3Ainitial%3Bposition%3Afixed%3Btop%3A14px%3Bright%3A14px%3Bwidth%3A430px%3Bmax-height%3A86vh%3Boverflow%3Aauto%3Bz-index%3A2147483647%3Bbackground%3A%23fff%3Bcolor%3A%23101828%3Bborder%3A1px%20solid%20%23e5e4e4%3Bborder-radius%3A8px%3Bbox-shadow%3A0%2012px%2032px%20rgba(16%2C24%2C40%2C.22)%2C0%202px%206px%20rgba(16%2C24%2C40%2C.10)%3Bfont-family%3A-apple-system%2CBlinkMacSystemFont%2C%22Segoe%20UI%22%2CRoboto%2C%22Helvetica%20Neue%22%2CArial%2Csans-serif%3Bfont-size%3A12px%3Bline-height%3A1.55%3B')%3Bvar%20l%3Da.filter(function(t)%7Breturn%20t.t%7D)%2Cp%3D(c%7C%7C%5B%5D).filter(function(t)%7Breturn%20t.b%7D)%2Cg%3Da.length-l.length%2Cu%3D'%3Cdiv%20style%3D%22display%3Aflex%3Bjustify-content%3Aspace-between%3Balign-items%3Acenter%3Bpadding%3A11px%2014px%3Bbackground%3A%23262453%3Bcolor%3A%23fff%3Bborder-radius%3A7px%207px%200%200%3B%22%3E%3Cstrong%20style%3D%22font-size%3A11.5px%3Bfont-weight%3A700%3Bletter-spacing%3A.08em%3Btext-transform%3Auppercase%3B%22%3E'%2B(a.length%3Fl.length%2B%22%20tracking%20event%22%2B(1%3D%3D%3Dl.length%3F%22%22%3A%22s%22)%2B(g%3F%22%20%26middot%3B%20%22%2Bg%2B%22%20supporting%20file%22%2B(1%3D%3D%3Dg%3F%22%22%3A%22s%22)%3A%22%22)%3A%22Nothing%20found%22)%2B'%3C%2Fstrong%3E%3Cspan%20id%3D%22__idx%22%20style%3D%22cursor%3Apointer%3Bfont-weight%3A700%3Bfont-size%3A15px%3Bline-height%3A1%3Bpadding%3A2px%206px%3Bborder-radius%3A4px%3B%22%3E%26times%3B%3C%2Fspan%3E%3C%2Fdiv%3E'%2Cm%3D%22%22%3Bif(a.length)%7Bvar%20h%3Dwindow.__idtagArmed%2Cf%3Dp.length%3F%22%3Cstrong%3E%22%2Bp.length%2B%22%20payload%22%2B(1%3D%3D%3Dp.length%3F%22%22%3A%22s%22)%2B%22%20recorded%3C%2Fstrong%3E%2C%20included%20in%20the%20copy%20below.%22%3Ah%3F%22Recording%20-%20repeat%20the%20action%20you%20are%20checking%20(e.g.%20resubmit%20the%20form)%2C%20then%20click%20this%20bookmark%20again%20on%20the%20same%20page%20to%20capture%20it.%22%3A%22TikTok%20and%20Snapchat%20put%20their%20event%20data%20in%20a%20POST%20body%2C%20which%20this%20panel%20cannot%20see%20until%20you%20capture%20it%3A%20click%20%3Cstrong%3ERecord%20payloads%3C%2Fstrong%3E%2C%20repeat%20the%20action%20you%20are%20checking%2C%20then%20click%20this%20bookmark%20again%20on%20the%20same%20page.%22%2Cx%3D%22display%3Ainline-flex!important%3Balign-items%3Acenter!important%3Bwidth%3Aauto!important%3Bmax-width%3Anone!important%3Bflex%3A0%200%20auto!important%3Bbox-sizing%3Aborder-box!important%3B%22%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A12px%2014px%3Bborder-top%3A1px%20solid%20%23e5e4e4%3B%22%3E%3Cdiv%20style%3D%22display%3Aflex!important%3Bflex-wrap%3Awrap%3Bgap%3A8px%3Balign-items%3Acenter%3B%22%3E%3Cbutton%20id%3D%22__idc%22%20style%3D%22all%3Ainitial%3B'%2Bx%2B'font-family%3Ainherit%3Bcursor%3Apointer%3Bborder%3A1px%20solid%20%23262453%3Bborder-radius%3A4px%3Bbackground%3A%23262453%3Bcolor%3A%23fff%3Bfont-weight%3A700%3Bfont-size%3A11.5px%3Bletter-spacing%3A.09em%3Btext-transform%3Auppercase%3Bpadding%3A7px%2014px%3Bbox-shadow%3A0%201px%203px%20rgba(16%2C24%2C40%2C.16)%3B%22%3ECopy%20all%20for%20the%20decoder%3C%2Fbutton%3E%3Cbutton%20id%3D%22__idr%22%20style%3D%22all%3Ainitial%3B'%2Bx%2B%22font-family%3Ainherit%3Bcursor%3Apointer%3B%22%2B(h%3F%22border%3A1px%20solid%20%2300adcd%3Bcolor%3A%2300adcd%3B%22%3A%22border%3A1px%20solid%20%23d1d5dc%3Bcolor%3A%23364153%3B%22)%2B'border-radius%3A4px%3Bbackground%3A%23fff%3Bfont-weight%3A700%3Bfont-size%3A11.5px%3Bletter-spacing%3A.09em%3Btext-transform%3Auppercase%3Bpadding%3A7px%2014px%3B%22%3E'%2B(h%3F%22Recording%26hellip%3B%22%3A%22Record%20payloads%22)%2B'%3C%2Fbutton%3E%3C%2Fdiv%3E%3Cdiv%20id%3D%22__idm%22%20style%3D%22margin-top%3A8px%3Bcolor%3A%236a7282%3Bfont-size%3A11px%3Bline-height%3A1.5%3B%22%3E'%2Bf%2B%22%3C%2Fdiv%3E%3C%2Fdiv%3E%22%3Bvar%20y%3D%22%22%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A4px%200%3B%22%3E'%2Ca.forEach(function(t)%7Bt.v!%3D%3Dy%26%26(y%3Dt.v%2Cm%2B%3D'%3Cdiv%20style%3D%22padding%3A9px%2014px%204px%3Bfont-weight%3A700%3Bfont-size%3A10.5px%3Bcolor%3A%236a7282%3Btext-transform%3Auppercase%3Bletter-spacing%3A.12em%3Bborder-top%3A1px%20solid%20%23e5e4e4%3B%22%3E'%2Bt.v%2B%22%3C%2Fdiv%3E%22)%3Bvar%20e%3Dt.u.length%3E96%3Ft.u.slice(0%2C96)%2B%22%E2%80%A6%22%3At.u%3Bm%2B%3D'%3Cdiv%20style%3D%22padding%3A2px%2014px%208px%3Bfont-family%3Aui-monospace%2CSFMono-Regular%2CMenlo%2CConsolas%2Cmonospace%3Bfont-size%3A10.5px%3Bcolor%3A%23364153%3Bword-break%3Abreak-all%3B%22%3E'%2Be.replace(%2F%5B%3C%3E%26%5D%2Fg%2Cfunction(t)%7Breturn%7B%22%3C%22%3A%22%26lt%3B%22%2C%22%3E%22%3A%22%26gt%3B%22%2C%22%26%22%3A%22%26amp%3B%22%7D%5Bt%5D%7D)%2B%22%3C%2Fdiv%3E%22%7D)%2Cm%2B%3D%22%3C%2Fdiv%3E%22%7Delse%20m%3D'%3Cdiv%20style%3D%22padding%3A16px%2014px%3Bcolor%3A%23101828%3B%22%3E%3Cstrong%3ENothing%20found.%3C%2Fstrong%3E%3Cbr%3E%3Cbr%3ELikely%20reasons%2C%20in%20order%3A%3Cbr%3E1.%20An%20ad%20blocker%20is%20stopping%20the%20requests.%3Cbr%3E2.%20You%20have%20not%20accepted%20the%20cookie%20banner%20yet.%3Cbr%3E3.%20This%20page%20has%20no%20tracking%20on%20it.%3Cbr%3E%3Cbr%3EReload%20and%20click%20the%20bookmark%20again%20before%20deciding.%3C%2Fdiv%3E'%3Bs.innerHTML%3Du%2Bm%2Cdocument.documentElement.appendChild(s)%2Cdocument.getElementById(%22__idx%22).onclick%3Dfunction()%7Bs.parentNode.removeChild(s)%7D%3Bvar%20v%3Ddocument.getElementById(%22__idr%22)%3Bv%26%26(v.onclick%3Dfunction()%7B!function()%7Bif(!window.__idtagArmed)%7Bwindow.__idtagArmed%3D1%2Cwindow.__idtagRec%3Dc%3Dwindow.__idtagRec%7C%7C%5B%5D%3Bvar%20t%3Dfunction(t%2Co%2Ci)%7Btry%7Bif(!o)return%3Btry%7Bo%3Dnew%20URL(String(o)%2Clocation.href).href%7Dcatch(t)%7Bo%3DString(o)%7Dif(!e.test(o))return%3Bvar%20n%3Dnull%3Bif(%22string%22%3D%3Dtypeof%20i)n%3Di%3Belse%20if(i%26%26%22undefined%22!%3Dtypeof%20URLSearchParams%26%26i%20instanceof%20URLSearchParams)n%3Di.toString()%3Belse%20if(i%26%26%22undefined%22!%3Dtypeof%20FormData%26%26i%20instanceof%20FormData)%7Bvar%20a%3D%5B%5D%3Bi.forEach(function(t%2Ce)%7Ba.push(encodeURIComponent(e)%2B%22%3D%22%2BencodeURIComponent(t))%7D)%2Cn%3Da.join(%22%26%22)%7Dc.push(%7Bm%3At%2Cu%3AString(o)%2Cb%3An%7D)%7Dcatch(t)%7B%7D%7D%2Co%3Dwindow.fetch%3Bo%26%26(window.fetch%3Dfunction(e%2Ci)%7Btry%7Bt(i%26%26i.method%7C%7C%22GET%22%2Ce%26%26e.url%7C%7Ce%2Ci%26%26i.body)%7Dcatch(t)%7B%7Dreturn%20o.apply(this%2Carguments)%7D)%3Bvar%20i%3Dnavigator.sendBeacon%3Bi%26%26(navigator.sendBeacon%3Dfunction(e%2Co)%7Breturn%20t(%22BEACON%22%2Ce%2Co)%2Ci.apply(navigator%2Carguments)%7D)%3Bvar%20n%3DXMLHttpRequest.prototype.open%2Ca%3DXMLHttpRequest.prototype.send%3BXMLHttpRequest.prototype.open%3Dfunction(t%2Ce)%7Breturn%20this.__m%3Dt%2Cthis.__u%3De%2Cn.apply(this%2Carguments)%7D%2CXMLHttpRequest.prototype.send%3Dfunction(e)%7Breturn%20t(this.__m%7C%7C%22GET%22%2Cthis.__u%2Ce)%2Ca.apply(this%2Carguments)%7D%7D%7D()%2Cv.innerHTML%3D%22Recording%26hellip%3B%22%2Cdocument.getElementById(%22__idm%22).innerHTML%3D%22%3Cstrong%3ERecording.%3C%2Fstrong%3E%20Repeat%20the%20action%2C%20then%20click%20the%20bookmark%20again.%20Only%20works%20for%20actions%20that%20stay%20on%20this%20page.%22%7D)%2C(h%3Ddocument.getElementById(%22__idc%22))%26%26(h.onclick%3Dfunction()%7Bvar%20t%3Dl.length%3Fl%3Aa%2Ce%3D%5B%22%23%20site%3A%20%22%2Blocation.hostname%5D%2Co%3D%7B%7D%3Bp.forEach(function(t)%7Bo%5Bt.u%5D%3D1%2Ce.push(%22curl%20'%22%2Bt.u%2B%22'%20--data-raw%20'%22%2BString(t.b).replace(%2F'%2Fg%2C%22'%5C%5C''%22)%2B%22'%22)%7D)%2Ct.forEach(function(t)%7Bo%5Bt.u%5D%7C%7Ce.push(t.u)%7D)%3Bvar%20i%3De.join(%22%5Cn%22)%2Cn%3Ddocument.createElement(%22textarea%22)%3Bn.value%3Di%2Cn.setAttribute(%22style%22%2C%22position%3Afixed%3Bopacity%3A0%3B%22)%2Cdocument.documentElement.appendChild(n)%2Cn.select()%3Bvar%20r%3D!1%3Btry%7Br%3Ddocument.execCommand(%22copy%22)%7Dcatch(t)%7B%7Dn.parentNode.removeChild(n)%2Cdocument.getElementById(%22__idm%22).innerHTML%3Dr%3F%22%3Cstrong%3ECopied%20%22%2Bt.length%2B%22%20request%22%2B(1%3D%3D%3Dt.length%3F%22%22%3A%22s%22)%2B%22.%3C%2Fstrong%3E%20Paste%20into%20the%20Decode%20tab.%22%3A%22Could%20not%20copy%20automatically%20-%20select%20the%20addresses%20above%20and%20copy%20them%20manually.%22%7D)%7D()%3B";
   var bml = document.getElementById('bm-link');
   if (bml) {
     bml.setAttribute('href', BM);
@@ -1817,6 +1920,9 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       if (OUT.innerHTML) run();
     });
   }
+  /* Shared state, read/written by both run() and the "Ignore"/filter handlers below -
+     kept live across those so ignoring a finding doesn't need a full re-decode. */
+  var metas = [], order = [], activeFilter = null;
 
   /* ---------- shared Google consent params ---------- */
   var CONSENT = {
@@ -2515,11 +2621,17 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       isConv = 'unknown';
     }
 
+    /* All dedup checks below only matter if this same action is also sent from a
+       server-side setup, since that is the only thing it could double-count against.
+       With the toggle off there is no second send to guard against, so these collapse
+       to a neutral note rather than a warning/fail - same treatment as "Went direct" above. */
     if (name && DEDUP[name] && isConv !== 'no') {
       var key = DEDUP[name][0];
       var alt = (name === 'TikTok') ? has('eventID') : false;
       if (absent(key) && !alt) {
-        if (isConv === 'yes') {
+        if (!hasServerSide) {
+          F.push(['info','No matching server-side event to deduplicate against','This event carries no '+key+'. That only matters once this same action is also sent from a server-side setup - and you have said this site does not have one, so there is nothing to act on. If that changes, tick "This site has server-side tracking set up" above.']);
+        } else if (isConv === 'yes') {
           F.push(['fail','No deduplication key ('+key+')', DEDUP[name][1]
             + ' This is a conversion event, so it is worth acting on - but only if you also send this same action from your server.']);
         } else {
@@ -2533,15 +2645,25 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     if (name === 'Pinterest' && isConv !== 'no') {
       if (!partial && !has('eventID') && !has('event_id') && !has('eid')) {
-        F.push([isConv === 'yes' ? 'fail' : 'warn','No deduplication key',
-          'Pinterest accepts eventID, event_id or eid and none is present. A matching Conversions API event would be double-counted.'
-          + (isConv === 'yes' ? '' : ' Only relevant if this event is a conversion you also send server-side.')]);
+        if (!hasServerSide) {
+          F.push(['info','No matching server-side event to deduplicate against','Pinterest accepts eventID, event_id or eid and none is present. That only matters once this same action is also sent from a server-side setup - and you have said this site does not have one, so there is nothing to act on.']);
+        } else {
+          F.push([isConv === 'yes' ? 'fail' : 'warn','No deduplication key',
+            'Pinterest accepts eventID, event_id or eid and none is present. A matching Conversions API event would be double-counted.'
+            + (isConv === 'yes' ? '' : ' Only relevant if this event is a conversion you also send server-side.')]);
+        }
       }
     }
     if (name === 'Snapchat') {
       var isPurchase = /purchase/i.test(get('event_type') || '');
-      if (isPurchase && absent('transaction_id')) F.push(['fail','Purchase without transaction_id','On Snap, purchase events deduplicate on transaction_id, not client_dedup_id. Without it this purchase will double-count against the Conversions API.']);
-      if (!isPurchase && has('event_type') && !has('client_dedup_id')) F.push(['warn','No client_dedup_id','Non-purchase Snap events deduplicate on client_dedup_id.']);
+      if (isPurchase && absent('transaction_id')) {
+        if (!hasServerSide) F.push(['info','No matching server-side event to deduplicate against','On Snap, purchase events deduplicate on transaction_id, not client_dedup_id, and this purchase carries neither. That only matters once this same purchase is also sent from a server-side setup - and you have said this site does not have one, so there is nothing to act on.']);
+        else F.push(['fail','Purchase without transaction_id','On Snap, purchase events deduplicate on transaction_id, not client_dedup_id. Without it this purchase will double-count against the Conversions API.']);
+      }
+      if (!isPurchase && has('event_type') && !has('client_dedup_id')) {
+        if (!hasServerSide) F.push(['info','No matching server-side event to deduplicate against','Non-purchase Snap events deduplicate on client_dedup_id, which is missing here. That only matters once this same event is also sent from a server-side setup - and you have said this site does not have one, so there is nothing to act on.']);
+        else F.push(['warn','No client_dedup_id','Non-purchase Snap events deduplicate on client_dedup_id.']);
+      }
     }
 
     /* Meta specifics */
@@ -2589,13 +2711,27 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   /* ---------- render ---------- */
   var SEV = {pass:['✓','PASS','dq-pass'], warn:['▲','WARNING','dq-warn'], fail:['✕','FAIL','dq-fail'], info:['·','NOTE','dq-info']};
   var CONF = {d:['Documented','dq-c-d'], p:['Practitioner','dq-c-p'], u:['Undocumented','dq-c-u']};
+  var SHORT = { red:'Needs attention', amber:'Look at this', green:'Healthy' };
+
+  /* Shared between the initial render and the "Ignore" recompute below, so both
+     produce the exact same verdict text from a list of (still-live) fail/warn titles. */
+  function verdictFor(failTitles, warnTitles){
+    if (failTitles.length) return ['red','✕','Needs attention',
+      'Something here will affect your reporting or your compliance position: <strong>' + failTitles[0].toLowerCase() + '</strong>'
+      + (failTitles.length>1 ? ', plus ' + (failTitles.length-1) + ' other issue' + (failTitles.length>2?'s':'') : '') + '. Open <strong>How to fix this</strong> under any finding below for the steps and the relevant documentation.'];
+    if (warnTitles.length) return ['amber','▲','Working, with something to look at',
+      'Nothing is broken, but one thing is worth understanding: <strong>' + warnTitles[0].toLowerCase() + '</strong>'
+      + (warnTitles.length>1 ? ', and ' + (warnTitles.length-1) + ' more' : '') + '. Often a deliberate choice with a trade-off rather than a fault - <strong>How to fix this</strong> explains which.'];
+    return ['green','✓','This looks healthy',
+      'Nothing to raise on this request. Remember this confirms what your website <em>sent</em> - not that the platform received it.'];
+  }
 
   function renderOne(req, i, myHost, metas, siteHost, hasServerSide){
     var u, err = null;
     try { u = new URL(req.url); } catch(e){ err = 'Could not parse that as a URL.'; }
     if (err) {
       if (metas) metas.push({name:'Unreadable', kind:'could not be parsed', sev:'red', findings:[]});
-      return '<details class="dq-req" open><summary><span class="rq-dot rq-red"></span>'
+      return '<details class="dq-req" data-idx="'+i+'" data-sev="red" open><summary><span class="rq-dot rq-red"></span>'
         + '<span class="rq-name">Unreadable request</span></summary>'
         + '<div class="dq-card"><div class="dq-err">'+err+'</div></div></details>';
     }
@@ -2618,29 +2754,25 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
 
     /* one headline verdict, so a non-specialist gets an answer before any detail */
-    var nFail = F.filter(function(f){ return f[0]==='fail'; });
-    var nWarn = F.filter(function(f){ return f[0]==='warn'; });
-    var V;
-    if (nFail.length) V = ['red','\u2715','Needs attention',
-      'Something here will affect your reporting or your compliance position: <strong>' + nFail[0][1].toLowerCase() + '</strong>'
-      + (nFail.length>1 ? ', plus ' + (nFail.length-1) + ' other issue' + (nFail.length>2?'s':'') : '') + '. Open <strong>How to fix this</strong> under any finding below for the steps and the relevant documentation.'];
-    else if (nWarn.length) V = ['amber','\u25B2','Working, with something to look at',
-      'Nothing is broken, but one thing is worth understanding: <strong>' + nWarn[0][1].toLowerCase() + '</strong>'
-      + (nWarn.length>1 ? ', and ' + (nWarn.length-1) + ' more' : '') + '. Often a deliberate choice with a trade-off rather than a fault - <strong>How to fix this</strong> explains which.'];
-    else V = ['green','\u2713','This looks healthy',
-      'Nothing to raise on this request. Remember this confirms what your website <em>sent</em> - not that the platform received it.'];
+    var V = verdictFor(
+      F.filter(function(f){ return f[0]==='fail'; }).map(function(f){ return f[1]; }),
+      F.filter(function(f){ return f[0]==='warn'; }).map(function(f){ return f[1]; })
+    );
     h += '<div class="dq-verdict dq-v-'+V[0]+'"><div class="vsym">'+V[1]+'</div>'
        + '<div><div class="vt">'+V[2]+'</div><div class="vd">'+V[3]+'</div></div></div>';
     if (metas) metas.push({ name: plat ? plat.n : 'Unidentified endpoint',
       kind: plat ? plat.k : 'no known vendor matches this host', host: host, sev: V[0],
-      findings: F.map(function(f){ return { sev: f[0], title: f[1] }; }) });
+      findings: F.map(function(f){ return { sev: f[0], title: f[1], ignored: false }; }) });
 
     h += '<div class="dq-sub">Findings</div>';
     if (!F.length) h += '<div class="dq-kind">Nothing to raise.</div>';
-    F.forEach(function(f){
+    F.forEach(function(f, fi){
       var s = SEV[f[0]];
-      h += '<div class="dq-find '+s[2]+'"><div class="dq-fh"><span class="dq-sym">'+s[0]+'</span><span class="dq-sev">'+s[1]+'</span>'
-        + '<span class="dq-ft">'+f[1]+'</span></div><div class="dq-fd">'+f[2]+'</div>'
+      var canIgnore = f[0] === 'warn' || f[0] === 'fail';
+      h += '<div class="dq-find '+s[2]+'" data-sev="'+f[0]+'" data-fi="'+fi+'"><div class="dq-fh"><span class="dq-sym">'+s[0]+'</span><span class="dq-sev">'+s[1]+'</span>'
+        + '<span class="dq-ft">'+f[1]+'</span>'
+        + (canIgnore ? '<button class="dq-ignore" type="button" title="Mark this finding as reviewed and not applicable - it will drop out of the verdict and summary above.">Ignore</button>' : '')
+        + '</div><div class="dq-fd">'+f[2]+'</div>'
         + fixHtml(remedyFor(f[0], f[1], name)) + '</div>';
     });
 
@@ -2671,13 +2803,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     h += '</details>';
     var openAttr = '';  /* everything starts collapsed; the summary is the way in */
-    var SHORT = { red:'Needs attention', amber:'Look at this', green:'Healthy' };
     var sumRow = '<summary><span class="rq-dot rq-'+V[0]+'"></span>'
       + '<span class="rq-idx">#'+(i+1)+'</span>'
       + '<span class="rq-name">'+ (plat ? esc(plat.n) : 'Unidentified endpoint') +'</span>'
       + '<span class="rq-host mono">'+ esc(req.bare ? '(pasted parameters)' : host) +'</span>'
       + '<span class="rq-v rq-v-'+V[0]+'">'+SHORT[V[0]]+'</span></summary>';
-    return '<details class="dq-req" data-plat="'+esc(plat ? plat.n : 'Unidentified endpoint')+'"'+openAttr+'>'
+    return '<details class="dq-req" data-plat="'+esc(plat ? plat.n : 'Unidentified endpoint')+'" data-idx="'+i+'" data-sev="'+V[0]+'"'+openAttr+'>'
       + sumRow + '<div class="dq-card">' + h + '</div></details>';
   }
 
@@ -2722,7 +2853,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       return (SEVRANK[a.worst] - SEVRANK[b.worst]) || (b.n - a.n) || a.name.localeCompare(b.name);
     });
     var chips = ['red','amber','green'].filter(function(s){ return tally[s]; })
-      .map(function(s){ return '<span class="rq-v rq-v-'+s+'">'+tally[s]+' '+sevLabel(s, tally[s])+'</span>'; }).join('');
+      .map(function(s){ return '<button type="button" class="rq-v rq-v-'+s+' dq-filter-chip'+(activeFilter===s?' is-active':'')+'" data-filter="'+s+'" title="Show only requests marked '+sevLabel(s, 2)+' - click again to clear">'+tally[s]+' '+sevLabel(s, tally[s])+'</button>'; }).join('');
     var h = '<div class="dq-summary">';
     h += '<div class="dq-sum-eyebrow">Summary of what you pasted</div>';
     h += '<div class="dq-sum-head">'
@@ -2733,7 +2864,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r, i){
       var hosts = Object.keys(r.hosts).filter(function(x){ return x && x !== '-'; });
-      h += '<button type="button" class="dq-sum-row" data-target="grp-'+i+'" data-plat="'+esc(r.name)+'">'
+      h += '<button type="button" class="dq-sum-row" data-target="grp-'+i+'" data-plat="'+esc(r.name)+'" data-worst="'+r.worst+'">'
         + '<span class="rq-dot rq-'+r.worst+'"></span>'
         + '<span class="dq-sum-n">'+esc(shortName(r.name))+'</span>'
         + '<span class="dq-sum-c">&times;'+r.n+'</span>'
@@ -2758,7 +2889,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       lines.push('');
       lines.push((i+1) + '. ' + m.name + (m.host ? ' (' + m.host + ')' : ''));
       if (!m.findings || !m.findings.length) lines.push('   Nothing to raise.');
-      else m.findings.forEach(function(f){ lines.push('   [' + f.sev.toUpperCase() + '] ' + f.title); });
+      else m.findings.forEach(function(f){ lines.push('   [' + f.sev.toUpperCase() + ']' + (f.ignored ? ' (ignored)' : '') + ' ' + f.title); });
     });
     return lines.join('\n');
   }
@@ -2784,14 +2915,15 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var sm = raw.match(/^#\s*site:\s*([a-z0-9.\-]+)/im);
     var siteHost = sm ? sm[1].toLowerCase() : null;
     var hasServerSide = !!(SSGTM && SSGTM.checked);
+    activeFilter = null;
     if (!raw) { OUT.innerHTML = ''; return; }
     var reqs = extract(raw);
     if (!reqs.length) { OUT.innerHTML = '<div class="dq-card"><div class="dq-err">Could not find a URL, query string or body in that. Paste the full request URL - in DevTools, right-click the request then Copy &rarr; Copy link address.</div></div>'; return; }
-    var metas = [], parts = [];
+    metas = []; var parts = [];
     reqs.slice(0, 12).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
 
     /* group by platform, ordered worst-first, so the summary works as a table of contents */
-    var groups = {}, order = [];
+    var groups = {}; order = [];
     metas.forEach(function(m, i){
       var k = m.name;
       if (!groups[k]) { groups[k] = { name:k, worst:m.sev, items:[] }; order.push(k); }
@@ -2813,40 +2945,129 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var html = renderSummary(metas, order) + cards;
     if (reqs.length > 12) html += '<div class="dq-count">Only the first 12 were decoded - paste fewer at a time to see the rest.</div>';
     OUT.innerHTML = html;
-    OUT.querySelectorAll('.dq-jump').forEach(function(b){
-      b.addEventListener('click', function(e){
-        e.preventDefault(); e.stopPropagation();
-        var t = document.querySelector('#tabs button[data-p="'+b.dataset.tab+'"]');
-        if (t) t.click();
-      });
+  }
+
+  /* ---------- interactions on already-rendered output: one delegated listener,
+     bound once, so re-rendering .dq-summary (after an Ignore toggle) needs no rebinding ---------- */
+  function applyFilter(){
+    OUT.querySelectorAll('.dq-filter-chip').forEach(function(c){
+      c.classList.toggle('is-active', c.dataset.filter === activeFilter);
+    });
+    OUT.querySelectorAll('.dq-req').forEach(function(d){
+      d.style.display = (!activeFilter || d.dataset.sev === activeFilter) ? '' : 'none';
+    });
+    OUT.querySelectorAll('.dq-group').forEach(function(g){
+      var reqs = g.querySelectorAll('.dq-req');
+      var any = !activeFilter || Array.prototype.some.call(reqs, function(d){ return d.dataset.sev === activeFilter; });
+      g.style.display = any ? '' : 'none';
     });
     OUT.querySelectorAll('.dq-sum-row').forEach(function(row){
-      row.addEventListener('click', function(){
-        var sec = document.getElementById(row.dataset.target);
-        if (!sec) return;
-        sec.querySelectorAll('details.dq-req').forEach(function(d){ d.open = true; });
-        sec.scrollIntoView({ behavior:'smooth', block:'start' });
-        OUT.querySelectorAll('.dq-group').forEach(function(s){ s.classList.remove('dq-flash'); });
-        void sec.offsetWidth;
-        sec.classList.add('dq-flash');
-      });
+      row.style.display = (!activeFilter || row.dataset.worst === activeFilter) ? '' : 'none';
     });
-    var exp = document.getElementById('dq-expand');
-    if (exp) exp.addEventListener('click', function(){
+  }
+
+  /* Recomputes one request's verdict banner and collapsed-summary badge from whichever
+     of its findings are still live (not ignored) - mirrors the initial verdictFor() call
+     in renderOne, but reads severities back off the rendered DOM instead of the F array. */
+  function recalcRequest(reqDiv){
+    var idx = +reqDiv.dataset.idx;
+    var failTitles = [], warnTitles = [];
+    reqDiv.querySelectorAll('.dq-find').forEach(function(f){
+      if (f.classList.contains('dq-ignored')) return;
+      var ft = f.querySelector('.dq-ft');
+      var text = ft ? ft.textContent : '';
+      if (f.dataset.sev === 'fail') failTitles.push(text);
+      else if (f.dataset.sev === 'warn') warnTitles.push(text);
+    });
+    var V = verdictFor(failTitles, warnTitles);
+    var verdictEl = reqDiv.querySelector('.dq-verdict');
+    if (verdictEl) {
+      verdictEl.className = 'dq-verdict dq-v-' + V[0];
+      var vsym = verdictEl.querySelector('.vsym'), vt = verdictEl.querySelector('.vt'), vd = verdictEl.querySelector('.vd');
+      if (vsym) vsym.textContent = V[1];
+      if (vt) vt.textContent = V[2];
+      if (vd) vd.innerHTML = V[3];
+    }
+    var dot = reqDiv.querySelector('summary .rq-dot');
+    if (dot) dot.className = 'rq-dot rq-' + V[0];
+    var badge = reqDiv.querySelector('summary .rq-v');
+    if (badge) { badge.className = 'rq-v rq-v-' + V[0]; badge.textContent = SHORT[V[0]]; }
+    reqDiv.dataset.sev = V[0];
+    if (metas[idx]) metas[idx].sev = V[0];
+  }
+
+  /* After an Ignore toggle, the per-platform group dot and the whole summary panel
+     (tally, chips, rows) need to reflect the recomputed metas - group cards themselves
+     stay put, only their severity indicator and the summary above them redraw. */
+  function refreshAfterIgnore(){
+    var worstByPlat = {};
+    metas.forEach(function(m){
+      if (!(m.name in worstByPlat) || SEVRANK[m.sev] < SEVRANK[worstByPlat[m.name]]) worstByPlat[m.name] = m.sev;
+    });
+    OUT.querySelectorAll('.dq-group').forEach(function(g){
+      var w = worstByPlat[g.dataset.plat];
+      if (!w) return;
+      var dot = g.querySelector('.dq-grouphead .rq-dot');
+      if (dot) dot.className = 'rq-dot rq-' + w;
+    });
+    var sumEl = OUT.querySelector('.dq-summary');
+    if (sumEl) sumEl.outerHTML = renderSummary(metas, order);
+    applyFilter();
+  }
+
+  function toggleIgnore(btn){
+    var findDiv = btn.closest('.dq-find');
+    var reqDiv = btn.closest('.dq-req');
+    if (!findDiv || !reqDiv) return;
+    var idx = +reqDiv.dataset.idx, fi = +findDiv.dataset.fi;
+    var ignored = findDiv.classList.toggle('dq-ignored');
+    btn.textContent = ignored ? 'Ignored' : 'Ignore';
+    if (metas[idx] && metas[idx].findings[fi]) metas[idx].findings[fi].ignored = ignored;
+    recalcRequest(reqDiv);
+    refreshAfterIgnore();
+  }
+
+  OUT.addEventListener('click', function(e){
+    var b;
+    if ((b = e.target.closest('.dq-jump'))) {
+      e.preventDefault(); e.stopPropagation();
+      var t = document.querySelector('#tabs button[data-p="'+b.dataset.tab+'"]');
+      if (t) t.click();
+      return;
+    }
+    if ((b = e.target.closest('.dq-ignore'))) { toggleIgnore(b); return; }
+    if ((b = e.target.closest('.dq-filter-chip'))) {
+      activeFilter = (activeFilter === b.dataset.filter) ? null : b.dataset.filter;
+      applyFilter();
+      return;
+    }
+    if ((b = e.target.closest('.dq-sum-row'))) {
+      var sec = document.getElementById(b.dataset.target);
+      if (!sec) return;
+      /* Scrolls to the group but leaves every request collapsed - the summary is a
+         table of contents, not an expand-all shortcut. */
+      sec.scrollIntoView({ behavior:'smooth', block:'start' });
+      OUT.querySelectorAll('.dq-group').forEach(function(s){ s.classList.remove('dq-flash'); });
+      void sec.offsetWidth;
+      sec.classList.add('dq-flash');
+      return;
+    }
+    if ((b = e.target.closest('#dq-expand'))) {
       var all = OUT.querySelectorAll('details.dq-req');
       var anyClosed = Array.prototype.some.call(all, function(d){ return !d.open; });
       Array.prototype.forEach.call(all, function(d){ d.open = anyClosed; });
-      exp.textContent = anyClosed ? 'Collapse all' : 'Expand all';
-    });
-    var copyBtn = document.getElementById('dq-copy-summary');
-    if (copyBtn) copyBtn.addEventListener('click', function(){
-      var original = copyBtn.textContent;
+      b.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+      return;
+    }
+    if ((b = e.target.closest('#dq-copy-summary'))) {
+      var original = b.textContent;
       copyText(buildTextSummary(metas), function(ok){
-        copyBtn.textContent = ok ? 'Copied' : 'Copy failed';
-        setTimeout(function(){ copyBtn.textContent = original; }, 1800);
+        b.textContent = ok ? 'Copied' : 'Copy failed';
+        setTimeout(function(){ b.textContent = original; }, 1800);
       });
-    });
-  }
+      return;
+    }
+  });
 
   document.getElementById('dq-go').addEventListener('click', run);
   document.getElementById('dq-clear').addEventListener('click', function(){ IN.value=''; OUT.innerHTML=''; IN.focus(); });
