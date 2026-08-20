@@ -158,10 +158,13 @@ h3.sub3 {
   letter-spacing:0.09em; text-transform:uppercase; cursor:pointer; transition:background .12s, border-color .12s, color .12s;
 }
 .id-btn:hover { background:var(--btn-hov); border-color:var(--btn-hov-brd); color:var(--btn-hov-fg); }
-.id-select, .dq-inp, .dq-ta, .searchbox {
+.id-select, .dq-inp, .dq-ta, .searchbox, .ft-field {
   background:var(--input-bg); color:var(--ink-1); border:1px solid var(--line); border-radius:var(--r-ctl);
 }
 .id-select { padding:8px 12px; font-size:14px; font-weight:600; }
+.ft-field { display:block; width:100%; max-width:320px; padding:6px 9px; font-size:13px; margin-top:6px; }
+.ft-field--inline { display:inline-block; width:auto; min-width:200px; max-width:none; margin:0 0 0 8px; vertical-align:middle; }
+.ft-status { font-size:11px; color:var(--ink-4); line-height:1.4; }
 .id-label { font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); }
 .id-chip {
   display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--muted);
@@ -615,6 +618,22 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 :root[data-theme="dark"] .id-root .fix-docs a:hover { background:var(--btn-active-bg); color:var(--btn-active-fg); border-color:var(--btn-active-bg); }
 
 @media print { .bar { position:static; } .panel[hidden] { display:block !important; } }
+
+/* ---- "Your setup" export-to-PDF view: built and shown only for the duration of printing,
+   so a client record prints as a clean one-pager rather than the whole reference document ---- */
+#ft-print-view { display:none; background:#fff; color:#111; }
+#ft-print-view h1 { font-family:'Montserrat',sans-serif; font-size:22px; margin:0 0 4px; color:#111; }
+#ft-print-view .ft-print-sub { font-size:12px; color:#555; margin:0 0 20px; }
+#ft-print-view h2 { font-family:'Montserrat',sans-serif; font-size:14px; margin:22px 0 8px; color:#111; }
+#ft-print-view table { width:100%; border-collapse:collapse; font-size:13px; }
+#ft-print-view th, #ft-print-view td { border:1px solid #ccc; padding:7px 10px; text-align:left; vertical-align:top; color:#111; }
+#ft-print-view th { width:34%; background:#f3f3f3; font-weight:700; }
+#ft-print-view ul { font-size:13px; line-height:1.6; padding-left:20px; margin:0; color:#111; }
+@media print {
+  html.print-ft-only, .print-ft-only body { background:#fff !important; }
+  .print-ft-only .wrap > *:not(#ft-print-view) { display:none !important; }
+  .print-ft-only #ft-print-view { display:block !important; padding:24px; }
+}
 
 </style>
 </head>
@@ -1414,6 +1433,18 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         <div class="sechead" style="margin-top:11px"><h2 class="id-h2">Record your own setup</h2></div>
         <p class="lede">Values below are often randomised and unguessable by design (see the Server-side tab for why). Fill this in once per site and keep it somewhere findable - including a future you.</p>
 
+        <div class="dq-row" style="margin-top:14px">
+          <label class="id-label" for="ft-client">Client / site name</label>
+          <input id="ft-client" class="dq-inp" style="width:240px" type="text" spellcheck="false" placeholder="e.g. Acme Ltd">
+          <span class="dq-sep"></span>
+          <button class="id-btn" id="ft-export-pdf" type="button">Export PDF</button>
+          <button class="id-btn" id="ft-export-json" type="button">Export JSON</button>
+          <label class="id-btn" for="ft-import-json" style="cursor:pointer">Import JSON</label>
+          <input id="ft-import-json" type="file" accept="application/json,.json" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden">
+          <button class="id-btn" id="ft-clear" type="button">Clear</button>
+        </div>
+        <div class="ft-status" id="ft-status" style="margin-top:6px">Fields below save to this browser automatically as you type. Nothing is uploaded - export a copy to keep or hand off a record.</div>
+
         <div class="id-note" style="margin-top:14px">
           <div class="tag">Fill this in from a live capture, not from memory</div>
           Load the site, click the <strong>Check tracking</strong> bookmark, and read the values off the panel it produces. Anything you write down from memory or from a config screen may not reflect what the site actually does today.
@@ -1425,37 +1456,44 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           <thead><tr><th>What</th><th>Where to find it</th><th>Why it matters later</th></tr></thead>
           <tbody>
             <tr>
-              <td><strong>Tagging domain</strong><span class="sub">e.g. <span class="mono">metrics.yoursite.com</span></span></td>
+              <td><strong>Tagging domain</strong><span class="sub">e.g. <span class="mono">metrics.yoursite.com</span></span>
+                <input class="ft-field" data-key="taggingDomain" aria-label="Tagging domain" type="text" spellcheck="false" placeholder="metrics.yoursite.com"></td>
               <td>The Domain column on any tracking request that is not going to a recognisable vendor. The bookmarklet labels these "Your own domain".</td>
               <td>The one thing that cannot be randomised. Filtering the Network tab by this hostname is the reliable way to find your traffic.</td>
             </tr>
             <tr>
-              <td><strong>Measurement ID</strong><span class="sub">e.g. <span class="mono">G-ABC123XYZ</span></span></td>
+              <td><strong>Measurement ID</strong><span class="sub">e.g. <span class="mono">G-ABC123XYZ</span></span>
+                <input class="ft-field" data-key="measurementId" aria-label="Measurement ID" type="text" spellcheck="false" placeholder="G-ABC123XYZ"></td>
               <td>The <span class="mono">tid=</span> parameter on any analytics request, or GA4 Admin → Data streams.</td>
               <td>Confirms the data is going to the property you think it is. A staging ID left in production is a classic silent fault.</td>
             </tr>
             <tr>
-              <td><strong>Collection path</strong><span class="sub">e.g. <span class="mono">/g/collect</span> or <span class="mono">/xk4p9</span></span></td>
+              <td><strong>Collection path</strong><span class="sub">e.g. <span class="mono">/g/collect</span> or <span class="mono">/xk4p9</span></span>
+                <input class="ft-field" data-key="collectionPath" aria-label="Collection path" type="text" spellcheck="false" placeholder="/xk4p9"></td>
               <td>The path on the analytics request going to your tagging domain.</td>
               <td>If it is randomised, filtering for <span class="mono">collect</span> finds nothing and the tracking looks broken when it is fine.</td>
             </tr>
             <tr>
-              <td><strong>Script filenames</strong><span class="sub">e.g. <span class="mono">0y39jh8.js</span></span></td>
+              <td><strong>Script filenames</strong><span class="sub">e.g. <span class="mono">0y39jh8.js</span></span>
+                <input class="ft-field" data-key="scriptFilenames" aria-label="Script filenames" type="text" spellcheck="false" placeholder="0y39jh8.js, 3cysqe5.js"></td>
               <td>The <span class="mono">.js</span> files loading from your tagging domain instead of <span class="mono">googletagmanager.com</span>.</td>
               <td>Tells you the tag library is served first-party. Also what to check first if a content security policy starts blocking things.</td>
             </tr>
             <tr>
-              <td><strong>What is still browser-side</strong></td>
+              <td><strong>What is still browser-side</strong>
+                <input class="ft-field" data-key="stillBrowserSide" aria-label="What is still browser-side" type="text" spellcheck="false" placeholder="e.g. Google Ads conversion"></td>
               <td>Any request going direct to a vendor - the bookmarklet lists these by name.</td>
               <td>These get none of the resilience you built the container for. Worth knowing before anyone claims the setup is ad-blocker proof.</td>
             </tr>
             <tr>
-              <td><strong>How the hostname resolves</strong><span class="sub">CNAME or A record</span></td>
+              <td><strong>How the hostname resolves</strong><span class="sub">CNAME or A record</span>
+                <input class="ft-field" data-key="hostnameResolution" aria-label="How the hostname resolves" type="text" spellcheck="false" placeholder="e.g. CNAME to sst.example.com"></td>
               <td>Ask whoever manages DNS, or run a lookup on the tagging domain.</td>
               <td>If it is a CNAME to a third-party host, Safari caps cookies set that way at 7 days - see the note below. This is the single most commonly missed item.</td>
             </tr>
             <tr>
-              <td><strong>Who owns it</strong></td>
+              <td><strong>Who owns it</strong>
+                <input class="ft-field" data-key="ownedBy" aria-label="Who owns it" type="text" spellcheck="false" placeholder="e.g. Google Cloud, client account"></td>
               <td>Your own records.</td>
               <td>Server containers are hosted somewhere and cost money. When one breaks at 9pm, knowing whether it is Google Cloud, Stape or your own infrastructure is the difference between minutes and hours.</td>
             </tr>
@@ -1465,11 +1503,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
         <h3 class="sub3">Status checklist - work through this per site</h3>
         <ul class="plain">
-          <li><strong>Is analytics routed rather than duplicated?</strong> Exactly one analytics request per event, going to your own domain, with nothing going to <span class="mono">google-analytics.com</span>. Two means the redirect is half-applied and you are double-counting.</li>
-          <li><strong>Are the scripts first-party too?</strong> Setting a server container URL reroutes the measurement but not the tag library. Both coming from your domain means the full setup, not just half of it.</li>
-          <li><strong>Has anything actually arrived?</strong> A healthy response from your own container proves only that your server received the request. Confirm in the destination platform - this is the check people skip.</li>
-          <li><strong>What is the consent state?</strong> Decode a request and read the consent parameters. For a UK or EU-facing site this is the highest-priority item, and it is a compliance question rather than a technical one.</li>
-          <li><strong>What still bypasses the container?</strong> Usually Google Ads, Floodlight, or any platform nobody got round to migrating.</li>
+          <li><label class="dq-ssw" style="white-space:normal;align-items:flex-start;gap:9px;font-weight:400;text-transform:none;letter-spacing:0;font-size:inherit;color:inherit"><input type="checkbox" class="ft-check" data-key="routedNotDuplicated"><span><strong>Is analytics routed rather than duplicated?</strong> Exactly one analytics request per event, going to your own domain, with nothing going to <span class="mono">google-analytics.com</span>. Two means the redirect is half-applied and you are double-counting.</span></label></li>
+          <li><label class="dq-ssw" style="white-space:normal;align-items:flex-start;gap:9px;font-weight:400;text-transform:none;letter-spacing:0;font-size:inherit;color:inherit"><input type="checkbox" class="ft-check" data-key="scriptsFirstParty"><span><strong>Are the scripts first-party too?</strong> Setting a server container URL reroutes the measurement but not the tag library. Both coming from your domain means the full setup, not just half of it.</span></label></li>
+          <li><label class="dq-ssw" style="white-space:normal;align-items:flex-start;gap:9px;font-weight:400;text-transform:none;letter-spacing:0;font-size:inherit;color:inherit"><input type="checkbox" class="ft-check" data-key="arrivedAtDestination"><span><strong>Has anything actually arrived?</strong> A healthy response from your own container proves only that your server received the request. Confirm in the destination platform - this is the check people skip.</span></label></li>
+          <li><strong>What is the consent state?</strong> Decode a request and read the consent parameters. For a UK or EU-facing site this is the highest-priority item, and it is a compliance question rather than a technical one.<input class="ft-field ft-field--inline" data-key="consentState" aria-label="Consent state" type="text" spellcheck="false" placeholder="e.g. granted after banner accept"></li>
+          <li><strong>What still bypasses the container?</strong> Usually Google Ads, Floodlight, or any platform nobody got round to migrating.<input class="ft-field ft-field--inline" data-key="stillBypassing" aria-label="What still bypasses the container" type="text" spellcheck="false" placeholder="e.g. Google Ads, Floodlight"></li>
           <li><strong>Safari cookie lifespan.</strong> Check how the tagging hostname resolves, per the note below.</li>
         </ul>
 
@@ -1496,7 +1534,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           </tbody>
         </table>
         </div>
-        <p class="srcnote">Client-specific records are better kept alongside the account they belong to than baked into a shared tool - this tab is the template, not the archive.</p>
+        <p class="srcnote">Each exported record <em>is</em> the archive - save the JSON (and/or the printed PDF) alongside the account it documents. The fields above and the draft saved in this browser are only where it gets filled in; don't rely on either as long-term storage.</p>
       </div>
     </section>
   </div>
@@ -1695,6 +1733,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       Built by In Digital · In Science
     </div>
   </footer>
+
+  <div id="ft-print-view" aria-hidden="true"></div>
 </div>
 
 <script>
@@ -1899,6 +1939,139 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     if (h.q) q.value = h.q;
     render();
+  })();
+
+  /* ---- "Your setup" record: fillable fields, local autosave, PDF/JSON export, JSON re-import ----
+     Entirely client-side - nothing here ever calls fetch/XHR or touches the network. */
+  (function ftRecord(){
+    var panel = document.getElementById('p-ft');
+    if (!panel) return;
+    var SCHEMA = 'tracking-setup-record-v1';
+    var DRAFT_KEY = 'id-ft-draft';
+    var clientIn = document.getElementById('ft-client');
+    var fields = Array.prototype.slice.call(panel.querySelectorAll('.ft-field'));
+    var checks = Array.prototype.slice.call(panel.querySelectorAll('.ft-check'));
+    var statusEl = document.getElementById('ft-status');
+    var defaultStatus = statusEl ? statusEl.textContent : '';
+
+    var LABELS = {
+      taggingDomain: 'Tagging domain', measurementId: 'Measurement ID',
+      collectionPath: 'Collection path', scriptFilenames: 'Script filenames',
+      stillBrowserSide: 'What is still browser-side', hostnameResolution: 'How the hostname resolves',
+      ownedBy: 'Who owns it', consentState: 'Consent state', stillBypassing: 'What still bypasses the container'
+    };
+    var CHECK_LABELS = {
+      routedNotDuplicated: 'Analytics routed rather than duplicated',
+      scriptsFirstParty: 'Scripts first-party too',
+      arrivedAtDestination: 'Confirmed arrival at destination platform'
+    };
+
+    function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+    function slug(s){ return (String(s || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')) || 'client'; }
+
+    function serialize(){
+      var f = {}, c = {};
+      fields.forEach(function(el){ f[el.dataset.key] = el.value; });
+      checks.forEach(function(el){ c[el.dataset.key] = el.checked; });
+      return { schema: SCHEMA, client: clientIn.value, fields: f, checks: c };
+    }
+    function populate(rec){
+      clientIn.value = (rec && rec.client) || '';
+      fields.forEach(function(el){ el.value = (rec && rec.fields && rec.fields[el.dataset.key]) || ''; });
+      checks.forEach(function(el){ el.checked = !!(rec && rec.checks && rec.checks[el.dataset.key]); });
+    }
+    function saveDraft(){
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(serialize())); } catch(e){}
+    }
+    function loadDraft(){
+      try {
+        var raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) populate(JSON.parse(raw));
+      } catch(e){}
+    }
+    function setStatus(msg){ if (statusEl) statusEl.textContent = msg; }
+
+    loadDraft();
+    fields.concat(checks, [clientIn]).forEach(function(el){
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('change', saveDraft);
+    });
+
+    function downloadBlob(filename, text, mime){
+      var blob = new Blob([text], { type: mime });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    }
+
+    var exportPdfBtn = document.getElementById('ft-export-pdf');
+    var exportJsonBtn = document.getElementById('ft-export-json');
+    var importInput = document.getElementById('ft-import-json');
+    var clearBtn = document.getElementById('ft-clear');
+    var printView = document.getElementById('ft-print-view');
+
+    if (exportJsonBtn) exportJsonBtn.addEventListener('click', function(){
+      var rec = serialize();
+      rec.exportedAt = new Date().toISOString();
+      var dateStr = rec.exportedAt.slice(0, 10);
+      downloadBlob('tracking-setup-' + slug(rec.client) + '-' + dateStr + '.json', JSON.stringify(rec, null, 2), 'application/json');
+      setStatus('Exported ' + (rec.client || 'this record') + ' as JSON. Nothing was uploaded - the file went straight to your downloads.');
+    });
+
+    if (importInput) importInput.addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        try {
+          var rec = JSON.parse(String(reader.result));
+          if (!rec || rec.schema !== SCHEMA) throw new Error('schema mismatch');
+          populate(rec); saveDraft();
+          setStatus('Imported ' + (rec.client || 'record') + ' - every field above was replaced with the file’s values.');
+        } catch(err){
+          setStatus('Could not read that file - is it a record exported from this tool?');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    if (clearBtn) clearBtn.addEventListener('click', function(){
+      if (!window.confirm('Clear every field in this record? This cannot be undone.')) return;
+      populate(null); saveDraft();
+      setStatus(defaultStatus);
+    });
+
+    if (exportPdfBtn && printView) exportPdfBtn.addEventListener('click', function(){
+      var rec = serialize();
+      var when = new Date();
+      var h = '<h1>' + escHtml(rec.client || 'Unnamed client') + '</h1>';
+      h += '<p class="ft-print-sub">Tracking setup record - exported ' + escHtml(when.toLocaleString()) + '</p>';
+      h += '<table>' + Object.keys(LABELS).filter(function(k){ return fields.some(function(el){ return el.dataset.key === k; }); })
+        .map(function(k){ return '<tr><th>' + escHtml(LABELS[k]) + '</th><td>' + (escHtml(rec.fields[k]) || '&#8212;') + '</td></tr>'; }).join('') + '</table>';
+      h += '<h2>Status checklist</h2><ul>';
+      Object.keys(CHECK_LABELS).forEach(function(k){ h += '<li>' + (rec.checks[k] ? '✓' : '✗') + ' ' + escHtml(CHECK_LABELS[k]) + '</li>'; });
+      h += '<li>Consent state: ' + (escHtml(rec.fields.consentState) || '&#8212;') + '</li>';
+      h += '<li>Still bypasses the container: ' + (escHtml(rec.fields.stillBypassing) || '&#8212;') + '</li>';
+      h += '</ul>';
+      printView.innerHTML = h;
+
+      var oldTitle = document.title;
+      document.title = 'Tracking setup - ' + (rec.client || 'client') + ' - ' + when.toISOString().slice(0, 10);
+      document.documentElement.classList.add('print-ft-only');
+      var restored = false;
+      function restore(){
+        if (restored) return; restored = true;
+        document.documentElement.classList.remove('print-ft-only');
+        document.title = oldTitle;
+        window.removeEventListener('afterprint', restore);
+      }
+      window.addEventListener('afterprint', restore);
+      window.print();
+      setTimeout(restore, 3000);
+    });
   })();
 })();
 </script>

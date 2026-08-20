@@ -330,6 +330,49 @@ A batch of user-reported feedback from actually running audits with the tool:
   the original file's sGTM panel at the same width) - this is the pre-existing, already-listed
   "table horizontal scroll on narrow viewports" Low item above, not something this change introduces.
 
+## 2026-08-21: "Your setup" tab is now a fillable, exportable per-client record
+
+Previously pure reference content (a 7-row "what to write down" table, a 6-item status
+checklist), closing with an explicit disclaimer that it was "the template, not the archive."
+Added:
+
+- [x] **A client-name field, plus a fillable `<input>` on each of the 7 table rows** and on 5 of
+  the 6 checklist items (3 become checkboxes, 2 become inline text answers - the 6th, "Safari
+  cookie lifespan," stays prose-only since it isn't a discrete question and duplicates the
+  "how the hostname resolves" field above it).
+- [x] **Autosave to `localStorage`** (`id-ft-draft`, same `try/catch`-guarded pattern as the
+  theme/view/sGTM toggles) so filling in 12 fields survives an accidental reload.
+- [x] **Export as JSON** (`Blob` + a temporary `<a download>`, filename
+  `tracking-setup-<slugified-client>-<date>.json`) and **re-import** (`<input type="file">` +
+  `FileReader`, schema-checked before trusting the shape, so importing cleanly overwrites every
+  field rather than merging or crashing on a bad file).
+- [x] **Export as a print-only PDF view**: a hidden `#ft-print-view` is populated with a clean
+  client-name/date/fields/checklist summary and shown via a `print-ft-only` class scoped
+  `@media print` rule (forced white background regardless of the active theme) immediately
+  before `window.print()`, then reverted on `afterprint` (with a 3s timeout fallback in case that
+  event doesn't fire) - deliberately built as its own view rather than printing the live tab, so
+  the exported PDF is a tidy one-pager and not the whole reference document plus its guidance
+  prose. `document.title` is set to `Tracking setup - <client> - <date>` for the duration, since
+  Chrome/Safari use it as the suggested "Save as PDF" filename.
+- [x] Revised the tab's closing line: the export **is** the archive now; the tab and its local
+  draft are just where it gets filled in.
+
+**Format decision:** built both the PDF view and the JSON round-trip (the user's "(c) both"
+option), using only built-in browser APIs - no libraries. Reasoning is written into the plan
+this was built from (`/Users/camdoherty/.claude/plans/idempotent-hugging-lobster.md`): a PDF-only
+export would give no way to update a record as a setup changes; a JSON-only export gives nothing
+pleasant to actually file or hand off.
+
+**Verified:** headless-Chromium pass - fill every field/checkbox, reload (autosave restored
+correctly including the deliberately-unchecked box), export JSON, Clear, re-import that exact
+file and confirm every field/checkbox matches; a deliberately malformed JSON file is rejected
+with a status message rather than throwing; the print view (checked via `emulateMedia({media:
+'print'})`) shows only the clean summary, not the tab bar or other panels, in both light and dark
+theme. Screenshotted the on-screen form in both themes. Re-ran the full existing regression walk
+(every tab, both audience views, all Decode examples). Throughout all of the above, a Playwright
+network listener recorded zero requests beyond the initial local `file://` load - the property
+that matters most here, since this is the first feature added that writes/reads a local file.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

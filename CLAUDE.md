@@ -55,6 +55,12 @@ Everything lives in `index.html`, organized as one `<style>` block followed by t
      Route any new way of changing the active tab or search term through `selectTab`/`writeHash` so
      the hash stays in sync; `restoreFromHash()` (run once on load) also force-switches to Specialist
      view if the linked tab is `aud-spec`-only.
+   - `ftRecord()` — the "Your setup" tab's fillable per-client record (`.ft-field`/`.ft-check`
+     inputs, `#ft-client`). Autosaves to `localStorage` (`id-ft-draft`) on every change; exports as
+     JSON (`Blob` + a temporary `<a download>`, schema-tagged so a bad file is rejected on
+     re-import via `<input type="file">` + `FileReader`) or as a print-only one-pager (builds a
+     clean summary into `#ft-print-view`, toggles the `print-ft-only` class, calls `window.print()`).
+     All client-side; nothing here makes a network call.
 
 3. **Request decoder script** (~line 1749–2741): the actual analysis engine, used by the Decode tab.
    - `PLATFORMS` (~line 1934) — the vendor registry: each entry has a hostname/path matcher `t()`,
