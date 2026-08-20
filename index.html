@@ -410,6 +410,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px; }
 .dq-sep { width:1px; height:22px; background:var(--grid); }
 .dq-inp { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; padding:7px 11px; width:190px; }
+.dq-ssw { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink-2); cursor:pointer; white-space:nowrap; }
+.dq-ssw input { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; margin:0; }
 .dq-out { margin-top:6px; }
 .dq-count { font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-4); margin:20px 0 0; }
 .dq-card {
@@ -1553,6 +1555,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           <div class="dq-row">
             <button class="id-btn" id="dq-go" type="button">Decode</button>
             <button class="id-btn" id="dq-clear" type="button">Clear</button>
+            <span class="dq-sep"></span>
+            <label class="dq-ssw" for="dq-ssgtm" title="Server-side tracking (also called sGTM or a server container) routes tag data through your own server before it reaches Google/Meta/etc, instead of the browser sending it directly. Most sites do not have this set up - leave unchecked unless you know yours does.">
+              <input type="checkbox" id="dq-ssgtm">
+              This site has server-side tracking set up
+            </label>
             <span class="dq-sep aud-spec"></span>
             <label class="id-label aud-spec" for="dq-host" style="white-space:nowrap">Container hostname <span style="font-weight:600;text-transform:none;letter-spacing:0">(only needed if it is not on your site's own domain)</span></label>
             <input id="dq-host" class="dq-inp aud-spec" type="text" spellcheck="false" placeholder="metrics.yoursite.com">
@@ -1802,6 +1809,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   if (!IN) return;
   var OUT = document.getElementById('dq-out');
   var HOSTIN = document.getElementById('dq-host');
+  var SSGTM = document.getElementById('dq-ssgtm');
+  if (SSGTM) {
+    try { SSGTM.checked = localStorage.getItem('id-ssgtm') === '1'; } catch(e){}
+    SSGTM.addEventListener('change', function(){
+      try { localStorage.setItem('id-ssgtm', SSGTM.checked ? '1' : '0'); } catch(e){}
+      if (OUT.innerHTML) run();
+    });
+  }
 
   /* ---------- shared Google consent params ---------- */
   var CONSENT = {
@@ -2181,7 +2196,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
               dev:'Needs a developer', legal:'Urgent - involve whoever owns privacy' };
 
   var REMEDIES = [
-    [/^Went direct to /, { who: WHO.gtm,
+    [/^Went direct to .+, bypassing your container/, { who: WHO.gtm,
       steps: ['This is not a fault - the tag simply has not been migrated to your server container. Decide whether it should be.',
         'Weigh it up: moving it means the request survives ad blockers and browser restrictions, so you recover conversions you are currently losing. Leaving it costs nothing to maintain.',
         'If you want it moved, the platform needs a server-side tag built inside the container, and the browser tag switched off - doing one without the other either double-counts or stops counting.',
@@ -2382,7 +2397,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   }
 
   /* ---------- findings engine ---------- */
-  function findings(plat, host, path, P, myHost, bare, siteHost){
+  function findings(plat, host, path, P, myHost, bare, siteHost, hasServerSide){
     var F = [], get = function(k){ for (var i=0;i<P.length;i++) if (P[i][0]===k) return P[i][1]; return null; };
     var has = function(k){ return get(k) !== null; };
     var name = plat ? plat.n : null;
@@ -2400,7 +2415,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         'This request went to <span class="mono">'+esc(host)+'</span>, which is part of your own site rather than a vendor. That is a server-side setup working as intended: the browser hands the data to your server, and your server decides what to forward on.'
         + (myHost ? '' : ' Detected automatically from the site the requests came from - you did not have to tell it.')]);
     } else if ((myHost || siteHost) && plat && !bare) {
-      F.push(['warn','Went direct to '+name+', bypassing your container','This request left the browser straight to <span class="mono">'+esc(host)+'</span>. It gains none of the resilience of your server-side setup and remains blockable by ad blockers and browser restrictions.']);
+      if (hasServerSide) {
+        F.push(['warn','Went direct to '+name+', bypassing your container','This request left the browser straight to <span class="mono">'+esc(host)+'</span>. It gains none of the resilience of your server-side setup and remains blockable by ad blockers and browser restrictions.']);
+      } else {
+        F.push(['info','Went direct to '+name,'This request left the browser straight to <span class="mono">'+esc(host)+'</span>. That is expected here since this site has no server-side setup to route through - nothing to fix. If that changes, tick "This site has server-side tracking set up" above and this becomes a warning worth acting on.']);
+      }
     } else if (!plat && !bare) {
       F.push(['info','Unrecognised host - probably a first-party container','No known vendor matches <span class="mono">'+esc(host)+'</span>. If that hostname belongs to your own site, it is almost certainly a server container, and server containers routinely randomise their paths - so a meaningless path is not a fault. Capture requests with the <strong>Check tracking</strong> bookmark and this gets worked out for you.']);
     }
@@ -2454,11 +2473,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       'Microsoft Advertising (UET)':['evt','UET event type.'],
       'Reddit':['event','Reddit event name.'],
       'Pinterest':['event','Pinterest event name.'],
-      'Floodlight':['cat','Floodlight activity tag \u2014 which specific activity fired.']
+      'Floodlight':['cat','Floodlight activity tag - which specific activity fired.']
     };
     if (name && EVFIELD[name] && has(EVFIELD[name][0])) {
       F.push(['info','Event: '+esc(get(EVFIELD[name][0])), EVFIELD[name][1]
-        + ' Check it against your measurement plan \u2014 a mistyped name creates a silent parallel event that nobody notices until a report looks wrong.']);
+        + ' Check it against your measurement plan - a mistyped name creates a silent parallel event that nobody notices until a report looks wrong.']);
     }
 
     /* dedup keys per platform */
@@ -2571,7 +2590,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   var SEV = {pass:['✓','PASS','dq-pass'], warn:['▲','WARNING','dq-warn'], fail:['✕','FAIL','dq-fail'], info:['·','NOTE','dq-info']};
   var CONF = {d:['Documented','dq-c-d'], p:['Practitioner','dq-c-p'], u:['Undocumented','dq-c-u']};
 
-  function renderOne(req, i, myHost, metas, siteHost){
+  function renderOne(req, i, myHost, metas, siteHost, hasServerSide){
     var u, err = null;
     try { u = new URL(req.url); } catch(e){ err = 'Could not parse that as a URL.'; }
     if (err) {
@@ -2586,7 +2605,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var P = parseParams(u, req.body);
     if (!plat) plat = inferFromParams(P);
     var name = plat ? plat.n : null;
-    var F = findings(plat, host, path, P, myHost, !!req.bare, siteHost);
+    var F = findings(plat, host, path, P, myHost, !!req.bare, siteHost, hasServerSide);
 
     var h = '';
     h += '<div class="dq-head"><div><div class="dq-plat">'+ (plat ? esc(plat.n) : 'Unidentified endpoint') +'</div>'
@@ -2764,11 +2783,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var myHost = (HOSTIN.value || '').trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'').toLowerCase() || null;
     var sm = raw.match(/^#\s*site:\s*([a-z0-9.\-]+)/im);
     var siteHost = sm ? sm[1].toLowerCase() : null;
+    var hasServerSide = !!(SSGTM && SSGTM.checked);
     if (!raw) { OUT.innerHTML = ''; return; }
     var reqs = extract(raw);
     if (!reqs.length) { OUT.innerHTML = '<div class="dq-card"><div class="dq-err">Could not find a URL, query string or body in that. Paste the full request URL - in DevTools, right-click the request then Copy &rarr; Copy link address.</div></div>'; return; }
     var metas = [], parts = [];
-    reqs.slice(0, 12).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost)); });
+    reqs.slice(0, 12).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
 
     /* group by platform, ordered worst-first, so the summary works as a table of contents */
     var groups = {}, order = [];

@@ -219,6 +219,36 @@ rounded, soft-shadow visual language.
   Chromium (via Playwright, installed ad hoc for this) and screenshotted it against the real site's
   header for a direct visual comparison, rather than reasoning about the CSS blind.
 
+## 2026-08-20 (later pass): "Went direct" warning was confusing without server-side tracking
+
+Reported by the user: the Decode tab's "Went direct to X, bypassing your container" warning fires
+for *any* third-party pixel once a site hostname is known (the bookmarklet's "Copy all" output
+always prepends `# site: <hostname>`) - but for the common case of a site with no server-side
+setup at all, going direct is completely normal, not a fault. A marketer with no way to know
+whether their site has sGTM had no way to tell the tool that, so every decode of a normal
+client-side-only site came back with confusing amber warnings.
+
+- [x] **Added a "This site has server-side tracking set up" toggle** on the Decode tab (checkbox,
+  visible in both Marketing and Specialist view since this affects the audience the finding was
+  confusing for) - unchecked by default, matching the common case. Persists via `localStorage`
+  (`id-ssgtm`), same pattern as the theme toggle. A `title` tooltip explains what server-side
+  tracking means for anyone unsure.
+  **Logic:** `findings()` now takes a `hasServerSide` flag. With it checked, "went direct" behaves
+  exactly as before (`warn`, "bypassing your container," attaches the existing fix-it steps). With
+  it unchecked (default), the same detection now produces an `info`-level "Went direct to X" note
+  explaining that's expected with no server-side setup, and pointing back at the toggle - no
+  "How to fix this" box, since there's nothing to fix. The `REMEDIES` regex that used to match any
+  title starting with "Went direct to " was tightened to require the full "...bypassing your
+  container" phrase, so it only attaches to the warn case and not the new info one.
+  **Verified:** jsdom tests for both toggle states (title/severity/verdict-colour all correctly
+  differ; unchecked shows a green "healthy" verdict where it previously showed amber), the
+  `localStorage` persistence round-trip, and a full regression pass of the rest of the tool.
+  Screenshotting the actual rendered finding in both states is what surfaced two more stray
+  em-dashes that had escaped the earlier style sweep - written as a Unicode escape (backslash,
+  u, 2014) in the Floodlight/Meta event-name notes, rather than the literal character or the
+  `&mdash;` entity already checked for. Fixed; there is now nothing left encoding an em-dash in
+  `index.html` or `bookmarklet.source.js` in any of the three forms found so far.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow
