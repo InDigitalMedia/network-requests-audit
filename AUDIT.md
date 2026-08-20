@@ -117,6 +117,83 @@ remain open.
 - [ ] Search (`#q`) is fully hidden in Marketing view — reasonable simplification, but the Marketing
   "Check" panel has 5 long task accordions with no in-page jump nav to compensate.
 
+## 2026-08-20 (later pass): style, content review, decode-logic review
+
+### Style
+- [x] Replaced every em-dash with a plain hyphen throughout `index.html` and `bookmarklet.source.js`
+  (314 literal `—` characters plus 3 `&mdash;` entities in `index.html`, one of which was inside the
+  bookmarklet's own encoded JS string — re-encoded the `BM` blob and re-verified behavioural
+  equivalence with the jsdom harness described above). `AUDIT.md`/`CLAUDE.md` left as-is since those
+  are internal dev docs, not part of the shipped tool.
+
+### Marketing-tab content review (beginner-friendliness)
+- [x] **Two dead-end pointers.** The Check panel's "Check the Platforms tab" line and Start Here's
+  "Where to go next in this document" list pointed at six tabs that are `aud-spec`-tagged and
+  therefore invisible in Marketing view — a beginner following either pointer would find no such tab
+  with no explanation why.
+  **Fix:** added an explicit "switch to Specialist view" pointer at both locations; reworded the
+  "Where to go next" list intro so it's clear those tabs live behind the Specialist toggle.
+- [x] **Mislabelled tab reference.** The same list pointed to a "Container" tab, which doesn't
+  exist — the actual tab is named "Your setup."
+  **Fix:** corrected the label.
+- Everything else in the Check/Start Here/Decode-intro content was found to already be well-built for
+  a non-technical reader (jargon explained inline, a full glossary present, common beginner traps
+  called out explicitly) — no further changes made there.
+
+### Specialist-tab content review (redundancy / excessive depth)
+- [x] **"Server containers randomise paths" repeated near-verbatim in three panels** (Google & GA4,
+  Server-side, Your Setup).
+  **Fix:** kept the full explanation in Server-side (its natural home); shortened Google & GA4's
+  mention to a cross-reference; replaced Your Setup's restated rationale with a pointer + the
+  actionable instruction only.
+- [x] **Literal duplicate within the Server-side panel**: a standalone "When the payload is
+  encrypted" note said, word-for-word, what the last step of the "When the paths are randomised"
+  list already said.
+  **Fix:** cut the standalone note.
+- [x] **"Order of proving delivery" duplicated as two overlapping step-lists** across Server-side
+  ("A practical order of attack") and Debugging ("Proving delivery, in order of authority").
+  **Fix:** made Debugging's list canonical; trimmed Server-side's down to a pointer plus the one
+  genuinely sGTM-specific insight (credentials/config as the culprit when Preview looks right but the
+  destination platform shows nothing).
+- [x] **Your Setup's "Currency caveat" paragraph** picked apart which exact clause of a 2020 WebKit
+  blog post is stale, across three sentences — accurate but reads as historiography, not something a
+  practitioner acts on.
+  **Fix:** compressed to one sentence stating the current behaviour.
+- Platforms and Consent panels, and the rest of Debugging, were checked and found appropriately
+  scoped — no changes made there.
+
+### Decode-tool logic review
+- [x] **`extract()` silently dropped the POST body from DevTools' "Copy as fetch" snippets** — only
+  curl's `--data`/`--data-raw`/`--data-binary`/`--data-urlencode` flags were recognised. Since the
+  URL alone often carries enough params to avoid the "partial paste" warning, a TikTok/Snapchat
+  request captured via "Copy as fetch" (rather than "Copy as cURL") looked cleanly decoded while
+  silently missing every body-dependent finding.
+  **Fix:** `extract()` now also matches a `"body": "..."` field via `JSON.parse` unescaping, tried
+  when the curl pattern doesn't match. Verified with a jsdom test pasting a `fetch(...)` snippet with
+  a POST body - the body's event name now appears in the findings.
+- [x] **LinkedIn's `PLATFORMS` matcher was missing `snap.licdn.com`**, which the bookmarklet already
+  recognises as LinkedIn - a request the bookmarklet correctly labels became "Unidentified endpoint"
+  the moment it was pasted into Decode.
+  **Fix:** matcher now covers both `px.ads.linkedin.com` and `snap.licdn.com`.
+- [x] **Reddit and Snapchat matchers were far broader than the bookmarklet's**, matching any
+  `reddit.com`/`snapchat.com` subdomain (e.g. a shared `www.reddit.com` link) rather than just the
+  tracking hosts, risking a confident-looking findings list built on a request that wasn't a pixel at
+  all.
+  **Fix:** tightened both to the same specific subdomains the bookmarklet already scopes to. Verified
+  a plain `reddit.com`/`snapchat.com` URL no longer gets platform-identified, while real pixel hosts
+  still do.
+- [x] **No `PLATFORMS` entry for consent-banner vendors**, unlike the bookmarklet (which labels
+  OneTrust/Cookiebot/etc. as "Cookie banner" for context). Decode just showed "Unidentified endpoint."
+  **Fix:** added a matching identification-only entry (no findings beyond naming it).
+- [ ] **Generic PII scanner only catches email/phone-shaped values**, not names or addresses in the
+  clear (Meta's own `ud[]` block checks name fields, but only for Meta). **Not done** - a same-key
+  literally named "name" is common on benign fields (e.g. a product name), so a safe version needs
+  both a matching key *and* a value shape check to avoid false positives; left as a follow-up rather
+  than risking noisy findings.
+- [ ] **The literal event name `"custom"` is hardcoded as always non-conversion** in the dedup-key
+  gating regex - a real tag literally named `custom` (rare but possible) would silently skip its
+  dedup warning. **Not done** - very low probability, flagged for completeness only.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

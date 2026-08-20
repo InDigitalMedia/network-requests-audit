@@ -1,8 +1,8 @@
 /* ============================================================================
-   "Check tracking" bookmarklet — annotated reference source.
+   "Check tracking" bookmarklet - annotated reference source.
 
    This is a pure reformatting (js-beautify) of the exact JS that is minified,
-   URI-encoded and stored as the `BM` string in index.html — not a rewrite.
+   URI-encoded and stored as the `BM` string in index.html - not a rewrite.
    Verified behaviourally identical to the shipped minified version across
    several scenarios (own-domain detection, multi-vendor detection, the
    "Record payloads" POST-body capture flow, and the "Copy all for the
@@ -17,16 +17,16 @@
    wrong occurrence. Comments below identify what each one holds, scope by
    scope, instead.
 
-   Keeping this file in sync: there is no build step (see CLAUDE.md — that's
+   Keeping this file in sync: there is no build step (see CLAUDE.md - that's
    deliberate). If you change this source, minify it (e.g. `npx terser` or by
    hand), URI-encode the `javascript:` string, and paste the result back into
    the `BM` assignment in index.html. Re-run the equivalence check described
-   above before shipping — see AUDIT.md for why that matters here.
+   above before shipping - see AUDIT.md for why that matters here.
    ============================================================================ */
 !function() {
-  // t: the platform registry — [hostname/path regex, display label] pairs, checked
+  // t: the platform registry - [hostname/path regex, display label] pairs, checked
   //    in order against every resource URL. Kept in sync BY HAND with the `PLATFORMS`
-  //    array in index.html's decoder script — there is no shared source between them.
+  //    array in index.html's decoder script - there is no shared source between them.
   var t = [
       [/google-analytics\.com|analytics\.google\.com/i, 'Google Analytics'],
       [/stats\.g\.doubleclick\.net/i, 'GA ads domain'],
@@ -43,18 +43,18 @@
       [/googletagmanager\.com/i, 'Tag Manager'],
       [/onetrust|cookielaw|cookiebot|cookieyes|usercentrics|trustarc|osano/i, 'Cookie banner']
     ],
-    // e: broad "this URL looks like a tracking hit" pattern — used both to flag a URL
+    // e: broad "this URL looks like a tracking hit" pattern - used both to flag a URL
     //    as tracking-shaped when it matched no named platform above, and (much later,
     //    inside the "Record payloads" closure) to decide which fetch/XHR/sendBeacon
     //    calls are worth capturing.
     e = /(\/collect|[?&]tid=G-|[?&]v=2&|\/tr\/?\?|\/adsct|api\/v2\/pixel|\/action(p)?\/0|[?&]ti=\d|rp\.gif|ct\.pinterest\.com\/(v3|user)|snapchat\.com\/(p|cm)|viewthroughconversion|pagead\/conversion|ddm\/activity|activityi|1p-user-list|ga-audiences|px\.ads\.linkedin\.com)/i,
-    // o: the current page's hostname, split into dot-separated labels — consumed
+    // o: the current page's hostname, split into dot-separated labels - consumed
     //    once, immediately below, to compute the registrable domain.
     o = location.hostname.split('.'),
     // n: current page's registrable domain (e.g. "example.co.uk" or "example.com"),
     //    used below to tell "your own domain" apart from third-party vendors. This is
     //    the bookmarklet's own copy of the same simplified suffix heuristic that lives
-    //    in index.html's `SUFFIX2` — see AUDIT.md for the known limitation and why a
+    //    in index.html's `SUFFIX2` - see AUDIT.md for the known limitation and why a
     //    full Public Suffix List isn't embedded in either copy.
     n = /\.(co|com|org|net|gov|ac|edu|sch|ltd|plc|me)\.[a-z]{2,3}$/i.test(location.hostname) ? o.slice(-3).join('.') : o.slice(-2).join('.'),
     // i: seen-URL dedup map (url -> 1), so the same request isn't listed twice.
@@ -69,7 +69,7 @@
   } catch (t) {}
   r.forEach(function(o) {
     // Inner scope: `o` here is one resource-timing entry, shadowing the outer `o`
-    // (hostname-labels array, already consumed above) — safe, but worth flagging.
+    // (hostname-labels array, already consumed above) - safe, but worth flagging.
     var r = o.name; // `r` here is this entry's URL string, shadowing the outer entries array.
     if (r && 0 === r.indexOf('http')) {
       var c = ''; // c: this URL's hostname.
@@ -94,12 +94,12 @@
       })))
     }
   }), a.sort(function(t, e) {
-    // Sort params `t`/`e` here are two hit records being compared — unrelated to the
+    // Sort params `t`/`e` here are two hit records being compared - unrelated to the
     // outer `t` (platform registry) / `e` (tracking pattern), just reused short names.
     return e.t - t.t || t.v.localeCompare(e.v)
   });
   // c: any payloads recorded by a previous run of this bookmarklet on this page
-  //    (persisted on `window.__idtagRec` across repeated clicks — see the
+  //    (persisted on `window.__idtagRec` across repeated clicks - see the
   //    "Record payloads" flow below).
   var c = window.__idtagRec;
   var d = document.getElementById('__idtag'); // remove any panel left over from a previous click
@@ -190,7 +190,7 @@
   });
   var y = document.getElementById('__idc'); // y: the "Copy all for the decoder" button.
   y && (y.onclick = function() {
-    var t = l.length ? l : a, // t: hits to copy — named-platform hits if any, else everything.
+    var t = l.length ? l : a, // t: hits to copy - named-platform hits if any, else everything.
       e = ['# site: ' + location.hostname], // e: output lines, starting with a site header comment.
       o = {}; // o: dedup map so a recorded-payload URL isn't listed twice.
     p.forEach(function(t) {
@@ -205,6 +205,6 @@
     try {
       r = document.execCommand('copy')
     } catch (t) {}
-    i.parentNode.removeChild(i), document.getElementById('__idm').innerHTML = r ? '<strong>Copied ' + t.length + ' request' + (1 === t.length ? '' : 's') + '.</strong> Paste into the Decode tab.' : 'Could not copy automatically — select the addresses above and copy them manually.'
+    i.parentNode.removeChild(i), document.getElementById('__idm').innerHTML = r ? '<strong>Copied ' + t.length + ' request' + (1 === t.length ? '' : 's') + '.</strong> Paste into the Decode tab.' : 'Could not copy automatically - select the addresses above and copy them manually.'
   })
 }()
