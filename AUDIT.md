@@ -3,10 +3,11 @@
 Findings from a full read-through of `index.html` (2,724 lines as of this audit). Line numbers
 may drift as the file is edited — search for the quoted identifiers if a line number is off.
 
-Status as of 2026-08-20: every Code and UI/UX item from the original pass is fixed except the three
-UI/UX Low items below (table horizontal scroll on narrow viewports, focus-ring opacity, no in-page
-jump nav for Marketing's Check panel) — those were never picked up in either fix-up session and
-remain open.
+Status as of 2026-08-22: every Code and UI/UX item from the original pass is fixed except one UI/UX
+Low item below (no in-page jump nav for Marketing's Check panel) — the other two (table horizontal
+scroll on narrow viewports, focus-ring opacity) were picked up and fixed in the 2026-08-22
+accessibility review, along with several issues that review found beyond this document's original
+scope — see that entry for the full list.
 
 ## Code & Maintainability
 
@@ -110,10 +111,14 @@ remain open.
   **Fix:** added a one-line "On a phone or tablet?" caveat under the install instructions.
 
 ### Low
-- [ ] Reference tables (`.tbl-scroll table { min-width:840px }`, lines 264–265) force horizontal
+- [x] Reference tables (`.tbl-scroll table { min-width:840px }`, lines 264–265) force horizontal
   scroll below ~840px — the one place the "works everywhere" pitch breaks on phones.
-- [ ] Focus ring (`--focus: 0 0 0 3px rgba(0,173,205,.15)`, line 49) is a low-opacity (15%) shadow —
+  **Fix (2026-08-22):** made keyboard-reachable/scrollable (`tabindex="0" role="region"
+  aria-label`); the scroll pattern itself kept as the minimal, agreed-on option — see that entry.
+- [x] Focus ring (`--focus: 0 0 0 3px rgba(0,173,205,.15)`, line 49) is a low-opacity (15%) shadow —
   borderline for WCAG 1.4.11, worth checking visually for low-vision visibility.
+  **Fix (2026-08-22):** turned out to be a hard fail (1.16:1/1.48:1, not borderline) - redesigned
+  as a solid inset ring; see that entry for why inset specifically.
 - [ ] Search (`#q`) is fully hidden in Marketing view — reasonable simplification, but the Marketing
   "Check" panel has 5 long task accordions with no in-page jump nav to compensate.
 
@@ -412,6 +417,111 @@ last few sessions are exactly the kind of thing that could quietly break it.
   `index.html`, confirmed both the static sweep (exact file:line) and the dynamic sweep (exact URLs
   requested) failed correctly, then reverted via `git checkout` and re-ran clean to confirm it
   passes again on the real file.
+
+## 2026-08-22: accessibility and small-screen review, all findings fixed
+
+A dedicated review across four areas - narrow-viewport layout, colour contrast in both themes,
+keyboard navigation, and ARIA/semantic structure - found 12 issues, all fixed here. Visual identity
+and the Marketing/Specialist toggle untouched; no framework, no new dependencies, no network calls
+(re-confirmed with `./scripts/network-guard.sh`).
+
+### Narrow-viewport layout
+- [x] **The masthead's control cluster caused a page-wide horizontal scrollbar at ≤~420px, on
+  every page, from first load** - not the reference tables, which AUDIT.md's earlier "Low" item had
+  blamed. `.id-masthead > div:last-child` (theme toggle, Marketing/Specialist switch, "Reference"
+  badge) was `flex:0 0 auto` with no wrap, so its ~422px of controls never shrank. **Fix:** added
+  `flex-wrap:wrap; justify-content:flex-end; max-width:100%`, so the controls drop to a second row
+  at narrow widths instead of overflowing. Verified `document.body.scrollWidth` matches the viewport
+  exactly at 320/375/414px, on the default view, before any table is involved.
+- [x] **Reference tables (`.tbl-scroll`) were unreachable by keyboard** - a scrollable region with
+  nothing focusable inside it and no `tabindex` of its own, so a keyboard-only user had no way to
+  see the columns scrolled out of view. **Fix:** added `tabindex="0" role="region" aria-label="…"`
+  to all 9 occurrences (8 static + the one `renderOne()` builds per decoded request's parameter
+  table). The horizontal-scroll-with-a-min-width pattern itself is unchanged - this was the
+  "minimal, highest-impact" option from the two offered; a stacked-card narrow-viewport redesign
+  remains a bigger, separate option if wanted later.
+
+### Colour contrast (WCAG AA: 4.5:1 normal text, computed via relative-luminance ratio, not eyeballed)
+- [x] **`.ev--c`/`.ev--x`/`.ev.dq-c-d`/`.ev.dq-c-u` evidence/confidence badges failed badly in light
+  mode** (2.09-2.12:1 against a required 4.5:1) - they used `--good-line`/`--warn-line`/`--bad-line`
+  as *text* colour, tokens designed as vivid borders/dots, not as text on white. Dark mode's
+  equivalents happened to pass (8.6-12.8:1) since that palette's tones are much lighter, which is
+  exactly the light/dark asymmetry that prompted this review.
+  **Fix:** swapped to `--good`/`--warn`/`--bad` (the darker/lighter-per-theme text tokens already
+  used correctly elsewhere, e.g. `.rq-v-green`) - now 6.25-12.81:1 in both themes.
+- [x] **`.id-delta.up`/`.down`** had the identical bug (`--good-line`/`--bad-line` as text) - same
+  fix, same tokens. Currently unused in the shipped markup, fixed anyway since it's live in the CSS.
+- [x] **`.ev--l` ("Live-tested") failed by a hair in light mode** (4.39:1) - bumped `--ink-3` to
+  `--ink-2` for this specific pill (9.36:1 light / 8.91:1 dark).
+- [x] **`--ink-4` fails AA as text in *both* themes** (2.60:1 light, 3.35:1 dark - both need 4.5:1).
+  An earlier pass fixed two spots; this pass swapped the remaining 17 real-content uses to `--ink-3`
+  (4.84:1 light / 5.02:1 dark) via a boundary-aware sed pass (`([;{ ])color:var\(--ink-4\)`, so
+  `.id-chip:hover`'s unrelated `border-color:var(--ink-4)` wasn't touched) - `.ft-status` (export/
+  import feedback), `.bm-note` (bookmarklet instructions/feedback), `.dq-kind`/`.rq-host`/
+  `.dq-sum-h` (core decode result content), `.dq-count`, `.srcnote`, `.dq-meta` row labels,
+  `.chain .n`, plus lower-stakes uses (footer, task time estimate, index badges, section eyebrows).
+
+### Keyboard navigation
+- [x] **The site-wide focus indicator was a 15-28%-opacity box-shadow** - computed contrast 1.16:1
+  light / 1.48:1 dark, both far under WCAG 1.4.11's 3:1, and it's the *only* focus indicator
+  anywhere (`:focus-visible { outline:none; box-shadow:var(--focus) }` is global). **Fix:** redefined
+  `--focus` as `inset 0 0 0 3px var(--navy)` (light) / `inset 0 0 0 3px var(--ring)` (dark) - solid,
+  on-brand colours already used elsewhere (navy = headings/active-tab background; `--ring` was a
+  defined-but-never-used token, identical value to `--accent`). Choosing *inset* rather than outer
+  was deliberate, not cosmetic: verified empirically that an outer box-shadow/outline on a button
+  flush against an `overflow:hidden` ancestor's edge (e.g. `.viewsw`, `.dq-sum-grid`) gets clipped
+  to invisible regardless of technique, while an inset shadow never paints outside the element's own
+  box and so is immune - this fixed `.dq-sum-row` and `.task > summary`'s clipping risk for free,
+  with no per-component change needed.
+- [x] **The Marketing/Specialist toggle had *no* focus indicator at all**, confirmed via a real
+  Tab-key press (computed `box-shadow: none`, not just visually faint) - `.viewsw button {
+  all:unset; … }` resets box-shadow at higher specificity (0,1,1) than the bare `:focus-visible`
+  rule (0,1,0), cancelling it outright on exactly these two buttons. **Fix:** added `.viewsw
+  button:focus-visible { outline:none; box-shadow:var(--focus); }` (specificity 0,2,1, wins).
+  Also added `.dq-filter-chip.is-active:focus-visible` / `.dq-sum-row.is-active:focus-visible`
+  overrides, since `.is-active`'s own box-shadow (0,2,0) had the same silent-override problem
+  whenever a filter chip or summary row was both the active filter and keyboard-focused.
+- [x] **"Import JSON" on "Your setup" was keyboard-operable but invisible while focused** - the
+  visible control is a `<label>` (not in the tab order); real keyboard focus lands on the paired
+  `<input type=file>`, which is 1×1px and `opacity:0`. Enter/Space did correctly open the file
+  picker, so this wasn't broken, but the only focus cue was a ring around an invisible pixel
+  elsewhere on the page. **Fix:** `.id-btn:has(+ input:focus-visible) { box-shadow:var(--focus); }`
+  forwards the ring onto the visible label (`:has()` already relied on elsewhere in this file, e.g.
+  `.dq-sum-chips:has(.is-active)`, so no new browser-support assumption).
+
+### ARIA labelling and semantic structure
+- [x] **No `aria-live` region anywhere** - Decode's results replace `#dq-out` silently; a screen
+  reader user got no announcement that anything happened after clicking Decode, in a tool whose
+  entire workflow is paste → Decode → read the result. **Fix:** added a persistent `#dq-live-status`
+  (`role="status" aria-live="polite"`, visually hidden via a new `.sr-only` utility class) as a
+  sibling of `#dq-out`, *outside* the subtree that `OUT.innerHTML = …` replaces wholesale each run -
+  deliberately, since a live region that's destroyed and recreated isn't reliably announced, only
+  one whose text content mutates in place. `run()` now calls a small `announce()` helper with a
+  concise summary ("Decoded 2 requests: 1 needs attention, 1 healthy.") rather than dumping the
+  full findings text into the announcement.
+- [x] **Several controls' only explanation lived in a mouse-only `title`** - inconsistently exposed
+  to screen readers, and no help at all for a keyboard-only sighted user. **Fix, case by case:**
+  the sGTM checkbox and the two summary export buttons ("Copy findings summary"/"Export client PDF")
+  got `aria-describedby` pointing at a new `.sr-only` span carrying the same explanation, alongside
+  the existing `title` (kept, for mouse users). Filter chips and summary rows got a more robust fix
+  than text-folding: they're genuinely toggle buttons, so `aria-pressed` (kept in sync with the
+  `.is-active` class both in `renderSummary()`'s HTML and in `applyFilter()`'s DOM mutation path)
+  now communicates the on/off state directly, making the "click again to clear" title text
+  redundant rather than load-bearing.
+- [x] **Platform group-header severity dot was colour-only** - `.dq-grouphead .rq-dot` had no
+  adjacent text, unlike the per-request `.rq-v` badge one level down. **Fix:** added a `.sr-only`
+  span with the same `SHORT` severity label (`'Needs attention'`/`'Look at this'`/`'Healthy'`) inside
+  the dot.
+
+**Verified:** a Playwright script asserting all of the above programmatically (narrow-viewport
+overflow at three widths, computed contrast ratios on live-rendered colours in both themes via a
+throwaway-element probe, real Tab-key traces for every focus fix, `aria-live`/`aria-pressed`/
+`aria-describedby` presence and behaviour) - all passed. Re-ran the existing full regression walk
+(every tab, both audience views, all Decode examples, ignore/filter/expand, both Decode exports, the
+full "Your setup" fill → export JSON → clear → re-import → export PDF cycle, search, theme toggle)
+and `./scripts/network-guard.sh` - zero console errors, zero network requests beyond the initial
+local file load, both still passing after this many touched lines. Screenshotted the full page in
+both themes before/after to confirm no unintended visual drift beyond the deliberate fixes.
 
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't

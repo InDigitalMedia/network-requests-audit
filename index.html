@@ -47,7 +47,7 @@
   --r-card:6px; --r-ctl:4px; --r-pill:999px;
   --sh-card:0 1px 3px rgba(0,0,0,.08); --sh-panel:0 1px 3px rgba(0,0,0,.06);
   --sh-hover:0 2px 8px rgba(0,0,0,.08); --sh-btn:0 1px 3px rgba(0,0,0,.12);
-  --focus:0 0 0 3px rgba(0,173,205,.15);
+  --focus:inset 0 0 0 3px var(--navy);
   /* active control */
   --on-navy:#ffffff; --btn-active-bg:#262453; --btn-active-fg:#ffffff;
   --btn-bg:#ffffff; --btn-brd:#d1d5dc; --btn-fg:#364153; --btn-hov:#f3f4f6; --btn-hov-brd:#99a1af; --btn-hov-fg:#101828;
@@ -79,7 +79,7 @@
   /* depth: real shadows, not glows */
   --sh-card:0 1px 3px rgba(0,0,0,.35); --sh-panel:0 1px 3px rgba(0,0,0,.30);
   --sh-hover:0 4px 12px rgba(0,0,0,.45); --sh-btn:0 2px 8px rgba(84,135,212,.35);
-  --focus:0 0 0 3px rgba(84,135,212,.28);
+  --focus:inset 0 0 0 3px var(--ring);
   --btn-active-bg:#5487d4; --btn-active-fg:#131519; --on-navy:#131519;
   --btn-bg:#24272d; --btn-brd:#3e424b; --btn-fg:#c4c8ce; --btn-hov:#32353d; --btn-hov-brd:#4d535e; --btn-hov-fg:#f5f6f7;
   --wash:rgba(84,135,212,.12); --ghost:#292c32;
@@ -113,7 +113,7 @@ a { color:var(--navy); }
   box-shadow:var(--sh-card); padding:14px 20px;
 }
 .id-brandrow { display:flex; align-items:center; gap:16px; min-width:0; flex:1 1 420px; }
-.id-masthead > div:last-child { flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+.id-masthead > div:last-child { flex:0 0 auto; display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; max-width:100%; }
 .id-logo { height:44px; width:auto; display:block; }
 .id-brandsep { width:1px; align-self:stretch; background:var(--grid); }
 .id-title { font-size:25px; margin:0 0 2px; color:var(--head); letter-spacing:-0.005em; line-height:1.15; }
@@ -158,13 +158,17 @@ h3.sub3 {
   letter-spacing:0.09em; text-transform:uppercase; cursor:pointer; transition:background .12s, border-color .12s, color .12s;
 }
 .id-btn:hover { background:var(--btn-hov); border-color:var(--btn-hov-brd); color:var(--btn-hov-fg); }
+/* "Import JSON" is a <label> wrapping a visually-hidden file input (needed so the real
+   <input type=file> stays keyboard-operable) - keyboard focus lands on that 1px input,
+   not on this visible label, so its ring has to be forwarded here or it's invisible. */
+.id-btn:has(+ input:focus-visible) { box-shadow:var(--focus); }
 .id-select, .dq-inp, .dq-ta, .searchbox, .ft-field {
   background:var(--input-bg); color:var(--ink-1); border:1px solid var(--line); border-radius:var(--r-ctl);
 }
 .id-select { padding:8px 12px; font-size:14px; font-weight:600; }
 .ft-field { display:block; width:100%; max-width:320px; padding:6px 9px; font-size:13px; margin-top:6px; }
 .ft-field--inline { display:inline-block; width:auto; min-width:200px; max-width:none; margin:0 0 0 8px; vertical-align:middle; }
-.ft-status { font-size:11px; color:var(--ink-4); line-height:1.4; }
+.ft-status { font-size:11px; color:var(--ink-3); line-height:1.4; }
 .id-label { font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); }
 .id-chip {
   display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--muted);
@@ -190,6 +194,9 @@ h3.sub3 {
 }
 .viewsw button + button { border-left:1px solid var(--grid); }
 .viewsw button[aria-pressed="true"] { background:var(--btn-active-bg); color:var(--btn-active-fg); }
+/* `all:unset` above resets box-shadow too, at higher specificity than the bare
+   :focus-visible rule below - restated here so these two buttons still show it. */
+.viewsw button:focus-visible { outline:none; box-shadow:var(--focus); }
 
 /* ---- hover row card ---- */
 .id-rowcard {
@@ -239,10 +246,10 @@ h3.sub3 {
 
 /* ---- deltas ---- */
 .id-delta { font-size:12px; font-weight:700; white-space:nowrap; }
-.id-delta.up { color:var(--good-line); } .id-delta.down { color:var(--bad-line); }
+.id-delta.up { color:var(--good); } .id-delta.down { color:var(--bad); }
 
 /* ---- footer ---- */
-.id-footer { margin-top:26px; font-size:12.5px; color:var(--ink-4); line-height:1.7; border-top:1px solid var(--grid); padding-top:16px; }
+.id-footer { margin-top:26px; font-size:12.5px; color:var(--ink-3); line-height:1.7; border-top:1px solid var(--grid); padding-top:16px; }
 .id-credit { display:flex; align-items:center; gap:9px; margin-top:14px; font-size:11.5px; font-weight:700; color:var(--ink-3); }
 .id-credit img { height:16px; width:auto; display:block; }
 
@@ -267,6 +274,13 @@ p.tight { margin:7px 0 0; }
 .id-table--text .sub { display:block; color:var(--ink-3); font-size:11.5px; margin-top:3px; }
 .tbl-scroll { overflow-x:auto; }
 .tbl-scroll table { min-width:840px; }
+
+/* visually hidden but present for screen readers - status announcements, extra
+   context for controls whose only other explanation is a mouse-only `title` */
+.sr-only {
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
 .id-table--text:not(.id-table--p):not(.id-table--d):not(.id-table--f) td:first-child,
 .id-table--text:not(.id-table--p):not(.id-table--d):not(.id-table--f) th:first-child { width:20%; }
 .id-table--text:not(.id-table--p):not(.id-table--d):not(.id-table--f) td:nth-child(2),
@@ -293,14 +307,14 @@ p.tight { margin:7px 0 0; }
   padding:3px 9px; border:1px solid currentColor; border-radius:var(--r-pill); white-space:nowrap;
   margin-left:6px; vertical-align:1px;
 }
-.ev--c { color:var(--good-line); } .ev--u { color:var(--bad-line); }
-.ev--x { color:var(--warn-line); }
-.ev--l { color:var(--ink-3); background:var(--muted); border-color:var(--grid); }
+.ev--c { color:var(--good); } .ev--u { color:var(--bad); }
+.ev--x { color:var(--warn); }
+.ev--l { color:var(--ink-2); background:var(--muted); border-color:var(--grid); }
 a.ev { text-decoration:none; cursor:pointer; }
 a.ev:hover, a.ev:focus-visible { background:currentColor; }
 a.ev:hover .lbl-x, a.ev:focus-visible .lbl-x { color:var(--surface-1); }
 .ev .arw { font-weight:400; margin-left:3px; }
-.srcnote { font-size:12px; color:var(--ink-4); margin-top:10px; line-height:1.55; }
+.srcnote { font-size:12px; color:var(--ink-3); margin-top:10px; line-height:1.55; }
 .hit-card { outline:2px solid var(--accent); outline-offset:3px; border-radius:var(--r-ctl); }
 :root[data-view="marketing"] .aud-spec { display:none !important; }
 :root[data-view="specialist"] .aud-mkt { display:none !important; }
@@ -314,7 +328,7 @@ a.ev:hover .lbl-x, a.ev:focus-visible .lbl-x { color:var(--surface-1); }
 .bar .searchbox { flex:0 1 auto; min-width:0; display:flex; align-items:center; }
 .bar .id-tabs { flex:0 0 auto; }
 .searchbox input { border:0; outline:0; background:transparent; color:var(--ink-1); font-size:13.5px; font-weight:600; padding:7px 11px; width:158px; }
-.searchbox span { font-size:11px; font-weight:700; padding:0 11px; color:var(--ink-4); border-left:1px solid var(--grid); align-self:stretch; display:flex; align-items:center; }
+.searchbox span { font-size:11px; font-weight:700; padding:0 11px; color:var(--ink-3); border-left:1px solid var(--grid); align-self:stretch; display:flex; align-items:center; }
 
 /* chain diagram */
 .chain { display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; margin-top:12px; }
@@ -324,7 +338,7 @@ a.ev:hover .lbl-x, a.ev:focus-visible .lbl-x { color:var(--surface-1); }
 }
 .chain > div + div { border-left:1px solid var(--grid); }
 .chain .invisible { border-top-color:var(--line); }
-.chain .n { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-4); }
+.chain .n { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); }
 .chain .t { font-size:14px; font-weight:800; margin:5px 0 3px; color:var(--head); font-family:'Montserrat',sans-serif; }
 .chain .d { font-size:12.5px; color:var(--ink-3); line-height:1.5; }
 
@@ -380,7 +394,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .bm-btn:active { cursor:grabbing; }
 :root[data-theme="dark"] .id-root .bm-btn { background:var(--btn-active-bg); color:var(--btn-active-fg); border-color:var(--btn-active-bg); }
 .bm-copy { width:100%; }
-.bm-note { font-size:10.5px; color:var(--ink-4); text-align:center; line-height:1.4; }
+.bm-note { font-size:10.5px; color:var(--ink-3); text-align:center; line-height:1.4; }
 
 /* ---- task accordions ---- */
 .tasks { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
@@ -396,7 +410,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   border-radius:var(--r-pill); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;
 }
 .task-h { flex:1 1 auto; font-size:15.5px; color:var(--head); letter-spacing:-0.005em; }
-.task-w { flex:0 0 auto; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--ink-4); }
+.task-w { flex:0 0 auto; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--ink-3); }
 .task[open] { border-left:4px solid var(--accent); }
 .task[open] > summary { border-bottom:1px solid var(--grid); background:var(--ghost); }
 .task[open] .task-n { background:var(--navy); color:#fff; border-color:var(--navy); }
@@ -420,18 +434,18 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-ssw { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:var(--ink-2); cursor:pointer; white-space:nowrap; }
 .dq-ssw input { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; margin:0; }
 .dq-out { margin-top:6px; }
-.dq-count { font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-4); margin:20px 0 0; }
+.dq-count { font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); margin:20px 0 0; }
 .dq-card {
   margin-top:16px; background:var(--surface-1); border:1px solid var(--grid); border-radius:var(--r-card);
   box-shadow:var(--sh-card); padding:16px 18px 18px;
 }
 .dq-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; }
 .dq-plat { font-size:20px; color:var(--head); letter-spacing:-0.01em; }
-.dq-kind { font-size:12.5px; color:var(--ink-4); margin-top:2px; }
+.dq-kind { font-size:12.5px; color:var(--ink-3); margin-top:2px; }
 .dq-err { font-size:13.5px; color:var(--bad); font-weight:700; }
 .dq-meta { border-collapse:collapse; margin-top:12px; font-size:12.5px; }
 .dq-meta td { padding:3px 14px 3px 0; vertical-align:top; }
-.dq-meta td:first-child { font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:0.12em; color:var(--ink-4); white-space:nowrap; }
+.dq-meta td:first-child { font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:0.12em; color:var(--ink-3); white-space:nowrap; }
 .dq-sub { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; margin:18px 0 9px; color:var(--ink-3); }
 .dq-find { padding:10px 13px; border:1px solid var(--grid); border-left:4px solid var(--line); border-radius:var(--r-ctl); margin-bottom:7px; background:var(--surface-1); }
 .dq-find.dq-pass { border-left-color:var(--good-line); background:var(--good-bg); }
@@ -484,7 +498,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-more > summary::-webkit-details-marker { display:none; }
 .dq-more > summary::before { content:"+ "; }
 .dq-more[open] > summary::before { content:"\2212 "; }
-.ev.dq-c-d { color:var(--good-line); } .ev.dq-c-p { color:var(--ink-4); } .ev.dq-c-u { color:var(--bad-line); }
+.ev.dq-c-d { color:var(--good); } .ev.dq-c-p { color:var(--ink-3); } .ev.dq-c-u { color:var(--bad); }
 
 /* ---- decoded request: collapsible ---- */
 .dq-req { margin-top:10px; background:var(--surface-1); border:1px solid var(--grid); border-radius:var(--r-card); box-shadow:var(--sh-panel); }
@@ -502,7 +516,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .rq-dot { flex:0 0 auto; width:10px; height:10px; border-radius:var(--r-pill); }
 .rq-green { background:var(--good-line); } .rq-amber { background:var(--warn-line); } .rq-red { background:var(--bad-line); }
 .rq-name { font-weight:700; font-size:14px; color:var(--head); }
-.rq-host { font-size:11.5px; color:var(--ink-4); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.rq-host { font-size:11.5px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .rq-v {
   flex:0 0 auto; font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase;
   padding:3px 9px; border-radius:var(--r-pill); border:1px solid;
@@ -514,6 +528,9 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-filter-chip:hover { opacity:0.8; }
 .dq-filter-chip.is-active { box-shadow:0 0 0 2px currentColor inset; }
 .dq-sum-chips:has(.is-active) .dq-filter-chip:not(.is-active) { opacity:0.45; }
+/* is-active's own box-shadow is more specific than the bare :focus-visible rule and would
+   otherwise silently win, hiding that this chip is also keyboard-focused right now. */
+.dq-filter-chip.is-active:focus-visible { box-shadow:var(--focus); }
 
 /* ---- summary of everything pasted: tinted, labelled, distinct from the cards ---- */
 .dq-summary {
@@ -545,9 +562,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-sum-row.is-active { background:var(--wash); box-shadow:inset 0 0 0 2px var(--accent); }
 .dq-sum-row.is-active .dq-sum-go { opacity:1; color:var(--accent-txt); }
 .dq-sum-grid:has(.dq-sum-row.is-active) .dq-sum-row:not(.is-active) { opacity:0.5; }
+.dq-sum-row.is-active:focus-visible { box-shadow:var(--focus); }
 .dq-sum-n { flex:1 1 auto; min-width:0; font-size:13px; font-weight:700; color:var(--ink-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dq-sum-c { flex:0 0 auto; font-size:12.5px; font-weight:700; color:var(--ink-3); font-variant-numeric:tabular-nums; }
-.dq-sum-h { flex:0 1 auto; min-width:0; font-size:11px; color:var(--ink-4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dq-sum-h { flex:0 1 auto; min-width:0; font-size:11px; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dq-sum-go {
   flex:0 0 auto; font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
   color:var(--navy); opacity:0; transition:opacity .12s;
@@ -555,7 +573,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 :root[data-theme="dark"] .id-root .dq-sum-go { color:var(--accent-txt); }
 .dq-sum-foot { font-size:12.5px; color:var(--ink-3); margin-top:11px; line-height:1.55; }
 .dq-listlabel {
-  font-size:9.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-4);
+  font-size:9.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3);
   margin:22px 0 0; padding-bottom:7px; border-bottom:1px solid var(--grid);
 }
 .dq-listlabel span { font-weight:600; letter-spacing:0.04em; text-transform:none; }
@@ -567,9 +585,9 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   border-bottom:1px solid var(--grid);
 }
 .dq-gh-n { font-family:'Montserrat',sans-serif; font-weight:800; font-size:14px; color:var(--head); }
-.dq-gh-c { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-4); }
+.dq-gh-c { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); }
 .rq-idx {
-  flex:0 0 auto; font-size:10px; font-weight:700; color:var(--ink-4); font-variant-numeric:tabular-nums;
+  flex:0 0 auto; font-size:10px; font-weight:700; color:var(--ink-3); font-variant-numeric:tabular-nums;
   border:1px solid var(--grid); border-radius:var(--r-pill); padding:2px 7px; background:var(--muted);
 }
 /* ---- how-to-fix dropdown inside a finding ---- */
@@ -603,7 +621,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;
 }
 .fix-docs { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
-.fix-dl { font-size:9.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-4); }
+.fix-dl { font-size:9.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-3); }
 .fix-docs a {
   font-size:11.5px; font-weight:700; text-decoration:none; color:var(--navy);
   border:1px solid var(--line); border-radius:var(--r-pill); padding:4px 11px; background:var(--surface-1);
@@ -1016,7 +1034,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Google Analytics and the Google tag</h2></div>
         <p class="lede">Plain English first: <strong>GA4</strong> (Google Analytics 4) is Google's website analytics tool. A <strong>hit</strong> or <strong>event</strong> is one recorded action - a page view, a click, a purchase. Every one becomes a network request.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text">
           <thead><tr><th>Request</th><th>What it is</th><th>How to spot it</th><th>Healthy</th><th>Notes</th></tr></thead>
           <tbody>
@@ -1160,7 +1178,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Server-side GTM endpoints</h2></div>
         <p class="lede">A <strong>server container</strong> is a copy of Tag Manager running on a server you control, on your own subdomain, instead of in the visitor's browser. The browser sends one request to it; the container decides what to forward onward. A <strong>client</strong> is the component inside the container that claims an incoming request and translates it into an event - and the <strong>first client that matches wins</strong>, which is itself a source of bugs.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text">
           <thead><tr><th>Path on your container</th><th>What it is</th><th>Served by</th><th>Healthy</th><th>Notes</th></tr></thead>
           <tbody>
@@ -1256,7 +1274,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
         <h3 class="sub3">The two legs, and what proves each</h3>
         <p class="lede">A server-side setup has two hops, and they need completely different tools. Conflating them is the single most common mistake in a server-side audit.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text id-table--d">
           <thead><tr><th>Leg</th><th>Visible in</th><th>What proves it worked</th><th>What does not</th></tr></thead>
           <tbody>
@@ -1362,7 +1380,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       <div class="id-card--open">
         <div class="sechead" style="margin-top:14px"><h2 class="id-h2">Ad platform endpoints</h2></div>
         <p class="lede">A <strong>pixel</strong> is a platform's browser-based tracker. A <strong>Conversions API</strong> (CAPI, or Events API) does the same job from a server, which is more reliable because ad blockers and browser restrictions cannot touch it - but it needs a shared <strong>event ID</strong> so the platform knows the browser event and the server event are the same action and must not be counted twice. Every endpoint below was checked against the live library or the platform's own docs in August 2026.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text id-table--p">
           <thead><tr><th>Platform</th><th>Library and endpoint</th><th>How to spot it</th><th>Healthy</th><th>Server-side equivalent</th></tr></thead>
           <tbody>
@@ -1435,7 +1453,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
         <h3 class="sub3">Deduplication at a glance</h3>
         <p class="lede tight">Ranked by how cleanly each platform moves server-side, judged on how well its dedup is documented. This matters commercially: get dedup wrong and reported conversions inflate, which corrupts return-on-spend figures and can drive real budget decisions in the wrong direction.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text id-table--d">
           <thead><tr><th>Confidence</th><th>Platforms</th><th>Key</th><th>Window</th></tr></thead>
           <tbody>
@@ -1479,7 +1497,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         </div>
 
         <h3 class="sub3">What to write down</h3>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text id-table--f">
           <thead><tr><th>What</th><th>Where to find it</th><th>Why it matters later</th></tr></thead>
           <tbody>
@@ -1550,7 +1568,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
         <h3 class="sub3">Worked example</h3>
         <p class="lede tight">What a completed record looks like. Values below are illustrative - substitute your own.</p>
-        <div class="tbl-scroll">
+        <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
         <table class="id-table id-table--text id-table--f">
           <thead><tr><th>Observed request</th><th>What it is</th><th>Note</th></tr></thead>
           <tbody>
@@ -1655,8 +1673,9 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <button class="id-btn" id="dq-clear" type="button">Clear</button>
             <span class="dq-sep"></span>
             <label class="dq-ssw" for="dq-ssgtm" title="Server-side tracking (also called sGTM or a server container) routes tag data through your own server before it reaches Google/Meta/etc, instead of the browser sending it directly. Most sites do not have this set up - leave unchecked unless you know yours does.">
-              <input type="checkbox" id="dq-ssgtm">
+              <input type="checkbox" id="dq-ssgtm" aria-describedby="dq-ssgtm-desc">
               This site has server-side tracking set up
+              <span id="dq-ssgtm-desc" class="sr-only">Server-side tracking, also called sGTM or a server container, routes tag data through your own server before it reaches Google, Meta, etc, instead of the browser sending it directly. Most sites do not have this set up - leave unchecked unless you know yours does.</span>
             </label>
             <span class="dq-sep aud-spec"></span>
             <label class="id-label aud-spec" for="dq-host" style="white-space:nowrap">Container hostname <span style="font-weight:600;text-transform:none;letter-spacing:0">(only needed if it is not on your site's own domain)</span></label>
@@ -1674,6 +1693,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           </div>
         </div>
 
+        <div id="dq-live-status" class="sr-only" role="status" aria-live="polite"></div>
         <div id="dq-out" class="dq-out"></div>
       </div>
     </section>
@@ -1690,7 +1710,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
     <h3 class="sub3">Verification changelog</h3>
     <p class="lede">What was checked, when, and what came of it - kept for the same reason the badges above exist, so confidence in a claim is traceable rather than assumed. Newest first.</p>
-    <div class="tbl-scroll">
+    <div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns">
     <table class="id-table id-table--text id-table--v">
       <thead><tr><th>Date</th><th>Endpoint / claim checked</th><th>Outcome</th><th>Note</th></tr></thead>
       <tbody>
@@ -2113,6 +2133,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   var IN = document.getElementById('dq-in');
   if (!IN) return;
   var OUT = document.getElementById('dq-out');
+  /* Outside #dq-out, so it survives OUT.innerHTML being replaced wholesale on every decode -
+     a screen reader only reliably announces a live region that persists and has its text
+     content mutated, not one that's destroyed and recreated as part of a bigger swap. */
+  var LIVE = document.getElementById('dq-live-status');
+  function announce(msg){ if (LIVE) LIVE.textContent = msg; }
   var HOSTIN = document.getElementById('dq-host');
   var SSGTM = document.getElementById('dq-ssgtm');
   if (SSGTM) {
@@ -2981,7 +3006,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     h += '<details class="dq-more"><summary>Every parameter in this request ('+P.length+')</summary>';
     if (!P.length) h += '<div class="dq-kind">No parameters found. If this was a POST, paste the request body too - DevTools shows it under the Payload tab.</div>';
     else {
-      h += '<div class="tbl-scroll"><table class="id-table id-table--text dq-params"><thead><tr><th>Parameter</th><th>Value</th><th>What it means</th></tr></thead><tbody>';
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Reference table, scroll horizontally to see all columns"><table class="id-table id-table--text dq-params"><thead><tr><th>Parameter</th><th>Value</th><th>What it means</th></tr></thead><tbody>';
       P.forEach(function(p){
         var key = p[0], val = p[1], d = null;
         if (plat && plat.d[key]) d = plat.d[key];
@@ -3059,19 +3084,23 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       return (SEVRANK[a.worst] - SEVRANK[b.worst]) || (b.n - a.n) || a.name.localeCompare(b.name);
     });
     var chips = ['red','amber','green'].filter(function(s){ return tally[s]; })
-      .map(function(s){ return '<button type="button" class="rq-v rq-v-'+s+' dq-filter-chip'+((activeFilter && activeFilter.type==='sev' && activeFilter.value===s)?' is-active':'')+'" data-filter="'+s+'" title="Show only requests marked '+sevLabel(s, 2)+' - click again to clear">'+tally[s]+' '+sevLabel(s, tally[s])+'</button>'; }).join('');
+      .map(function(s){ var on = !!(activeFilter && activeFilter.type==='sev' && activeFilter.value===s);
+        return '<button type="button" class="rq-v rq-v-'+s+' dq-filter-chip'+(on?' is-active':'')+'" data-filter="'+s+'" aria-pressed="'+on+'" title="Show only requests marked '+sevLabel(s, 2)+' - click again to clear">'+tally[s]+' '+sevLabel(s, tally[s])+'</button>'; }).join('');
     var h = '<div class="dq-summary">';
     h += '<div class="dq-sum-eyebrow">Summary of what you pasted</div>';
     h += '<div class="dq-sum-head">'
       + '<div class="dq-sum-t"><span class="dq-sum-num">'+metas.length+'</span> request'+(metas.length===1?'':'s')+' decoded</div>'
       + '<div class="dq-sum-chips">'+chips+'</div>'
-      + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button" title="Verdicts and their business-impact explanations only - no raw parameters, no visitor data.">Copy findings summary</button>'
-      + '<button class="id-btn dq-toggle" id="dq-export-pdf" type="button" title="A clean, client-facing report - same PII rule as the text summary.">Export client PDF</button>'
+      + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button" title="Verdicts and their business-impact explanations only - no raw parameters, no visitor data." aria-describedby="dq-copy-summary-desc">Copy findings summary</button>'
+      + '<span id="dq-copy-summary-desc" class="sr-only">Verdicts and their business-impact explanations only - no raw parameters, no visitor data.</span>'
+      + '<button class="id-btn dq-toggle" id="dq-export-pdf" type="button" title="A clean, client-facing report - same PII rule as the text summary." aria-describedby="dq-export-pdf-desc">Export client PDF</button>'
+      + '<span id="dq-export-pdf-desc" class="sr-only">A clean, client-facing report - same PII rule as the text summary.</span>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r){
       var hosts = Object.keys(r.hosts).filter(function(x){ return x && x !== '-'; });
-      h += '<button type="button" class="dq-sum-row'+((activeFilter && activeFilter.type==='plat' && activeFilter.value===r.name)?' is-active':'')+'" data-plat="'+esc(r.name)+'" data-worst="'+r.worst+'" title="Show only '+esc(shortName(r.name))+' requests - click again to clear">'
+      var rowOn = !!(activeFilter && activeFilter.type==='plat' && activeFilter.value===r.name);
+      h += '<button type="button" class="dq-sum-row'+(rowOn?' is-active':'')+'" data-plat="'+esc(r.name)+'" data-worst="'+r.worst+'" aria-pressed="'+rowOn+'" title="Show only '+esc(shortName(r.name))+' requests - click again to clear">'
         + '<span class="rq-dot rq-'+r.worst+'"></span>'
         + '<span class="dq-sum-n">'+esc(shortName(r.name))+'</span>'
         + '<span class="dq-sum-c">&times;'+r.n+'</span>'
@@ -3204,9 +3233,13 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var siteHost = sm ? sm[1].toLowerCase() : null;
     var hasServerSide = !!(SSGTM && SSGTM.checked);
     activeFilter = null;
-    if (!raw) { OUT.innerHTML = ''; return; }
+    if (!raw) { OUT.innerHTML = ''; announce(''); return; }
     var reqs = extract(raw);
-    if (!reqs.length) { OUT.innerHTML = '<div class="dq-card"><div class="dq-err">Could not find a URL, query string or body in that. Paste the full request URL - in DevTools, right-click the request then Copy &rarr; Copy link address.</div></div>'; return; }
+    if (!reqs.length) {
+      OUT.innerHTML = '<div class="dq-card"><div class="dq-err">Could not find a URL, query string or body in that. Paste the full request URL - in DevTools, right-click the request then Copy &rarr; Copy link address.</div></div>';
+      announce('Could not find a request in that paste.');
+      return;
+    }
     metas = []; var parts = [];
     reqs.slice(0, 12).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
 
@@ -3225,7 +3258,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var cards = order.map(function(k){
       var g = groups[k];
       return '<section class="dq-group" data-plat="'+esc(k)+'">'
-        + '<div class="dq-grouphead"><span class="rq-dot rq-'+g.worst+'"></span>'
+        + '<div class="dq-grouphead"><span class="rq-dot rq-'+g.worst+'"><span class="sr-only">'+SHORT[g.worst]+'</span></span>'
         + '<span class="dq-gh-n">'+esc(shortName(k))+'</span>'
         + '<span class="dq-gh-c">'+g.items.length+' request'+(g.items.length===1?'':'s')+'</span></div>'
         + g.items.join('') + '</section>';
@@ -3233,6 +3266,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var html = renderSummary(metas, order) + cards;
     if (reqs.length > 12) html += '<div class="dq-count">Only the first 12 were decoded - paste fewer at a time to see the rest.</div>';
     OUT.innerHTML = html;
+    var tally = computeTally(metas);
+    var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
+      .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
+    announce('Decoded ' + metas.length + ' request' + (metas.length===1?'':'s') + (tallyBits.length ? ': ' + tallyBits.join(', ') : '') + '.');
   }
 
   /* ---------- interactions on already-rendered output: one delegated listener,
@@ -3258,10 +3295,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var sevFilter = activeFilter && activeFilter.type === 'sev' ? activeFilter.value : null;
     var platFilter = activeFilter && activeFilter.type === 'plat' ? activeFilter.value : null;
     OUT.querySelectorAll('.dq-filter-chip').forEach(function(c){
-      c.classList.toggle('is-active', c.dataset.filter === sevFilter);
+      var on = c.dataset.filter === sevFilter;
+      c.classList.toggle('is-active', on);
+      c.setAttribute('aria-pressed', String(on));
     });
     OUT.querySelectorAll('.dq-sum-row').forEach(function(row){
-      row.classList.toggle('is-active', row.dataset.plat === platFilter);
+      var on = row.dataset.plat === platFilter;
+      row.classList.toggle('is-active', on);
+      row.setAttribute('aria-pressed', String(on));
       row.style.display = (!sevFilter || row.dataset.worst === sevFilter) ? '' : 'none';
     });
     OUT.querySelectorAll('.dq-req').forEach(function(d){

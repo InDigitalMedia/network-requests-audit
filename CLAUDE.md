@@ -61,6 +61,17 @@ Everything lives in `index.html`, organized as one `<style>` block followed by t
      re-import via `<input type="file">` + `FileReader`) or as a print-only one-pager (builds a
      clean summary into `#ft-print-view`, toggles the `print-ft-only` class, calls `window.print()`).
      All client-side; nothing here makes a network call.
+   - `--focus` (defined per-theme near the top of the `<style>` block) is deliberately an *inset*
+     box-shadow (`inset 0 0 0 3px var(--navy|--ring)`), not an outer one — verified empirically that
+     an outer ring on a button flush against an `overflow:hidden` ancestor's edge (`.viewsw`,
+     `.dq-sum-grid`) gets clipped to invisible regardless of technique (box-shadow *or* `outline`),
+     while inset never paints outside the element's own box. Don't switch it back to outer without
+     re-checking those two spots. `.viewsw button`'s `all:unset` also cancels this at higher
+     specificity than the bare `:focus-visible` rule, so it's restated explicitly right after that
+     rule — same trap for any future `all:unset` button reset.
+   - `.sr-only` (visually-hidden-but-announced utility class, near `.tbl-scroll`) backs the
+     `#dq-live-status` region (see below) and a few `aria-describedby` targets — reuse it rather
+     than adding a second visually-hidden pattern.
 
 3. **Request decoder script** (~line 1749–2741): the actual analysis engine, used by the Decode tab.
    - `PLATFORMS` (~line 1934) — the vendor registry: each entry has a hostname/path matcher `t()`,
@@ -102,6 +113,12 @@ Everything lives in `index.html`, organized as one `<style>` block followed by t
      value:<platform name>}` (the summary's per-platform rows — these filter now, they used to
      scroll/anchor to the group). `filteredMetas()` is what both export functions above read, so
      exporting always reflects whatever is currently filtered on screen, not the full paste.
+   - `announce(msg)` / `#dq-live-status` — a screen-reader announcement after every `run()`, e.g.
+     "Decoded 2 requests: 1 needs attention, 1 healthy." The status element lives *outside* `#dq-out`
+     deliberately, since `OUT.innerHTML = …` replaces that whole subtree on every decode and a live
+     region only reliably announces when its text mutates in place rather than being destroyed and
+     recreated - if you ever move `#dq-live-status` inside `#dq-out`, the announcement will likely
+     stop firing in real screen readers even though nothing errors.
    - The bottom of the script wires up the Decode tab's textarea input, the "Expand all" control, and
      the parameter table rendering.
 
