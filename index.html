@@ -635,6 +635,39 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   .print-ft-only #ft-print-view { display:block !important; padding:24px; }
 }
 
+/* ---- Decode tab export-to-PDF view: a clean, client-facing report - same PII rule as
+   "Copy findings summary" (in fact the two share the strip/redact helpers), built as its own
+   view rather than printing the live tab so no raw parameters or reference prose leak in. ---- */
+#dq-print-view { display:none; background:#fff; color:#111; }
+#dq-print-view .dqp-head { display:flex; align-items:center; gap:14px; margin-bottom:2px; }
+#dq-print-view .dqp-head img { height:32px; width:auto; }
+#dq-print-view h1 { font-family:'Montserrat',sans-serif; font-size:20px; margin:0; color:#111; }
+#dq-print-view .dqp-sub { font-size:12px; color:#555; margin:4px 0 0; }
+#dq-print-view .dqp-tally { font-size:12.5px; color:#333; margin:14px 0 0; }
+#dq-print-view h2 {
+  font-family:'Montserrat',sans-serif; font-size:15px; margin:24px 0 2px; color:#111;
+  border-bottom:1px solid #ddd; padding-bottom:5px;
+}
+#dq-print-view .dqp-host { font-size:11px; color:#666; margin:0 0 9px; }
+#dq-print-view .dqp-clean { font-size:12.5px; color:#555; padding:4px 0 2px; }
+#dq-print-view .dqp-find {
+  padding:8px 12px; border-radius:4px; margin-bottom:7px; border-left:4px solid #ccc;
+  break-inside:avoid; page-break-inside:avoid;
+}
+#dq-print-view .dqp-fail { border-left-color:#c0392b; background:#fdf1ef; }
+#dq-print-view .dqp-warn { border-left-color:#c98a1d; background:#fdf6ea; }
+#dq-print-view .dqp-info { border-left-color:#3457c9; background:#eef1fc; }
+#dq-print-view .dqp-pass { border-left-color:#2f9e56; background:#eef8f0; }
+#dq-print-view .dqp-sev { font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#333; }
+#dq-print-view .dqp-title { font-size:13.5px; font-weight:700; margin-left:6px; color:#111; }
+#dq-print-view .dqp-detail { font-size:12px; margin-top:3px; color:#333; }
+#dq-print-view .dqp-foot { margin-top:26px; font-size:10.5px; color:#777; border-top:1px solid #ddd; padding-top:8px; }
+@media print {
+  html.print-dq-only, .print-dq-only body { background:#fff !important; }
+  .print-dq-only .wrap > *:not(#dq-print-view) { display:none !important; }
+  .print-dq-only #dq-print-view { display:block !important; padding:24px; }
+}
+
 </style>
 </head>
 <body class="id-root">
@@ -1735,6 +1768,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   </footer>
 
   <div id="ft-print-view" aria-hidden="true"></div>
+  <div id="dq-print-view" aria-hidden="true"></div>
 </div>
 
 <script>
@@ -3037,6 +3071,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + '<div class="dq-sum-t"><span class="dq-sum-num">'+metas.length+'</span> request'+(metas.length===1?'':'s')+' decoded</div>'
       + '<div class="dq-sum-chips">'+chips+'</div>'
       + '<button class="id-btn dq-toggle" id="dq-copy-summary" type="button" title="Verdicts and their business-impact explanations only - no raw parameters, no visitor data.">Copy findings summary</button>'
+      + '<button class="id-btn dq-toggle" id="dq-export-pdf" type="button" title="A clean, client-facing report - same PII rule as the text summary.">Export client PDF</button>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r, i){
@@ -3109,6 +3144,42 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     lines.push('No visitor data is included above - any field that can carry personal data (email, phone, user identifiers, unhashed values) is named but its value is never shown.');
     return lines.join('\n');
   }
+
+  /* Client-facing PDF view for the same data - built via window.print() against a purpose-made
+     view (see #dq-print-view / print-dq-only), not by printing the live tab, so no raw
+     parameters or reference prose leak in. Runs every finding through the exact same
+     stripHtml -> redactPii pipeline as the text summary before it ever touches innerHTML,
+     then esc()s the result since it is now being inserted as plain text into markup. */
+  function buildFindingsPrintHtml(metas, clientName){
+    var tally = computeTally(metas);
+    var logo = document.querySelector('.id-logo');
+    var when = new Date();
+    var h = '<div class="dqp-head">' + (logo ? '<img src="'+logo.src+'" alt="">' : '')
+      + '<div><h1>Tag &amp; tracking check</h1>'
+      + '<div class="dqp-sub">' + (clientName ? esc(clientName) + ' &middot; ' : '') + 'Exported ' + esc(when.toLocaleString()) + '</div></div></div>';
+    var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
+      .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
+    h += '<div class="dqp-tally">' + metas.length + ' request' + (metas.length===1?'':'s') + ' decoded'
+      + (tallyBits.length ? ' - ' + tallyBits.join(', ') : '') + '</div>';
+    metas.forEach(function(m, i){
+      h += '<h2>' + (i+1) + '. ' + esc(m.name) + '</h2>';
+      if (m.host) h += '<div class="dqp-host">' + esc(m.host) + '</div>';
+      var shown = (m.findings || []).filter(function(f){ return !f.ignored; })
+        .sort(function(a,b){ return FINDSEV_ORDER[a.sev] - FINDSEV_ORDER[b.sev]; });
+      if (!shown.length) { h += '<div class="dqp-clean">Nothing to raise.</div>'; return; }
+      shown.forEach(function(f){
+        var label = (SEV[f.sev] && SEV[f.sev][1]) || f.sev.toUpperCase();
+        var detail = f.detail ? stripHtml(f.detail) : '';
+        h += '<div class="dqp-find dqp-'+f.sev+'"><span class="dqp-sev">'+esc(label)+'</span>'
+          + '<span class="dqp-title">'+esc(redactPii(f.title))+'</span>'
+          + (detail ? '<div class="dqp-detail">'+esc(redactPii(detail))+'</div>' : '')
+          + '</div>';
+      });
+    });
+    h += '<div class="dqp-foot">No visitor data is included in this report - any field that can carry personal data (email, phone, user identifiers, unhashed values) is named but its value is never shown.</div>';
+    return h;
+  }
+
   function copyText(text, onDone){
     function fallback(){
       var ta = document.createElement('textarea');
@@ -3281,6 +3352,27 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         b.textContent = ok ? 'Copied' : 'Copy failed';
         setTimeout(function(){ b.textContent = original; }, 1800);
       });
+      return;
+    }
+    if ((b = e.target.closest('#dq-export-pdf'))) {
+      var printView = document.getElementById('dq-print-view');
+      if (!printView) return;
+      var clientField = document.getElementById('ft-client');
+      var clientName = clientField ? clientField.value : '';
+      printView.innerHTML = buildFindingsPrintHtml(metas, clientName);
+      var oldTitle = document.title;
+      document.title = 'Tag & tracking check' + (clientName ? ' - ' + clientName : '') + ' - ' + new Date().toISOString().slice(0, 10);
+      document.documentElement.classList.add('print-dq-only');
+      var restored = false;
+      function restore(){
+        if (restored) return; restored = true;
+        document.documentElement.classList.remove('print-dq-only');
+        document.title = oldTitle;
+        window.removeEventListener('afterprint', restore);
+      }
+      window.addEventListener('afterprint', restore);
+      window.print();
+      setTimeout(restore, 3000);
       return;
     }
   });

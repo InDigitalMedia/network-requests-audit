@@ -88,6 +88,12 @@ Everything lives in `index.html`, organized as one `<style>` block followed by t
      `redactPii()` scrubs anything email- or phone-shaped out of the text as a defensive backstop —
      no finding today embeds a raw PII value (the PII finding itself only ever names the field), but
      this is the one output meant to leave the browser, so it doesn't rely on that holding forever.
+   - `buildFindingsPrintHtml(metas, clientName)` — the "Export client PDF" button's counterpart to
+     `buildFindingsSummary()`: same data, same `stripHtml()`/`redactPii()` pipeline, rendered into
+     `#dq-print-view` and shown via the `print-dq-only` class (same pattern as the "Your setup"
+     tab's `#ft-print-view` / `print-ft-only`, kept as a separate id/class pair so the two export
+     flows can't collide) immediately before `window.print()`. Reads `#ft-client` if set, so a
+     client name entered on "Your setup" carries over to this report's header for free.
    - The bottom of the script wires up the Decode tab's textarea input, the "Expand all" control, and
      the parameter table rendering.
 
