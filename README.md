@@ -1,14 +1,19 @@
 # Tag & tracking checker — deployment notes
 
-One self-contained HTML file. Fonts, logo, styles and all code are embedded, so it makes **zero
-external requests** and works from a URL, a local file, or offline. There is nothing to build and
-no dependencies to install.
+One self-contained pair of files. Fonts, logo and styles are embedded in `index.html`; the request
+decoder's detection/verdict logic lives in the sibling `tag-detector.js` (loaded as a plain
+`<script src>`, not an ES module, so opening `index.html` directly still works - see its header).
+Together they make **zero external requests** and work from a URL, a local copy, or offline. There
+is nothing to build and no dependencies to install.
 
 ```
 site/
-  index.html   ← the whole tool
-  README.md    ← this file
+  index.html       ← the whole tool
+  tag-detector.js  ← the Decode tab's detection/verdict engine (also importable from Node)
+  README.md        ← this file
 ```
+
+Keep both files together — `index.html` won't decode anything without its sibling next to it.
 
 ## Deploying it
 
@@ -41,9 +46,10 @@ open and **look** correct while the decoder, tabs, search and every dropdown are
 which is worse than an obvious failure, because people conclude the tool is broken. Google Drive
 retired HTML hosting years ago and behaves similarly.
 
-If a shared drive is the only option, store the file there but tell people explicitly to
-**download it first and open the downloaded copy**. It works perfectly that way. Nobody will guess
-that instruction, so put it in the message.
+If a shared drive is the only option, store the files there but tell people explicitly to
+**download both `index.html` and `tag-detector.js` into the same folder, then open the downloaded
+`index.html`**. It works perfectly that way. Nobody will guess that instruction, so put it in the
+message.
 
 ## The bookmarklet is independent of hosting
 

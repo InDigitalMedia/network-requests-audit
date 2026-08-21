@@ -25,6 +25,10 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const INDEX_HTML = path.join(REPO_ROOT, 'index.html');
 const BM_SOURCE = path.join(REPO_ROOT, 'bookmarklet.source.js');
 const FILE_URL = 'file://' + INDEX_HTML;
+// tag-detector.js loads as a same-directory sibling <script src> - a local file load,
+// not a network egress, so it's expected here exactly like FILE_URL is. Any http(s)
+// URL still fails the check below; only this one additional local file is allowlisted.
+const DETECTOR_FILE_URL = 'file://' + path.join(REPO_ROOT, 'tag-detector.js');
 
 function extractBmCode(html) {
   const m = html.match(/var BM = "([^"]*)";/);
@@ -139,7 +143,7 @@ function extractBmCode(html) {
     await page.click('#theme'); await page.waitForTimeout(60);
   }
 
-  const unexpectedA = requestsA.filter(u => u !== FILE_URL);
+  const unexpectedA = requestsA.filter(u => u !== FILE_URL && u !== DETECTOR_FILE_URL);
   if (unexpectedA.length) violations.push('Phase A (own page) made ' + unexpectedA.length + ' unexpected request(s):\n    ' + unexpectedA.join('\n    '));
   if (socketsA.length) violations.push('Phase A (own page) opened ' + socketsA.length + ' WebSocket(s):\n    ' + socketsA.join('\n    '));
 
