@@ -674,6 +674,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 #dq-print-view .dqp-sev { font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#333; }
 #dq-print-view .dqp-title { font-size:13.5px; font-weight:700; margin-left:6px; color:#111; }
 #dq-print-view .dqp-detail { font-size:12px; margin-top:3px; color:#333; }
+#dq-print-view .dqp-fix { margin-top:7px; padding-top:7px; border-top:1px dashed #ccc; }
+#dq-print-view .dqp-fix-who { font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#555; }
+#dq-print-view .dqp-fix-steps { list-style:decimal; padding-left:18px; margin:5px 0 0; font-size:11.5px; line-height:1.5; color:#333; }
+#dq-print-view .dqp-fix-steps li { margin-bottom:3px; }
+#dq-print-view .dqp-fix-docs { margin-top:5px; font-size:10.5px; }
+#dq-print-view .dqp-fix-docs a { color:#1a4fb4; margin-right:12px; }
 #dq-print-view .dqp-foot { margin-top:26px; font-size:10.5px; color:#777; border-top:1px solid #ddd; padding-top:8px; }
 @media print {
   html.print-dq-only, .print-dq-only body { background:#fff !important; }
@@ -2214,7 +2220,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
        + '<div><div class="vt">'+V.headline+'</div><div class="vd">'+V.detail+'</div></div></div>';
     if (metas) metas.push({ name: plat ? plat.name : 'Unidentified endpoint',
       kind: plat ? plat.kind : 'no known vendor matches this host', host: host, sev: V.level,
-      findings: F.map(function(f){ return { sev: f.severity, title: f.title, detail: f.detail, ignored: false }; }) });
+      findings: F.map(function(f){ return { sev: f.severity, title: f.title, detail: f.detail, remedy: f.remedy, ignored: false }; }) });
 
     h += '<div class="dq-sub">Findings</div>';
     if (!F.length) h += '<div class="dq-kind">Nothing to raise.</div>';
@@ -2397,11 +2403,26 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return lines.join('\n');
   }
 
+  /* "How to fix this" for one finding, print-view flavour: same remedy data (who/steps/docs)
+     as the live fixHtml(), rendered as a static block (no <details>/<summary> - nothing to
+     click on paper) and esc()d throughout, since REMEDIES/GENERIC_FIX are plain text with no
+     markup of their own (unlike a finding's `detail`, which carries inline HTML). */
+  function printRemedyHtml(r){
+    if (!r) return '';
+    var h = '<div class="dqp-fix"><div class="dqp-fix-who">How to fix this &middot; ' + esc(r.who) + '</div>';
+    h += '<ol class="dqp-fix-steps">' + r.steps.map(function(s){ return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>';
+    if (r.docs && r.docs.length) {
+      h += '<div class="dqp-fix-docs">' + r.docs.map(function(d){ return '<a href="' + esc(d[1]) + '">' + esc(d[0]) + '</a>'; }).join('') + '</div>';
+    }
+    return h + '</div>';
+  }
+
   /* Client-facing PDF view for the same data - built via window.print() against a purpose-made
      view (see #dq-print-view / print-dq-only), not by printing the live tab, so no raw
      parameters or reference prose leak in. Runs every finding through the exact same
      stripHtml -> redactPii pipeline as the text summary before it ever touches innerHTML,
-     then esc()s the result since it is now being inserted as plain text into markup. */
+     then esc()s the result since it is now being inserted as plain text into markup. Each
+     finding's remedy (if any) is included too, via printRemedyHtml() above. */
   function buildFindingsPrintHtml(metas, clientName, filterLabel, totalCount){
     var tally = computeTally(metas);
     var logo = document.querySelector('.id-logo');
@@ -2428,6 +2449,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         h += '<div class="dqp-find dqp-'+f.sev+'"><span class="dqp-sev">'+esc(label)+'</span>'
           + '<span class="dqp-title">'+esc(redactPii(f.title))+'</span>'
           + (detail ? '<div class="dqp-detail">'+esc(redactPii(detail))+'</div>' : '')
+          + printRemedyHtml(f.remedy)
           + '</div>';
       });
     });

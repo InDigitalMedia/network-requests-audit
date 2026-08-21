@@ -115,7 +115,11 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      `print-dq-only` class (same pattern as the "Your setup" tab's `#ft-print-view` /
      `print-ft-only`, kept as a separate id/class pair so the two export flows can't collide)
      immediately before `window.print()`. Reads `#ft-client` if set, so a client name entered on
-     "Your setup" carries over to this report's header for free.
+     "Your setup" carries over to this report's header for free. Unlike `buildFindingsSummary()`,
+     each finding also gets its remedy (`f.remedy`, carried from `TD.analyzeRequest()`'s result into
+     `metas` in `renderOne`) rendered via `printRemedyHtml()` — a static "How to fix this" block
+     (who/steps/docs, no `<details>` since there's nothing to click on paper), `esc()`d throughout
+     since `REMEDIES`/`GENERIC_FIX` are plain text with no markup of their own.
    - `activeFilter` / `filteredMetas()` / `applyFilter()` — a single active filter, either
      `{type:'sev', value:'red'|'amber'|'green'}` (the summary's severity chips) or `{type:'plat',
      value:<platform name>}` (the summary's per-platform rows — these filter now, they used to
