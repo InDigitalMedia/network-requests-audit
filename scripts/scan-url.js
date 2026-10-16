@@ -198,7 +198,7 @@ async function capture(browser, headless) {
   const reqs = [];
   captured.forEach(c => splitBatched(c.url, flattenMultipart(c.body)).forEach(r => reqs.push(Object.assign({}, c, r))));
 
-  const first = reqs.map(r => ({ r, res: TD.analyzeRequest({ url: r.url, body: r.body }, { myHost: siteHost }) }))
+  const first = reqs.map(r => ({ r, res: TD.analyzeRequest({ url: r.url, body: r.body }, { myHost: siteHost, siteHost }) }))
     .filter(x => x.res.ok && x.res.platform);
   // A GA4 hit identified only by its parameter signature means it went to an
   // unrecognised (first-party) host - i.e. a server-side container.
@@ -207,11 +207,17 @@ async function capture(browser, headless) {
   const siteRoot = siteHost.replace(/^www\./, '');
   const hasServerSide = flag('ssgtm') || first.some(x => x.res.platform.inferred && /Analytics 4/.test(x.res.platform.name)
     && (x.res.request.host === siteRoot || x.res.request.host.endsWith('.' + siteRoot)));
+  // Only claim "before consent" when a banner was actually found and clicked - a site
+  // with no banner (e.g. US-facing) isn't gating on consent, so there's nothing to
+  // have fired too early. Script/style downloads are libraries loading, not hits.
   const results = first.map(x => Object.assign({ phase: x.r.phase },
-    TD.analyzeRequest({ url: x.r.url, body: x.r.body }, { myHost: siteHost, hasServerSide })));
+    TD.analyzeRequest({ url: x.r.url, body: x.r.body }, { myHost: siteHost, siteHost, hasServerSide,
+      beforeConsent: !!consentClicked && x.r.phase === 'pre-consent' && !/^(script|stylesheet|font)$/.test(x.r.type) })));
+  const tooEarly = results.filter(r => r.findings.some(f => f.severity === 'fail' && /^Fired before consent/.test(f.title)));
+  const analyticsEarly = results.filter(r => r.findings.some(f => f.severity === 'warn' && /^Fired before consent/.test(f.title)));
 
   if (flag('json')) {
-    console.log(JSON.stringify({ target, mode, blocked, firstAttempt, status, loadError, title, consentClicked, hasServerSide, totalRequests: captured.length, results }, null, 2));
+    console.log(JSON.stringify({ target, mode, blocked, firstAttempt, firedBeforeConsent: tooEarly.length, analyticsGrantedBeforeConsent: analyticsEarly.length, status, loadError, title, consentClicked, hasServerSide, totalRequests: captured.length, results }, null, 2));
     return;
   }
 
@@ -224,14 +230,24 @@ async function capture(browser, headless) {
     console.log('  ! Still looks blocked by bot protection (' + blocked + ') - results below are probably not representative. Use the bookmarklet for this site.');
   console.log('  ' + captured.length + ' requests recorded, ' + results.length + ' tracking/consent hits identified.');
   console.log('  Server-side container: ' + (hasServerSide ? 'yes' : 'not detected'));
-  if (flag('consent')) console.log('  Consent banner: ' + (consentClicked ? 'clicked ' + consentClicked : 'no accept button found - post-consent phase skipped'));
+  if (flag('consent')) console.log('  Consent banner: ' + (consentClicked ? 'clicked ' + consentClicked : 'no accept button found - post-consent phase and before-consent check skipped'));
+  if (tooEarly.length) {
+    const names = [...new Set(tooEarly.map(r => r.platform.name))];
+    console.log('  ✕ FIRED BEFORE CONSENT: ' + tooEarly.length + ' hit' + (tooEarly.length === 1 ? '' : 's') + ' from ' + names.join(', '));
+  } else if (consentClicked && !analyticsEarly.length) console.log('  ✓ Nothing fired before consent that should have waited.');
+  if (analyticsEarly.length)
+    console.log('  ▲ ANALYTICS GRANTED BEFORE CONSENT: ' + analyticsEarly.length + ' hit' + (analyticsEarly.length === 1 ? '' : 's') + ' (advertising denied) - may be the UK analytics exemption; check EU handling');
 
   ['pre-consent', 'post-consent'].forEach(ph => {
     const rs = results.filter(r => r.phase === ph);
     if (!rs.length) return;
     console.log('\n== ' + ph.toUpperCase() + ' (' + rs.length + ') ==');
     const byPlat = {};
-    rs.forEach(r => (byPlat[r.platform.name] = byPlat[r.platform.name] || []).push(r));
+    // The cookie banner's own assets (scripts, config, logos) are a dozen near-identical
+    // rows that only say "a banner loaded" - summarise them in one line instead.
+    const banner = rs.filter(r => r.platform.name === 'Cookie banner');
+    if (banner.length) console.log('\n  Cookie banner: ' + banner.length + ' file' + (banner.length === 1 ? '' : 's') + ' loaded from ' + [...new Set(banner.map(r => r.request.host))].join(', '));
+    rs.filter(r => r.platform.name !== 'Cookie banner').forEach(r => (byPlat[r.platform.name] = byPlat[r.platform.name] || []).push(r));
     Object.keys(byPlat).forEach(name => {
       console.log('\n  ' + name);
       byPlat[name].forEach(r => {

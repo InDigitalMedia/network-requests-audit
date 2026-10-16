@@ -156,9 +156,12 @@ just downloads and double-clicks the file.)
 
 - `analyzeRequest(input, options)` — the primary entry point and the contract a future automated
   consumer builds against; treat its shape as stable. `input: {url, body?, bare?}`, `options:
-  {myHost?, siteHost?, hasServerSide?}`. Returns `{ok:true, request, platform, params, findings,
-  verdict}` on success or `{ok:false, error, request}` if `input.url` doesn't parse as a URL. Full
-  field-by-field documentation is in the file's header comment.
+  {myHost?, siteHost?, hasServerSide?, beforeConsent?}`. Returns `{ok:true, request, platform,
+  params, findings, verdict}` on success or `{ok:false, error, request}` if `input.url` doesn't
+  parse as a URL. Full field-by-field documentation is in the file's header comment.
+  `beforeConsent` is only set by `scripts/scan-url.js` (an experimental local scan-by-URL tool),
+  which knows a hit fired before the cookie banner was answered; a paste can't know that, so
+  `index.html` never sets it.
 - `PLATFORMS` — the vendor registry: each entry has a hostname/path matcher `t()`, display name `n`,
   kind `k`, and a documented-parameters map `d` (values tagged `'d'` documented / `'p'`
   practitioner-sourced / `'u'` undocumented). Exported read-only for reference use.

@@ -36,7 +36,8 @@
        bare - true when there was no real host to route on; suppresses
               routing findings that would otherwise be noise.
 
-     options: { myHost?: string|null, siteHost?: string|null, hasServerSide?: boolean }
+     options: { myHost?: string|null, siteHost?: string|null, hasServerSide?: boolean,
+                beforeConsent?: boolean }
        myHost       - the site's own hostname, lower-cased, no scheme/path
                        (what the page's "your domain" field holds).
        siteHost     - the site's hostname auto-detected from a
@@ -45,6 +46,14 @@
        hasServerSide - whether this site is known to have a server-side
                        tagging container, gating which routing/dedup findings
                        are a warn/fail versus a neutral info.
+       beforeConsent - true when the caller *knows* this request fired before the
+                       visitor answered a cookie banner (e.g. a URL scan that
+                       recorded before clicking "accept"). Adds a 'consent'
+                       finding: fail for a pixel/hit that should have waited,
+                       pass for a Google hit sent cookieless with consent denied.
+                       A pasted request can't know this, so index.html never
+                       sets it. Script/library downloads aren't hits - the
+                       caller should not set it for those.
 
      Result (success):
        {
@@ -267,7 +276,10 @@
   /* ---------- platform detection ---------- */
   var PLATFORMS = [
     {n:'Google Analytics 4', k:'GA4 event collection', d:GA4, tab:'google',
-     t:function(h,p){ return /(^|\.)google-analytics\.com$/.test(h) && /\/(g|j|r)?\/?collect/.test(p) && !/\/mp\//.test(p); }},
+     /* regionN.analytics.google.com is the host browsers actually use for EU GA4 hits -
+        the bookmarklet already matched it; this matcher didn't, so those hits were only
+        identified by parameter signature. */
+     t:function(h,p){ return /(^|\.)(google-analytics|analytics\.google)\.com$/.test(h) && /\/(g|j|r)?\/?collect/.test(p) && !/\/mp\//.test(p); }},
     {n:'GA4 Measurement Protocol', k:'server-sent GA4 event', d:GA4, tab:'google',
      t:function(h,p){ return /google-analytics\.com$/.test(h) && /\/mp\/collect/.test(p); }},
     {n:'Google Analytics (advertising domain)', k:'analytics hit copied to Google’s ad cookie domain', d:GA4, tab:'google',
@@ -528,6 +540,14 @@
       docs: [['Google - implementing consent mode','https://developers.google.com/tag-platform/security/guides/consent'],
              ['Simo Ahava - decoding the consent parameters','https://www.simoahava.com/analytics/consent-mode-v2-google-tags/']] }],
 
+    [/^Fired before consent(?!, but)/, { who: WHO.gtm,
+      steps: ['This tag is not waiting for the visitor’s answer to the cookie banner - it runs as soon as the page loads.',
+        'In your tag manager, give the tag a consent requirement or a trigger that only fires once the banner reports acceptance. Most consent platforms provide a ready-made trigger or event for this.',
+        'For Google tags, check the consent defaults are set to denied before any tag fires; with that in place a pre-consent hit becomes a harmless cookieless ping instead of tracking.',
+        'Re-test in a fresh incognito window: load the page, do not touch the banner, and confirm this request no longer appears until you click accept.'],
+      docs: [['ICO - guidance on cookies and similar technologies','https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/'],
+             ['Google - consent mode','https://developers.google.com/tag-platform/security/concepts/consent-mode']] }],
+
     [/^Never set by consent mode/, { who: WHO.gtm,
       steps: ['This is the signature of a cookie banner that looks fine but is not wired through: it shows, it records the answer, and the tags never hear about it.',
         'The consequence cuts both ways - tracking may run when it should not, and may be suppressed when it should not be.',
@@ -668,7 +688,7 @@
   };
 
   /* ---------- findings engine ---------- */
-  function findings(plat, host, path, P, myHost, bare, siteHost, hasServerSide){
+  function findings(plat, host, path, P, myHost, bare, siteHost, hasServerSide, beforeConsent){
     var F = [], get = function(k){ for (var i=0;i<P.length;i++) if (P[i][0]===k) return P[i][1]; return null; };
     var has = function(k){ return get(k) !== null; };
     var name = plat ? plat.n : null;
@@ -685,7 +705,10 @@
       F.push(['pass','Routed through your own domain',
         'This request went to <span class="mono">'+esc(host)+'</span>, which is part of your own site rather than a vendor. That is a server-side setup working as intended: the browser hands the data to your server, and your server decides what to forward on.'
         + (myHost ? '' : ' Detected automatically from the site the requests came from - you did not have to tell it.'), CATEGORY.ROUTING]);
-    } else if ((myHost || siteHost) && plat && !bare) {
+    /* The cookie banner's own scripts/config are identification only (see its PLATFORMS
+       entry) - a consent platform's CDN isn't something you route through sGTM, so judging
+       its routing would warn about something nobody should fix. */
+    } else if ((myHost || siteHost) && plat && !bare && name !== 'Cookie banner') {
       if (hasServerSide) {
         F.push(['warn','Went direct to '+name+', bypassing your container','This request left the browser straight to <span class="mono">'+esc(host)+'</span>. It gains none of the resilience of your server-side setup and remains blockable by ad blockers and browser restrictions.', CATEGORY.ROUTING]);
       } else {
@@ -709,6 +732,26 @@
       if (get('_dbg') === '1' || get('_debug') === '1') F.push(['warn','Debug mode is on','This hit is routed into GA4 DebugView. Fine while testing, but if you are seeing this on a live production page for real visitors, something is misconfigured.', CATEGORY.GA4]);
       if (has('richsstsse')) F.push(['warn','Some tags are forcing browser-side pixels','The richsstsse parameter means the server may return instructions to set cookies or fire pixels after responding. Expect a follow-up /set_cookie request. It tells you this setup is not purely server-side - typically Google Ads, Floodlight, or GA4 with Google Signals.', CATEGORY.ROUTING]);
       if (has('api_secret')) F.push(['fail','Measurement Protocol API secret exposed in the browser','An api_secret is a server credential. If it is visible in a browser request, anyone can send fabricated events into your GA4 property.', CATEGORY.SECURITY]);
+    }
+
+    /* fired before the visitor answered the cookie banner - only knowable by a caller that
+       watched it happen (see beforeConsent in the header), never from a paste */
+    if (beforeConsent && plat && !bare && !/^(Cookie banner|Google tag library)$/.test(name)) {
+      var gcsPre = get('gcs'), googleHit = /Google|Floodlight/.test(name);
+      /* gcs=G1xy: x = advertising, y = analytics. Advertising granted early is a fail.
+         Analytics-only (G101) is a warn: the UK Data (Use and Access) Act 2025 added an
+         exemption for analytics cookies with clear information and an opt-out, so it may
+         be deliberate there - though not for EU visitors. */
+      if (googleHit && /^G11[01]$/.test(gcsPre || ''))
+        F.push(['fail','Fired before consent, marked as granted','This '+esc(name)+' hit fired before the visitor answered the cookie banner, yet its consent state (<span class="mono">gcs='+esc(gcsPre)+'</span>) says advertising consent was already granted. Either the default is set to granted or the banner is updating consent before anyone clicks. Under UK and EU rules that is not valid consent for advertising.', CATEGORY.CONSENT]);
+      else if (googleHit && gcsPre === 'G101')
+        F.push(['warn','Fired before consent, analytics marked as granted','This '+esc(name)+' hit fired before the visitor answered the cookie banner with analytics consent already granted (<span class="mono">gcs=G101</span>); advertising was correctly denied. In the UK, the Data (Use and Access) Act 2025 allows analytics cookies without opt-in consent if visitors are clearly told and can opt out - so this may be a deliberate choice. It is not allowed for EU visitors, so check what the banner does for them, and confirm with whoever owns privacy that the UK exemption is what was intended.', CATEGORY.CONSENT]);
+      else if (googleHit && gcsPre === 'G100')
+        F.push(['pass','Fired before consent, but cookieless','This '+esc(name)+' hit fired before the visitor answered the cookie banner, with consent denied (<span class="mono">gcs=G100</span>). That is consent mode working as designed in its advanced setup: a cookieless ping Google uses for modelling, not tracking of the individual.', CATEGORY.CONSENT]);
+      else
+        F.push(['fail','Fired before consent','This '+esc(name)+' request fired before the visitor answered the cookie banner'
+          + (googleHit ? ', and carries no consent-mode state to show it was restricted.' : '. Unlike Google tags, it has no consent mode to make a pre-consent hit cookieless, so it should not fire until the visitor accepts.')
+          + ' Under UK PECR and EU ePrivacy rules, advertising and analytics tags need consent before they run.', CATEGORY.CONSENT]);
     }
 
     /* consent */
@@ -901,7 +944,7 @@
     if (!plat) plat = inferFromParams(P);
     var name = plat ? plat.n : null;
 
-    var F = findings(plat, host, path, P, options.myHost || null, bare, options.siteHost || null, !!options.hasServerSide);
+    var F = findings(plat, host, path, P, options.myHost || null, bare, options.siteHost || null, !!options.hasServerSide, !!options.beforeConsent);
 
     var verdict = verdictFor(
       F.filter(function(f){ return f[0]==='fail'; }).map(function(f){ return f[1]; }),
