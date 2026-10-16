@@ -14,8 +14,20 @@
                      banner's "accept all" button and record a second phase
      --ssgtm         treat the site as having a server-side container (otherwise
                      auto-detected from first-party GA4 hits)
-     --headed        show the browser window (useful to watch the consent click)
+     --headed        show the browser window from the start (useful to watch
+                     the consent click)
+     --no-retry      don't automatically retry with a visible window when the
+                     headless attempt looks blocked by bot protection
+     --bundled       use Playwright's bundled Chromium even if Google Chrome is
+                     installed
      --json          print the raw analyzeRequest() results as JSON instead
+
+   Bot protection: uses the installed Google Chrome by default (it passes checks
+   Playwright's bundled Chromium fails), and if the headless attempt looks
+   blocked - a 403/429, an "Access denied"-style title, a dropped connection, or
+   a near-empty page - retries once with a visible window, which gets past
+   several vendors that only block headless mode. Some sites block both; those
+   need the bookmarklet.
 
    What it can't see (by design of a URL scan, not a bug): anything that only
    fires after a real interaction - purchases, leads, logged-in pages. It sees
@@ -33,7 +45,7 @@ const flag = name => args.includes('--' + name);
 const opt = (name, def) => { const a = args.find(x => x.startsWith('--' + name + '=')); return a ? a.split('=')[1] : def; };
 const target = args.find(a => !a.startsWith('--'));
 if (!target) {
-  console.error('Usage: NODE_PATH=.guard-deps/node_modules node scripts/scan-url.js <url> [--wait=10] [--consent] [--ssgtm] [--headed] [--json]');
+  console.error('Usage: NODE_PATH=.guard-deps/node_modules node scripts/scan-url.js <url> [--wait=10] [--consent] [--ssgtm] [--headed] [--no-retry] [--bundled] [--json]');
   process.exit(1);
 }
 const WAIT_MS = Number(opt('wait', 10)) * 1000;
@@ -56,11 +68,6 @@ const ACCEPT_TEXT = /^\s*(accept( all)?( cookies)?|allow( all)?( cookies)?|i agr
 
 function stripHtml(s) { return String(s).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"'); }
 
-// GA4 batches several events into one POST, one event per body line, each line's
-// params layered over the URL's shared params. Split those into one request per
-// event so each gets its own verdict, the same as pasting them individually.
-// Scoped to GA4 collect paths: other vendors' newline-bearing bodies (e.g. Meta's
-// multipart form posts) aren't batches and splitting them produces garbage hits.
 // Meta (and others) post multipart/form-data, which parseParams() doesn't read.
 // Flatten it to the urlencoded form parseParams() does understand.
 function flattenMultipart(body) {
@@ -72,6 +79,11 @@ function flattenMultipart(body) {
   return pairs.join('&');
 }
 
+// GA4 batches several events into one POST, one event per body line, each line's
+// params layered over the URL's shared params. Split those into one request per
+// event so each gets its own verdict, the same as pasting them individually.
+// Scoped to GA4 collect paths: other vendors' newline-bearing bodies (e.g. Meta's
+// multipart form posts) aren't batches and splitting them produces garbage hits.
 function splitBatched(url, body) {
   if (!body || !/\/g\/collect/.test(url) || /^\s*[\[{]/.test(body) || body.indexOf('\n') === -1) return [{ url, body }];
   return body.split('\n').filter(l => l.trim()).map(line => {
@@ -103,23 +115,26 @@ async function tryAcceptConsent(page) {
   return null;
 }
 
-(async () => {
-  let chromium;
-  try { ({ chromium } = require('playwright')); }
-  catch (e) {
-    console.error('Could not require("playwright"). Run ./scripts/network-guard.sh once to install it, then:');
-    console.error('  NODE_PATH=.guard-deps/node_modules node scripts/scan-url.js ' + target);
-    process.exit(2);
-  }
+const BLOCK_TITLE = /just a moment|attention required|access (to this page has been )?denied|verify you are human|are you a robot|captcha|pardon our interruption|request blocked/i;
 
-  const browser = await chromium.launch({ headless: !flag('headed') });
-  // A normal desktop UA - headless Chromium's default UA says "HeadlessChrome",
-  // which bot protection and some tag setups key off.
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+// Returns a short reason if the scan looks like it hit bot protection, else null.
+function looksBlocked(scan) {
+  if (scan.status === 403 || scan.status === 429) return 'HTTP ' + scan.status;
+  if (BLOCK_TITLE.test(scan.title)) return 'title "' + scan.title + '"';
+  if (scan.loadError && /ERR_HTTP2_PROTOCOL_ERROR|ERR_CONNECTION_(RESET|CLOSED)|ERR_EMPTY_RESPONSE/.test(scan.loadError)) return 'connection dropped';
+  if (scan.captured.length < 5) return 'only ' + scan.captured.length + ' requests';
+  return null;
+}
+
+// One visit: load, record for WAIT_MS, optionally accept consent and record again.
+async function capture(browser, headless) {
+  // Headless Chrome's UA says "HeadlessChrome", which bot protection and some tag
+  // setups key off - override it there. A visible window keeps its real UA, so it
+  // stays consistent with the browser's client hints.
+  const context = await browser.newContext(Object.assign({
     viewport: { width: 1366, height: 900 },
     locale: 'en-GB'
-  });
+  }, headless ? { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36' } : {}));
 
   let phase = 'pre-consent';
   const captured = [];
@@ -137,13 +152,46 @@ async function tryAcceptConsent(page) {
   const title = await page.title().catch(() => '');
 
   let consentClicked = null;
-  if (flag('consent')) {
+  if (flag('consent') && !looksBlocked({ status, title, loadError, captured })) {
     // Flip the phase before clicking: hits fired by the click itself are post-consent.
     phase = 'post-consent';
     consentClicked = await tryAcceptConsent(page);
     if (consentClicked) await page.waitForTimeout(WAIT_MS);
   }
   await browser.close();
+  return { headless, captured, status, loadError, title, consentClicked };
+}
+
+(async () => {
+  let chromium;
+  try { ({ chromium } = require('playwright')); }
+  catch (e) {
+    console.error('Could not require("playwright"). Run ./scripts/network-guard.sh once to install it, then:');
+    console.error('  NODE_PATH=.guard-deps/node_modules node scripts/scan-url.js ' + target);
+    process.exit(2);
+  }
+
+  // Real Chrome first: its TLS/HTTP2 fingerprint and client hints match a real
+  // visitor's, which Akamai and others check. Fall back to bundled Chromium.
+  let channel = flag('bundled') ? null : 'chrome';
+  async function launch(headless) {
+    if (channel) {
+      try { return await chromium.launch({ headless, channel }); }
+      catch (e) { channel = null; }
+    }
+    return chromium.launch({ headless });
+  }
+
+  let scan = await capture(await launch(!flag('headed')), !flag('headed'));
+  let firstAttempt = null;
+  if (scan.headless && looksBlocked(scan) && !flag('no-retry')) {
+    firstAttempt = { blockedBy: looksBlocked(scan), status: scan.status, title: scan.title };
+    if (!flag('json')) console.error('Headless attempt looks blocked (' + firstAttempt.blockedBy + ') - retrying with a visible window...');
+    scan = await capture(await launch(false), false);
+  }
+  const { captured, status, loadError, title, consentClicked } = scan;
+  const mode = (channel ? 'Google Chrome' : 'bundled Chromium') + (scan.headless ? ', headless' : ', visible window');
+  const blocked = looksBlocked(scan);
 
   // ---- analyse ----
   const siteHost = new URL(target).hostname.toLowerCase();
@@ -163,7 +211,7 @@ async function tryAcceptConsent(page) {
     TD.analyzeRequest({ url: x.r.url, body: x.r.body }, { myHost: siteHost, hasServerSide })));
 
   if (flag('json')) {
-    console.log(JSON.stringify({ target, status, loadError, title, consentClicked, hasServerSide, totalRequests: captured.length, results }, null, 2));
+    console.log(JSON.stringify({ target, mode, blocked, firstAttempt, status, loadError, title, consentClicked, hasServerSide, totalRequests: captured.length, results }, null, 2));
     return;
   }
 
@@ -171,8 +219,9 @@ async function tryAcceptConsent(page) {
   const ICON = { red: '✕', amber: '▲', green: '✓' };
   console.log('\nScan of ' + target);
   console.log('  HTTP ' + (status || '-') + (loadError ? '  (load error: ' + loadError + ')' : '') + '  title: "' + title + '"');
-  if (/just a moment|attention required|access denied|verify you are human/i.test(title) || status === 403)
-    console.log('  ! Looks like a bot-protection page - results below are probably not representative.');
+  console.log('  Browser: ' + mode + (firstAttempt ? '  (headless attempt was blocked: ' + firstAttempt.blockedBy + ')' : ''));
+  if (blocked)
+    console.log('  ! Still looks blocked by bot protection (' + blocked + ') - results below are probably not representative. Use the bookmarklet for this site.');
   console.log('  ' + captured.length + ' requests recorded, ' + results.length + ' tracking/consent hits identified.');
   console.log('  Server-side container: ' + (hasServerSide ? 'yes' : 'not detected'));
   if (flag('consent')) console.log('  Consent banner: ' + (consentClicked ? 'clicked ' + consentClicked : 'no accept button found - post-consent phase skipped'));
