@@ -682,18 +682,13 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-filter-chip.is-active:focus-visible { box-shadow:var(--focus); }
 
 /* ---- the three decode-output sections (summary, at a glance, all requests): one shared
-   tinted panel + labelled header, so they read as a set. Each header carries a numbered
-   marker in its own colour (--sec) so the three stay distinguishable at a glance. Brand colours
-   only (navy, cyan, magenta) - never green/amber/red, which mean healthy/warning/fail on this
-   page and would make a section header look like a verdict. ---- */
+   tinted panel + labelled header, so they read as a set; the numbered marker tells them apart.
+   Markers are plain black (inverted in dark mode) on purpose - any colour risks reading as a
+   verdict, since green/amber/red mean healthy/warning/fail everywhere else on this page. ---- */
 .dq-summary, .dq-ans, .dq-reqs {
   margin-top:14px; background:var(--muted); border:1px solid var(--line);
   border-radius:var(--r-card); box-shadow:var(--sh-card); padding:13px 16px 15px;
-  --sec:var(--navy); --sec-fg:#fff;
 }
-.dq-ans { --sec:#00adcd; --sec-fg:#131519; }
-.dq-reqs { --sec:#c62877; --sec-fg:#fff; }
-:root[data-theme="dark"] .id-root .dq-reqs { --sec:#e070a8; --sec-fg:#131519; }
 :root[data-theme="dark"] .id-root .dq-summary,
 :root[data-theme="dark"] .id-root .dq-ans,
 :root[data-theme="dark"] .id-root .dq-reqs { background:var(--muted); border-color:var(--line); }
@@ -704,10 +699,9 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 }
 .dq-step {
   flex:0 0 auto; width:18px; height:18px; border-radius:var(--r-pill); display:inline-flex;
-  align-items:center; justify-content:center; background:var(--sec); color:var(--sec-fg);
+  align-items:center; justify-content:center; background:var(--ink-1); color:var(--surface-1);
   font-size:10px; font-weight:800; letter-spacing:0;
 }
-:root[data-theme="dark"] .id-root .dq-summary .dq-step { color:#131519; }
 .dq-eb-sub { font-weight:600; letter-spacing:0.04em; text-transform:none; }
 #dq-listlabel { flex:1 1 0; min-width:0; line-height:1.5; }
 .dq-reqs .dq-tools { margin-top:0; }
