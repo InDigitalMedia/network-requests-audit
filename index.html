@@ -683,14 +683,17 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
 /* ---- the three decode-output sections (summary, at a glance, all requests): one shared
    tinted panel + labelled header, so they read as a set. Each header carries a numbered
-   marker in its own colour (--sec) so the three stay distinguishable at a glance. ---- */
+   marker in its own colour (--sec) so the three stay distinguishable at a glance. Brand colours
+   only (navy, cyan, magenta) - never green/amber/red, which mean healthy/warning/fail on this
+   page and would make a section header look like a verdict. ---- */
 .dq-summary, .dq-ans, .dq-reqs {
   margin-top:14px; background:var(--muted); border:1px solid var(--line);
   border-radius:var(--r-card); box-shadow:var(--sh-card); padding:13px 16px 15px;
   --sec:var(--navy); --sec-fg:#fff;
 }
-.dq-ans { --sec:var(--green); --sec-fg:#131519; }
-.dq-reqs { --sec:var(--gold); --sec-fg:#131519; }
+.dq-ans { --sec:#00adcd; --sec-fg:#131519; }
+.dq-reqs { --sec:#c62877; --sec-fg:#fff; }
+:root[data-theme="dark"] .id-root .dq-reqs { --sec:#e070a8; --sec-fg:#131519; }
 :root[data-theme="dark"] .id-root .dq-summary,
 :root[data-theme="dark"] .id-root .dq-ans,
 :root[data-theme="dark"] .id-root .dq-reqs { background:var(--muted); border-color:var(--line); }
@@ -1101,14 +1104,27 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           Several tracking services deliberately reply with something other than 200. Google Analytics returns <strong>204</strong>, LinkedIn returns <strong>302</strong>, Microsoft returns <strong>204</strong>, and Floodlight returns <strong>302</strong> and then 200. None of those is a fault. Equally, a healthy green 200 from a server container proves only that the message was <em>received</em> - not that it was passed on to Google. Check the <strong>Platforms</strong> tab for what each service should return before you raise anything (switch to <strong>Specialist</strong> view, top right of the page, to see it).
         </div>
 
-        <h3 class="sub3">Getting a request into this tool</h3>
+        <h3 class="sub3">Getting requests into this tool</h3>
+        <p class="lede tight">There are three ways in. Pick whichever suits the job - all three end up in the same place, the <strong>Decode</strong> tab, and none of them uploads anything: it all happens inside this page on your own machine, which matters because these requests can contain real visitor data.</p>
+        <div class="decode decode--3">
+          <div><div class="k">Easiest - the bookmarklet</div><div class="v">Install the <strong>Check tracking</strong> button from the <strong>Check</strong> tab once. On any page, click it, then <strong>Copy all for the decoder</strong> and paste into Decode. No developer tools needed.</div></div>
+          <div><div class="k">Most complete - a HAR file</div><div class="v">With the Network panel open, do the whole journey (tick <strong>Preserve log</strong> if you move between pages). Right-click any row, choose <strong>Save all as HAR</strong>, then use <strong>Import HAR file</strong> in Decode. Every tracking request is decoded at once, in the order it fired.</div></div>
+          <div><div class="k">One request - copy it</div><div class="v">Right-click the row, choose <strong>Copy</strong> then <strong>Copy as cURL</strong> (it includes the request's contents) and paste into Decode. <strong>Copy link address</strong> also works, but misses the contents - TikTok and Snapchat need cURL.</div></div>
+        </div>
         <ol class="steps">
-          <li><strong>Find the row you care about.</strong> If you are checking a purchase, do the purchase with the panel open and watch for new rows appearing. Anything containing <span class="mono">collect</span>, <span class="mono">/tr</span> or <span class="mono">/adsct</span> is likely to be tracking.</li>
-          <li><strong>Right-click the row.</strong> Choose <strong>Copy</strong>, then <strong>Copy as cURL</strong>. That sounds technical but it is just "copy everything about this message". If you only see <strong>Copy link address</strong>, that works too - it gets the address but not the contents.</li>
-          <li><strong>Go to the Decode tab</strong> in this document and paste it into the box. It decodes as soon as you paste. Nothing is uploaded anywhere - it all happens inside this file on your own machine, which matters because these requests can contain real visitor data.</li>
-          <li><strong>If you know your organisation's tagging domain</strong> - something like <span class="mono">metrics.yourcompany.com</span> - put it in the small box next to the Decode button. The tool can then tell you whether each request went through your own server or straight out to Google, Meta and the rest.</li>
-          <li><strong>Read the findings first, then the parameters.</strong> Findings are the verdict; parameters are the raw detail behind it.</li>
+          <li><strong>Capture after doing the thing you are checking.</strong> Checking a purchase? Complete a test purchase first, then capture. Decode can only judge what you give it - if no purchase is in the paste, it will say so rather than call the purchase healthy.</li>
+          <li><strong>Tick "This site has server-side tracking set up"</strong> under the box if you know it does. That changes how the duplicate-counting checks are judged - without a server-side setup there is nothing to double-count against, so those findings stay as notes.</li>
+          <li><strong>Optionally, tell it what to expect.</strong> Open <strong>What should this site be sending?</strong>, choose <strong>Ecommerce</strong> or <strong>Lead generation</strong> (or type your own event names), and add the client's pixel and tag IDs. Decode then also tells you which expected events are missing, and flags any pixel that doesn't belong to the client - a leftover from a previous agency, say. Both are remembered in this browser only.</li>
         </ol>
+
+        <h3 class="sub3">Reading the results</h3>
+        <p class="lede tight">Results come in three numbered sections, top to bottom - from the big picture down to the raw detail.</p>
+        <ol class="steps">
+          <li><strong>Summary of what you pasted.</strong> How many requests, how many need attention, and the export buttons: <strong>Copy findings summary</strong> (plain text for Slack or a ticket), <strong>Export client PDF</strong>, and <strong>Export CSV</strong> for an audit spreadsheet. None of them include visitor data.</li>
+          <li><strong>At a glance.</strong> The answers per platform: which events each one received, whether conversions carried a value, currency and deduplication ID, what consent said, and which funnel steps (page view, product view, add to cart, checkout, purchase, lead) each platform saw. Warnings that span platforms appear here too - the same purchase reported with different values on Google and Meta, a conversion sent twice, or no conversion in the paste at all. <strong>Click a platform</strong> to filter everything down to it; <strong>click an event name</strong> to jump straight to that request.</li>
+          <li><strong>All requests.</strong> One row per request, closed by default. Each row already tells you the event, what it is for, whether it is a conversion, and the key facts - value, order ID, consent, page, ID and who would fix a problem. Open a row for its findings and every parameter. Use <strong>Conversions only</strong>, the search box, or <strong>Timeline</strong> (after a HAR import - requests in the order they fired, split by page) to narrow it down.</li>
+        </ol>
+        <p class="lede">Read the findings first, then the parameters - findings are the verdict, parameters are the raw detail behind it. Words with a dotted underline have a plain-English definition: hover over them, or tab to them with the keyboard.</p>
 
         <h3 class="sub3">What the verdicts mean</h3>
         <div class="decode decode--4">
@@ -1117,6 +1133,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           <div><div class="k" style="color:var(--bad)">✕ FAIL</div><div class="v">Something is wrong and it has a real consequence - wrong numbers, missing data, or a compliance problem.</div></div>
           <div><div class="k">· NOTE</div><div class="v">Context, not a judgement. What the event was, how many custom fields it carried, and so on.</div></div>
         </div>
+        <p class="lede">Each request also gets one overall badge on its row: <strong>Healthy</strong>, <strong>Look at this</strong> (a warning, nothing broken) or <strong>Needs attention</strong> (at least one fail). If a finding doesn't apply to your setup, open it and click <strong>Ignore</strong> - it drops out of the badge and the exports.</p>
         <p class="lede">Each verdict explains the business impact, not just the technical fault - because "the event ID is missing" means nothing on its own, whereas "your conversions will be counted twice, so your return on ad spend looks better than it is" is something you can act on and explain to someone else.</p>
 
         <h3 class="sub3">When the filter finds nothing</h3>
@@ -1128,6 +1145,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           <li><strong>Try <span class="mono">tid=</span> instead.</strong> Every Google Analytics message carries this, whatever its address. Many organisations deliberately scramble the addresses of their tracking requests so ad blockers cannot recognise them, which makes filtering by path useless - this is the single most confusing thing for a newcomer, and it is intentional rather than broken.</li>
           <li><strong>Turn off your ad blocker</strong> and reload. Ad blockers stop tracking requests from being sent at all, so you will see nothing and wrongly conclude the tags are missing.</li>
           <li><strong>Check whether you accepted the cookie banner.</strong> On a site that follows the law properly, tracking should not fire until you agree - so no requests may be the correct behaviour, not a bug.</li>
+          <li><strong>Or skip filtering altogether.</strong> Save the whole Network panel as a HAR file and import it into Decode - it picks out the tracking requests for you, whatever their addresses look like.</li>
+        </ol>
+
+        <h3 class="sub3">Checking a whole purchase or lead, end to end</h3>
+        <p class="lede tight">One request tells you one event worked. To know a campaign is measured properly you need every step of the journey to reach every platform. Two tools in Decode help.</p>
+        <ol class="steps">
+          <li><strong>Guided test journey.</strong> Open it under the Decode box and choose <strong>Ecommerce purchase</strong> or <strong>Lead form</strong>. Do each step on the site and paste what fired into that step's box. A table shows, step by step, which platforms received the right event - so "Meta got add to cart but Google didn't" is obvious straight away. A cross usually means a missing trigger in the tag manager.</li>
+          <li><strong>Baseline.</strong> When tracking is known to be working, click <strong>Save as baseline</strong> at the bottom of <strong>At a glance</strong>. After a site release, or when a client asks why conversions dropped, decode the same journey again: it lists what has gone missing, what got worse and what is new. Only platform, event name and verdict are stored, in this browser.</li>
         </ol>
 
         <h3 class="sub3">Testing consent properly</h3>
@@ -1135,7 +1160,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         <ol class="steps">
           <li><strong>Pass one - accept everything.</strong> Load the page, accept all cookies, then check that analytics and advertising requests appear. If they do not, tracking is broken.</li>
           <li><strong>Pass two - reject everything.</strong> Open a new incognito window, load the page, reject all non-essential cookies. Now the analytics and advertising requests should either stop or continue in a stripped-down cookieless form. <strong>If they carry on exactly as before, that is a compliance problem</strong>, not a technical curiosity - and worth escalating the same day.</li>
-          <li><strong>Paste a request from each pass into the Decode tab.</strong> It reads the hidden consent parameters and tells you in plain English what permissions were recorded. That is far more reliable than watching which tags appear to fire.</li>
+          <li><strong>Paste a request from each pass into the Decode tab.</strong> It reads the hidden consent parameters and tells you in plain English what permissions were recorded - each Google row shows a <strong>Consent</strong> chip (Ads ✓ / Analytics ✕ and so on), and <strong>At a glance</strong> sums it up per platform. That is far more reliable than watching which tags appear to fire.</li>
         </ol>
 
         <h3 class="sub3">Jargon, in plain English</h3>
@@ -1160,11 +1185,15 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           <div><div class="k">Parameter</div><div class="v">One piece of information attached to a request, written as <span class="mono">name=value</span>.</div></div>
           <div><div class="k">First-party / third-party</div><div class="v">First-party means it comes from the site you are on. Third-party means another company's domain, which browsers increasingly block.</div></div>
           <div><div class="k">4xx / 5xx</div><div class="v">Status numbers meaning the request failed. Think of them as a "delivery failed" notice.</div></div>
+          <div><div class="k">HAR file</div><div class="v">A saved copy of everything the Network panel recorded. Decode can read one directly.</div></div>
+          <div><div class="k">Order / transaction ID</div><div class="v">The order number sent with a purchase. Lets you match a tracked sale to the real order, and stops repeats being counted.</div></div>
+          <div><div class="k">Click ID</div><div class="v">A code added to the landing page address when someone clicks an ad (gclid, fbclid, ttclid). It ties the later sale back to that click.</div></div>
+          <div><div class="k">Funnel step</div><div class="v">A standard stage of the journey - page view, product view, add to cart, checkout, purchase or lead - that platforms optimise against.</div></div>
         </div>
 
         <h3 class="sub3">Where to go next in this document</h3>
         <p class="lede" style="margin-top:0">
-          <strong>Decode</strong> is right here in Marketing view - paste a request and have it explained. The tabs below are
+          <strong>Decode</strong> is right here in Marketing view - paste a request, import a HAR file or run a guided journey and have it explained. The tabs below are
           deeper reference material, in <strong>Specialist</strong> view (switch at the top of the page):
         </p>
         <ul class="plain">
