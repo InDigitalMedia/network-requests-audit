@@ -96,11 +96,16 @@ function extractBmCode(html) {
     await page.locator('.dq-filter-chip').first().click(); await page.waitForTimeout(40);
     await page.locator('.dq-filter-chip.is-active').click(); await page.waitForTimeout(40);
   }
-  if (await page.locator('.dq-sum-row').count()) {
-    await page.locator('.dq-sum-row').first().click(); await page.waitForTimeout(40);
-    await page.locator('.dq-sum-row.is-active').click(); await page.waitForTimeout(40);
+  // "At a glance" platform rows are the platform filter (toggle on/off), event names jump to a request.
+  if (await page.locator('.dq-plat-go').count()) {
+    await page.locator('.dq-plat-go').first().click(); await page.waitForTimeout(40);
+    await page.locator('.dq-plat-go[aria-pressed="true"]').first().click(); await page.waitForTimeout(40);
     // a platform filter also narrows "At a glance", which then offers a Show all button
-    await page.locator('.dq-sum-row').first().click(); await page.waitForTimeout(40);
+    await page.locator('.dq-plat-go').first().click(); await page.waitForTimeout(40);
+    if (await page.locator('#dq-ans-clear').count()) { await page.click('#dq-ans-clear'); await page.waitForTimeout(40); }
+  }
+  if (await page.locator('.dq-ev-go').count()) {
+    await page.locator('.dq-ev-go').first().click(); await page.waitForTimeout(40);
     if (await page.locator('#dq-ans-clear').count()) { await page.click('#dq-ans-clear'); await page.waitForTimeout(40); }
   }
   if (await page.locator('#dq-expand').count()) { await page.click('#dq-expand'); await page.waitForTimeout(40); }

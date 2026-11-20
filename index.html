@@ -570,9 +570,27 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-box tbody tr:last-child td { border-bottom:0; }
 .dq-box tbody tr:hover { background:var(--ghost); }
 .dq-box td + td, .dq-box th + th { border-left:1px solid var(--grid); }
-.dq-sc-plat { white-space:nowrap; }
-.dq-sc-plat .rq-dot { display:inline-block; vertical-align:middle; margin-right:8px; }
-.dq-sc-plat .rq-conv { margin-left:8px; }
+.dq-box tbody td.dq-sc-plat { white-space:nowrap; padding:0; }
+.dq-plat-go {
+  display:flex; align-items:center; gap:8px; width:100%; padding:11px 12px; margin:0; border:0; background:none;
+  font:inherit; color:inherit; text-align:left; cursor:pointer;
+}
+.dq-plat-go:focus-visible { box-shadow:var(--focus); border-radius:var(--r-ctl); outline:none; }
+.dq-plat-go .rq-conv { margin-left:2px; }
+.dq-go {
+  margin-left:auto; padding-left:10px; font-size:9.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--navy); opacity:0; transition:opacity .12s;
+}
+:root[data-theme="dark"] .id-root .dq-go { color:var(--accent-txt); }
+.dq-box tbody tr:hover .dq-go, .dq-plat-go:focus-visible .dq-go, .dq-box tr.is-active .dq-go { opacity:1; }
+.dq-box tbody tr.is-active { background:var(--wash); box-shadow:inset 3px 0 0 var(--accent); }
+.dq-ev-go {
+  padding:0; margin:0; border:0; background:none; font:inherit; color:var(--accent-txt); cursor:pointer;
+  text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;
+}
+.dq-ev-go:hover { text-decoration-style:solid; }
+.dq-ev-go:focus-visible { box-shadow:var(--focus); border-radius:3px; outline:none; }
+.dq-req { scroll-margin-top:74px; }
 .dq-pill {
   display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:0.04em; white-space:nowrap;
   padding:2px 9px; border-radius:var(--r-pill); border:1px solid;
@@ -2574,21 +2592,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + '<span id="dq-export-pdf-desc" class="sr-only">A clean, client-facing report - same PII rule as the text summary.</span>'
       + '<button class="id-btn dq-toggle" id="dq-export-csv" type="button" title="One row per request: platform, event, value, currency, order ID, consent, verdict - for an audit spreadsheet. Downloaded straight from this page.">Export CSV</button>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
-    h += '<div class="dq-sum-grid">';
-    rows.forEach(function(r){
-      var hosts = Object.keys(r.hosts).filter(function(x){ return x && x !== '-'; });
-      var rowOn = !!(activeFilter && activeFilter.type==='plat' && activeFilter.value===r.name);
-      h += '<button type="button" class="dq-sum-row'+(rowOn?' is-active':'')+'" data-plat="'+esc(r.name)+'" data-worst="'+r.worst+'" aria-pressed="'+rowOn+'" title="Show only '+esc(shortName(r.name))+' requests - click again to clear">'
-        + '<span class="rq-dot rq-'+r.worst+'"></span>'
-        + '<span class="dq-sum-n">'+esc(shortName(r.name))+'</span>'
-        + '<span class="dq-sum-c">&times;'+r.n+'</span>'
-        + '<span class="dq-sum-h mono">'+esc(hosts.length > 1 ? hosts.length + ' hosts' : (hosts[0] || ''))+'</span>'
-        + '<span class="dq-sum-go">Filter</span></button>';
-    });
-    h += '</div>';
+    /* The per-platform list lives in "At a glance" (one list, not two) - its rows are the
+       platform filter now. */
     h += '<div class="dq-sum-foot">'
       + (tally.red ? 'Start with anything marked <strong>needs attention</strong>. ' : '')
-      + 'Select a row above to filter down to that platform, or open one below - then open <strong>How to fix this</strong> under any finding for the steps. Filtering also narrows what <strong>Copy findings summary</strong> and <strong>Export client PDF</strong> include.</div>';
+      + 'Pick a platform in <strong>At a glance</strong> below to filter down to it, or an event name to jump straight to that request - then open <strong>How to fix this</strong> under any finding for the steps. Filtering also narrows what <strong>Copy findings summary</strong>, <strong>Export client PDF</strong> and <strong>Export CSV</strong> include.</div>';
     h += '</div>';
     return h;
   }
@@ -2612,8 +2620,21 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     ms.forEach(function(m){ if (!(m.name in w) || SEVRANK[m.sev] < SEVRANK[w[m.name]]) w[m.name] = m.sev; });
     return w;
   }
+  /* The platform cell is a button: filters everything to that platform and scrolls to its
+     requests in "All requests". Click the active one again to clear - same single-select
+     behaviour the summary's old platform rows had. */
   function platCell(name, worst, extra){
-    return '<td class="dq-sc-plat"><span class="rq-dot rq-' + (worst || 'green') + '"></span><strong>' + esc(shortName(name)) + '</strong>' + (extra || '') + '</td>';
+    var on = !!(activeFilter && activeFilter.type === 'plat' && activeFilter.value === name);
+    return '<td class="dq-sc-plat"><button type="button" class="dq-plat-go" data-plat="' + esc(name) + '" aria-pressed="' + on + '"'
+      + ' title="' + (on ? 'Show all platforms again' : 'Show only ' + esc(shortName(name)) + ' and jump to its requests') + '">'
+      + '<span class="rq-dot rq-' + (worst || 'green') + '"></span><strong>' + esc(shortName(name)) + '</strong>' + (extra || '')
+      + '<span class="dq-go">' + (on ? 'Clear' : 'View') + '</span></button></td>';
+  }
+  function evLinks(plat, events){
+    return events.map(function(e){
+      return '<button type="button" class="dq-ev-go" data-plat="' + esc(plat) + '" data-ev="' + esc(e.name) + '" title="Open this ' + esc(shortName(plat)) + ' request below">'
+        + esc(e.name) + '</button>' + (e.count > 1 ? ' <span class="dq-sc-x">&times;' + e.count + '</span>' : '');
+    }).join(', ');
   }
   function renderAnswers(A, ms, filterLabel){
     if (!A) return '';
@@ -2643,26 +2664,41 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     });
     if (issues.length) h += '<ul class="dq-ans-list">' + issues.join('') + '</ul>';
 
-    if (A.platforms.length) {
-      h += '<div class="dq-ans-h">Per platform</div>';
+    if (A.platforms.length || ms.length) {
+      h += '<div class="dq-ans-h">Per platform <span class="dq-eb-sub">- select a platform to filter to it, or an event to open that request</span></div>';
       h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Per-platform scorecard, scroll horizontally to see all columns"><table class="id-table dq-score dq-box"><thead><tr>'
         + '<th>Platform</th><th>Events seen</th>'
         + '<th title="Conversion events carry an order value">Value</th>'
         + '<th title="Conversion events carry a currency code">Currency</th>'
         + '<th title="Conversion events carry a deduplication ID, so browser and server copies are counted once">Dedup ID</th>'
         + '<th title="Consent state reported on this platform’s hits">Consent</th></tr></thead><tbody>';
-      A.platforms.forEach(function(p){
-        var evs = p.events.map(function(e){ return esc(e.name) + (e.count > 1 ? ' <span class="dq-sc-x">&times;' + e.count + '</span>' : ''); }).join(', ');
+      /* analyzePaste() leaves out supporting and unidentified requests; they still get a row here,
+         since this table is now the only per-platform list. Worst verdict first, like the old summary. */
+      var rowsP = A.platforms.slice(), known = {};
+      rowsP.forEach(function(p){ known[p.name] = 1; });
+      ms.forEach(function(m){
+        if (known[m.name]) return;
+        var extra = rowsP.filter(function(p){ return p.name === m.name; })[0];
+        if (!extra) { extra = { name:m.name, events:[], conversions:0, checks:{}, other:true }; rowsP.push(extra); }
+        var ev = m.event || m.name, hit = extra.events.filter(function(e){ return e.name === ev; })[0];
+        if (hit) hit.count++; else extra.events.push({ name:ev, count:1 });
+      });
+      var cnt = {}; ms.forEach(function(m){ cnt[m.name] = (cnt[m.name] || 0) + 1; });
+      rowsP.sort(function(a, b){ return (SEVRANK[worst[a.name]] - SEVRANK[worst[b.name]]) || ((a.other ? 1 : 0) - (b.other ? 1 : 0)) || (cnt[b.name] - cnt[a.name]) || a.name.localeCompare(b.name); });
+      rowsP.forEach(function(p){
+        var on = !!(activeFilter && activeFilter.type === 'plat' && activeFilter.value === p.name);
+        var evs = evLinks(p.name, p.events);
         var cons = p.checks.consent === 'granted' ? pill('ok', 'Granted', 'Granted on every hit that reported consent')
           : p.checks.consent === 'denied' ? pill('part', 'Denied', 'Denied on at least one hit - the visitor’s choice, not a fault, but those hits are limited or modelled')
           : naCell('This platform’s requests carry no consent signal');
-        h += '<tr>' + platCell(p.name, worst[p.name], p.conversions ? '<span class="rq-conv">' + p.conversions + ' conversion' + (p.conversions === 1 ? '' : 's') + '</span>' : '')
+        h += '<tr' + (on ? ' class="is-active"' : '') + '>' + platCell(p.name, worst[p.name], p.conversions ? '<span class="rq-conv">' + p.conversions + ' conversion' + (p.conversions === 1 ? '' : 's') + '</span>' : (p.other ? '<span class="rq-conv">supporting / other</span>' : ''))
           + '<td class="dq-sc-ev">' + evs + '</td>'
           + checkCell(p.checks.value) + checkCell(p.checks.currency) + checkCell(p.checks.dedup, 'This platform has no browser/server deduplication, or no conversion was seen') + cons + '</tr>';
       });
       h += '</tbody></table></div>';
       h += '<div class="dq-ans-cap">Value, currency and dedup ID are only checked on conversion events. &ndash; means not applicable or no conversion seen.</div>';
 
+      if (A.funnel.rows.length) {
       h += '<div class="dq-ans-h">Funnel coverage</div>';
       h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Funnel coverage by platform, scroll horizontally to see all columns"><table class="id-table dq-score dq-funnel dq-box"><thead><tr><th>Platform</th>'
         + A.funnel.stages.map(function(st){ return '<th>' + esc(st) + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -2672,6 +2708,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       });
       h += '</tbody></table></div>';
       h += '<div class="dq-ans-cap">Which standard funnel steps each platform received in this paste. A gap is only a problem if that step happened while you were capturing.</div>';
+      }
     }
     h += renderBaseline();
     return h + '</div>';
@@ -3251,12 +3288,6 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       c.classList.toggle('is-active', on);
       c.setAttribute('aria-pressed', String(on));
     });
-    OUT.querySelectorAll('.dq-sum-row').forEach(function(row){
-      var on = row.dataset.plat === platFilter;
-      row.classList.toggle('is-active', on);
-      row.setAttribute('aria-pressed', String(on));
-      row.style.display = (!sevFilter || row.dataset.worst === sevFilter) ? '' : 'none';
-    });
     var hiddenSupport = 0;
     OUT.querySelectorAll('.dq-req').forEach(function(d){
       var sevOk = !sevFilter || d.dataset.sev === sevFilter;
@@ -3360,12 +3391,35 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       applyFilter();
       return;
     }
-    if ((b = e.target.closest('.dq-sum-row'))) {
-      /* Filters down to this platform - same single-select behaviour as the severity chips,
-         not an anchor/scroll. Click the active one again to clear. */
-      var wasPlat = activeFilter && activeFilter.type === 'plat' && activeFilter.value === b.dataset.plat;
-      activeFilter = wasPlat ? null : { type: 'plat', value: b.dataset.plat };
+    if ((b = e.target.closest('.dq-plat-go'))) {
+      var plat = b.dataset.plat;
+      var wasPlat = activeFilter && activeFilter.type === 'plat' && activeFilter.value === plat;
+      activeFilter = wasPlat ? null : { type: 'plat', value: plat };
       applyFilter();
+      if (!wasPlat) {
+        var target = Array.prototype.filter.call(OUT.querySelectorAll('.dq-group'), function(g){ return g.dataset.plat === plat; })[0]
+          || OUT.querySelector('.dq-reqs');
+        if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+      var again = Array.prototype.filter.call(OUT.querySelectorAll('.dq-plat-go'), function(x){ return x.dataset.plat === plat; })[0];
+      if (again) again.focus({ preventScroll:true });
+      return;
+    }
+    if ((b = e.target.closest('.dq-ev-go'))) {
+      /* jump to the request(s) behind this event: filter to the platform, open them, scroll */
+      var p2 = b.dataset.plat, ev = b.dataset.ev;
+      activeFilter = { type: 'plat', value: p2 };
+      applyFilter();
+      var hits = Array.prototype.filter.call(OUT.querySelectorAll('.dq-req'), function(d){
+        var m = metas[+d.dataset.idx];
+        return m && m.name === p2 && (m.event || m.name) === ev && d.style.display !== 'none';
+      });
+      hits.forEach(function(d){ d.open = true; });
+      if (hits[0]) {
+        hits[0].scrollIntoView({ behavior:'smooth', block:'start' });
+        var sm = hits[0].querySelector('summary');
+        if (sm) sm.focus({ preventScroll:true });
+      }
       return;
     }
     if ((b = e.target.closest('#dq-ans-clear'))) {

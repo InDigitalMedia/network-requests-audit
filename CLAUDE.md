@@ -143,8 +143,10 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      (ecommerce or lead), checked with `TD.checkJourney()`. Step pastes are never persisted.
    - `activeFilter` / `filteredMetas()` / `applyFilter()` — a single active filter, either
      `{type:'sev', value:'red'|'amber'|'green'}` (the summary's severity chips) or `{type:'plat',
-     value:<platform name>}` (the summary's per-platform rows — these filter now, they used to
-     scroll/anchor to the group). `filteredMetas()` is what both export functions above read, so
+     value:<platform name>}` (the platform rows of the "At a glance" per-platform table,
+     `.dq-plat-go` — the summary no longer has its own platform list; event names in that table,
+     `.dq-ev-go`, set the platform filter and open/scroll to the matching request). "At a glance"
+     itself re-renders from `filteredMetas()` on every `applyFilter()` (`refreshAnswers()`). `filteredMetas()` is what both export functions above read, so
      exporting always reflects whatever is currently filtered on screen, not the full paste.
    - `announce(msg)` / `#dq-live-status` — a screen-reader announcement after every `run()`, e.g.
      "Decoded 2 requests: 1 needs attention, 1 healthy." The status element lives *outside* `#dq-out`
