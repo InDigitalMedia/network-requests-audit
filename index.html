@@ -562,6 +562,29 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-ans-h { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:16px 0 7px; }
 .dq-ans-cap { font-size:12px; color:var(--ink-3); line-height:1.5; margin:6px 0 0; }
 .dq-score { font-size:12.5px; }
+/* boxed tables: same white, bordered, row-separated look as the summary's platform rows */
+.dq-ans .tbl-scroll { border:1px solid var(--line); border-radius:var(--r-ctl); background:var(--surface-1); }
+.dq-box { border-collapse:separate; border-spacing:0; }
+.dq-box thead th { background:var(--ghost); border-bottom:1px solid var(--line); padding:9px 12px; }
+.dq-box tbody td { padding:11px 12px; border-bottom:1px solid var(--grid); vertical-align:middle; }
+.dq-box tbody tr:last-child td { border-bottom:0; }
+.dq-box tbody tr:hover { background:var(--ghost); }
+.dq-box td + td, .dq-box th + th { border-left:1px solid var(--grid); }
+.dq-sc-plat { white-space:nowrap; }
+.dq-sc-plat .rq-dot { display:inline-block; vertical-align:middle; margin-right:8px; }
+.dq-sc-plat .rq-conv { margin-left:8px; }
+.dq-pill {
+  display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:0.04em; white-space:nowrap;
+  padding:2px 9px; border-radius:var(--r-pill); border:1px solid;
+}
+.dq-pill--ok   { color:var(--good); background:var(--good-bg); border-color:var(--good-line); }
+.dq-pill--part { color:var(--warn); background:var(--warn-bg); border-color:var(--warn-line); }
+.dq-pill--no   { color:var(--bad);  background:var(--bad-bg);  border-color:var(--bad-line); }
+.dq-ans-filter {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between;
+  font-size:12.5px; color:var(--ink-2); background:var(--surface-1); border:1px solid var(--accent);
+  border-radius:var(--r-ctl); padding:8px 12px; margin-bottom:10px;
+}
 .dq-score th, .dq-score td { text-align:center; padding:7px 9px; white-space:nowrap; }
 .dq-score th:first-child, .dq-score td:first-child, .dq-score td.dq-sc-ev, .dq-score th:nth-child(2) { text-align:left; }
 .dq-score td.dq-sc-ev { white-space:normal; min-width:180px; color:var(--ink-2); }
@@ -2573,17 +2596,36 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   /* ---------- "At a glance": the paste answered per platform rather than per request ----------
      Built from TD.analyzePaste(); none of it depends on Ignore toggles, so it renders once per
      decode (the baseline block re-renders itself on save/clear). */
-  var CHECK_SYM = { ok:['&#10003;','ok','Sent on every conversion'], partial:['Some','part','Sent on some conversions, missing on others'],
-    missing:['&#10005;','no','Missing on every conversion'] };
+  var CHECK_SYM = { ok:['&#10003; Yes','ok','Sent on every conversion'], partial:['Some','part','Sent on some conversions, missing on others'],
+    missing:['&#10005; No','no','Missing on every conversion'] };
+  function pill(cls, label, title){ return '<td title="' + esc(title) + '"><span class="dq-pill dq-pill--' + cls + '">' + label + '</span></td>'; }
+  function naCell(title){ return '<td class="dq-sc-na" title="' + esc(title) + '">&ndash;</td>'; }
   function checkCell(v, naTitle){
-    if (!v) return '<td class="dq-sc-na" title="' + esc(naTitle || 'Not applicable, or no conversion event seen for this platform') + '">&ndash;</td>';
+    if (!v) return naCell(naTitle || 'Not applicable, or no conversion event seen for this platform');
     var c = CHECK_SYM[v];
-    return '<td class="dq-sc-' + c[1] + '" title="' + c[2] + '">' + c[0] + '</td>';
+    return pill(c[1], c[0], c[2]);
   }
-  function renderAnswers(A){
+  /* worst verdict per platform among the requests behind the current analysis - drives the
+     status dot on each "At a glance" row, same dot as the summary's platform rows */
+  function worstByPlatform(ms){
+    var w = {};
+    ms.forEach(function(m){ if (!(m.name in w) || SEVRANK[m.sev] < SEVRANK[w[m.name]]) w[m.name] = m.sev; });
+    return w;
+  }
+  function platCell(name, worst, extra){
+    return '<td class="dq-sc-plat"><span class="rq-dot rq-' + (worst || 'green') + '"></span><strong>' + esc(shortName(name)) + '</strong>' + (extra || '') + '</td>';
+  }
+  function renderAnswers(A, ms, filterLabel){
     if (!A) return '';
+    ms = ms || metas;
+    var worst = worstByPlatform(ms);
     var h = '<div class="dq-ans">';
     h += '<div class="dq-sum-eyebrow"><span class="dq-step" aria-hidden="true">2</span>At a glance<span class="dq-eb-sub">- answered per platform rather than per request</span></div>';
+    if (filterLabel) {
+      h += '<div class="dq-ans-filter"><span>Filtered to <strong>' + esc(filterLabel) + '</strong> - ' + ms.length + ' of ' + metas.length + ' request' + (metas.length === 1 ? '' : 's') + '. Cross-platform checks only compare what is shown.</span>'
+        + '<button type="button" class="id-btn dq-toggle" id="dq-ans-clear">Show all</button></div>';
+    }
+    if (!ms.length) return h + '<div class="dq-ans-cap">No requests match the current filters.</div>' + renderBaseline() + '</div>';
     if (!A.hasConversion && A.platforms.length) {
       h += '<div class="dq-ans-banner"><strong>No conversion events in this paste.</strong> Every "healthy" below only covers what was pasted - it says nothing about purchase or lead tracking. To check those, complete a test purchase or form on the site, capture the requests again, and decode them.</div>';
     }
@@ -2603,7 +2645,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 
     if (A.platforms.length) {
       h += '<div class="dq-ans-h">Per platform</div>';
-      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Per-platform scorecard, scroll horizontally to see all columns"><table class="id-table dq-score"><thead><tr>'
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Per-platform scorecard, scroll horizontally to see all columns"><table class="id-table dq-score dq-box"><thead><tr>'
         + '<th>Platform</th><th>Events seen</th>'
         + '<th title="Conversion events carry an order value">Value</th>'
         + '<th title="Conversion events carry a currency code">Currency</th>'
@@ -2611,10 +2653,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         + '<th title="Consent state reported on this platform’s hits">Consent</th></tr></thead><tbody>';
       A.platforms.forEach(function(p){
         var evs = p.events.map(function(e){ return esc(e.name) + (e.count > 1 ? ' <span class="dq-sc-x">&times;' + e.count + '</span>' : ''); }).join(', ');
-        var cons = p.checks.consent === 'granted' ? '<td class="dq-sc-ok" title="Granted on every hit that reported consent">Granted</td>'
-          : p.checks.consent === 'denied' ? '<td class="dq-sc-part" title="Denied on at least one hit - the visitor’s choice, not a fault, but those hits are limited or modelled">Denied</td>'
-          : '<td class="dq-sc-na" title="This platform’s requests carry no consent signal">&ndash;</td>';
-        h += '<tr><td><strong>' + esc(shortName(p.name)) + '</strong>' + (p.conversions ? ' <span class="rq-conv">' + p.conversions + ' conversion' + (p.conversions === 1 ? '' : 's') + '</span>' : '') + '</td>'
+        var cons = p.checks.consent === 'granted' ? pill('ok', 'Granted', 'Granted on every hit that reported consent')
+          : p.checks.consent === 'denied' ? pill('part', 'Denied', 'Denied on at least one hit - the visitor’s choice, not a fault, but those hits are limited or modelled')
+          : naCell('This platform’s requests carry no consent signal');
+        h += '<tr>' + platCell(p.name, worst[p.name], p.conversions ? '<span class="rq-conv">' + p.conversions + ' conversion' + (p.conversions === 1 ? '' : 's') + '</span>' : '')
           + '<td class="dq-sc-ev">' + evs + '</td>'
           + checkCell(p.checks.value) + checkCell(p.checks.currency) + checkCell(p.checks.dedup, 'This platform has no browser/server deduplication, or no conversion was seen') + cons + '</tr>';
       });
@@ -2622,11 +2664,11 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       h += '<div class="dq-ans-cap">Value, currency and dedup ID are only checked on conversion events. &ndash; means not applicable or no conversion seen.</div>';
 
       h += '<div class="dq-ans-h">Funnel coverage</div>';
-      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Funnel coverage by platform, scroll horizontally to see all columns"><table class="id-table dq-score dq-funnel"><thead><tr><th>Platform</th>'
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Funnel coverage by platform, scroll horizontally to see all columns"><table class="id-table dq-score dq-funnel dq-box"><thead><tr><th>Platform</th>'
         + A.funnel.stages.map(function(st){ return '<th>' + esc(st) + '</th>'; }).join('') + '</tr></thead><tbody>';
       A.funnel.rows.forEach(function(r){
-        h += '<tr><td><strong>' + esc(shortName(r.name)) + '</strong></td>'
-          + r.cells.map(function(c, i){ return c ? '<td class="dq-sc-ok" title="' + esc(A.funnel.stages[i]) + ' seen">&#10003;</td>' : '<td class="dq-sc-na" title="Not in this paste">&middot;</td>'; }).join('') + '</tr>';
+        h += '<tr>' + platCell(r.name, worst[r.name])
+          + r.cells.map(function(c, i){ return c ? pill('ok', '&#10003;', A.funnel.stages[i] + ' seen') : naCell('Not in this paste'); }).join('') + '</tr>';
       });
       h += '</tbody></table></div>';
       h += '<div class="dq-ans-cap">Which standard funnel steps each platform received in this paste. A gap is only a problem if that step happened while you were capturing.</div>';
@@ -2671,6 +2713,23 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     return h + '<button class="id-btn dq-toggle" id="dq-base-save" type="button">Replace baseline with this decode</button> '
       + '<button class="id-btn dq-toggle" id="dq-base-clear" type="button">Clear baseline</button></div>';
+  }
+  /* "At a glance" follows the same filters as the request list (summary rows, severity chips,
+     conversions only, search) - re-analysed from just those requests' results. */
+  function analysisFor(ms){
+    return TD.analyzePaste(ms.map(function(m){ return lastResults[metas.indexOf(m)]; }),
+      { expectedEvents: splitList(EXPIN && EXPIN.value), expectedIds: splitList(IDSIN && IDSIN.value) });
+  }
+  function currentAnalysis(){
+    var ms = filteredMetas();
+    return ms.length === metas.length ? lastAnalysis : analysisFor(ms);
+  }
+  function refreshAnswers(){
+    var el = OUT.querySelector('.dq-ans');
+    if (!el) return;
+    var ms = filteredMetas(), label = ms.length === metas.length ? null : activeFilterLabel();
+    el.outerHTML = renderAnswers(ms.length === metas.length ? lastAnalysis : analysisFor(ms), ms, label);
+    glossify(OUT.querySelector('.dq-ans'));
   }
   function refreshBaseline(){
     var el = OUT.querySelector('.dq-base');
@@ -3005,8 +3064,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
       .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
     if (tallyBits.length) lines.push(tallyBits.join(', '));
-    var pl = pasteLevelLines(lastAnalysis);
-    if (pl.length) { lines.push(''); lines.push('Across the whole paste:'); pl.forEach(function(x){ lines.push('   - ' + x); }); }
+    var pl = pasteLevelLines(currentAnalysis());
+    if (pl.length) { lines.push(''); lines.push(filterLabel ? 'Across the requests above:' : 'Across the whole paste:'); pl.forEach(function(x){ lines.push('   - ' + x); }); }
     metas.forEach(function(m, i){
       lines.push('');
       lines.push((i+1) + '. ' + m.name + (m.host ? ' (' + m.host + ')' : ''));
@@ -3059,8 +3118,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           ? 'Showing ' + metas.length + ' of ' + totalCount + ' request' + (totalCount===1?'':'s') + ', filtered: ' + esc(filterLabel)
           : metas.length + ' request' + (metas.length===1?'':'s') + ' decoded')
       + (tallyBits.length ? ' - ' + tallyBits.join(', ') : '') + '</div>';
-    var pl = pasteLevelLines(lastAnalysis);
-    if (pl.length) h += '<div class="dqp-find dqp-warn"><span class="dqp-sev">Across the whole paste</span>'
+    var pl = pasteLevelLines(currentAnalysis());
+    if (pl.length) h += '<div class="dqp-find dqp-warn"><span class="dqp-sev">' + (filterLabel ? 'Across the requests in this report' : 'Across the whole paste') + '</span>'
       + pl.map(function(x){ return '<div class="dqp-detail">' + esc(x) + '</div>'; }).join('') + '</div>';
     metas.forEach(function(m, i){
       h += '<h2>' + (i+1) + '. ' + esc(m.name) + '</h2>';
@@ -3207,6 +3266,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       if (sevOk && platOk && !vOk && view.hideSupport && m.support) hiddenSupport++;
       d.style.display = (sevOk && platOk && vOk) ? '' : 'none';
     });
+    refreshAnswers();
     var hs = OUT.querySelector('#dq-support-n');
     if (hs) hs.textContent = hiddenSupport ? '(' + hiddenSupport + ' hidden)' : '';
     var none = OUT.querySelector('.dq-nomatch');
@@ -3305,6 +3365,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
          not an anchor/scroll. Click the active one again to clear. */
       var wasPlat = activeFilter && activeFilter.type === 'plat' && activeFilter.value === b.dataset.plat;
       activeFilter = wasPlat ? null : { type: 'plat', value: b.dataset.plat };
+      applyFilter();
+      return;
+    }
+    if ((b = e.target.closest('#dq-ans-clear'))) {
+      activeFilter = null; view.conv = false; view.q = '';
+      var cc = OUT.querySelector('#dq-v-conv'), qq = OUT.querySelector('#dq-v-q');
+      if (cc) cc.checked = false;
+      if (qq) qq.value = '';
       applyFilter();
       return;
     }

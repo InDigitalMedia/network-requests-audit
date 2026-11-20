@@ -99,6 +99,9 @@ function extractBmCode(html) {
   if (await page.locator('.dq-sum-row').count()) {
     await page.locator('.dq-sum-row').first().click(); await page.waitForTimeout(40);
     await page.locator('.dq-sum-row.is-active').click(); await page.waitForTimeout(40);
+    // a platform filter also narrows "At a glance", which then offers a Show all button
+    await page.locator('.dq-sum-row').first().click(); await page.waitForTimeout(40);
+    if (await page.locator('#dq-ans-clear').count()) { await page.click('#dq-ans-clear'); await page.waitForTimeout(40); }
   }
   if (await page.locator('#dq-expand').count()) { await page.click('#dq-expand'); await page.waitForTimeout(40); }
   if (await page.locator('#dq-copy-summary').count()) { await page.click('#dq-copy-summary'); await page.waitForTimeout(60); }
