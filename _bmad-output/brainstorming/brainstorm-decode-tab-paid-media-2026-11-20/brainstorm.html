@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decode Tab Signals</title>
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#fffdf8; --panel-2:#ece8df; --ink:#1b1e2b; --muted:#5d6273; --line:#d6d0c3;
+  --board:#14161f; --board-ink:#f7d774; --board-dim:#8a8fa3;
+  --green:#1f8a4c; --green-bg:#e2f3e8; --amber:#b86e00; --amber-bg:#fbeed5; --red:#c0392b; --red-bg:#f8e1dd;
+  --violet:#6b4bc4; --violet-bg:#ece6fb; --blue:#1f5fbf; --blue-bg:#e1ebfa;
+  --shadow:0 1px 0 rgba(0,0,0,.04),0 6px 18px -10px rgba(20,22,31,.25);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1017; --panel:#171a24; --panel-2:#1f2330; --ink:#e9e9ef; --muted:#9aa0b4; --line:#2c3142;
+    --board:#07080c; --board-ink:#ffd95e; --board-dim:#6d7287;
+    --green:#4cc283; --green-bg:#173325; --amber:#f0a73a; --amber-bg:#3a2a12; --red:#ff6b5b; --red-bg:#3d1b18;
+    --violet:#a990ff; --violet-bg:#2a2245; --blue:#6ea4ff; --blue-bg:#172744;
+    --shadow:0 1px 0 rgba(255,255,255,.03),0 8px 20px -12px rgba(0,0,0,.8);
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;overflow-x:hidden}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.mono{font-family:var(--mono)}
+a{color:inherit}
+p,li{overflow-wrap:anywhere}
+h1,h2,h3{line-height:1.15;margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- departures board header ---------- */
+.board{background:var(--board);color:var(--board-ink);padding:28px 0 22px;border-bottom:6px solid #000}
+.board .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--board-dim);display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.flap{display:flex;flex-wrap:wrap;gap:3px;margin:16px 0 6px}
+.flap span{font-family:var(--mono);font-weight:700;font-size:clamp(20px,5.2vw,44px);background:#1e2130;border-radius:4px;padding:2px .12em;min-width:.9em;text-align:center;position:relative;box-shadow:inset 0 -1px 0 #000}
+.flap span::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:#000;opacity:.7}
+.flap .gap{background:transparent;box-shadow:none;min-width:.4em}
+.flap .gap::after{display:none}
+.board h1{font-size:clamp(17px,2.6vw,22px);font-weight:600;color:#fff;margin-top:10px;max-width:820px}
+.dep{margin-top:18px;border-top:1px solid #2a2e3e;font-family:var(--mono);font-size:13px}
+.dep-row{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid #2a2e3e}
+.dep-row dt{color:var(--board-dim);text-transform:uppercase;letter-spacing:.1em;font-size:11px;padding-top:2px}
+.dep-row dd{margin:0;color:#e8e6dc;overflow-wrap:anywhere}
+.dep-row dd b{color:var(--board-ink)}
+.on-time{color:#5ee08f}
+@media (max-width:520px){.dep-row{grid-template-columns:1fr;gap:2px}}
+
+/* ---------- warning lights dashboard ---------- */
+.dash{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.dash .wrap{display:flex;align-items:center;gap:10px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap}
+.lamps{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.lamp{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:13px;font-weight:600;padding:6px 10px 6px 8px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font-family:var(--sans)}
+.lamp i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent),0 0 10px var(--c);flex:none}
+.lamp small{font-family:var(--mono);color:var(--muted);font-weight:500}
+.lamp[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel))}
+.lamp:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
+.lamps.filtering .lamp[aria-pressed="false"] i{background:var(--line);box-shadow:none}
+.counter{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.counter b{color:var(--ink);font-size:15px}
+.js-only{display:none}
+.js .js-only{display:inline-flex}
+@media (prefers-reduced-motion:no-preference){
+  .lamp i{animation:ignite .5s ease-out both;animation-delay:calc(var(--d) * 110ms)}
+  @keyframes ignite{0%{background:var(--line);box-shadow:none}60%{box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 30%,transparent),0 0 16px var(--c)}}
+}
+
+/* ---------- constraint strip ---------- */
+.constraint{margin:26px 0 8px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:14px 16px}
+.constraint .tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink);color:var(--bg);padding:3px 7px;border-radius:4px}
+.constraint p{margin:0;font-size:14px;color:var(--muted)}
+.constraint strong{color:var(--ink)}
+@media (max-width:520px){.constraint{grid-template-columns:1fr;gap:8px}}
+
+/* ---------- technique sections: request headers ---------- */
+section.tech{margin:42px 0 0;scroll-margin-top:70px}
+.req-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font-family:var(--mono);font-size:12px;color:var(--muted);border-bottom:2px solid var(--c);padding-bottom:6px}
+.req-head .verb{background:var(--c);color:#fff;padding:1px 6px;border-radius:3px;font-weight:700}
+.req-head .path{color:var(--ink);overflow-wrap:anywhere}
+.req-head .status{margin-left:auto;color:var(--green)}
+.tech h2{font-size:clamp(26px,4.5vw,38px);margin:14px 0 4px;letter-spacing:-.01em}
+.tech .lede{color:var(--muted);margin:0 0 18px;max-width:760px}
+.idx{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.c-emp{--c:#1f8a4c} .c-per{--c:#1f5fbf} .c-tra{--c:#b86e00} .c-wor{--c:#c0392b} .c-sca{--c:#6b4bc4} .c-k{--c:#0f8a8a}
+@media (prefers-color-scheme: dark){.c-emp{--c:#4cc283}.c-per{--c:#6ea4ff}.c-tra{--c:#f0a73a}.c-wor{--c:#ff6b5b}.c-sca{--c:#a990ff}.c-k{--c:#3fd0cf}}
+
+/* empathy map */
+.emap{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:0;position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}
+.quad{padding:22px 22px 26px;min-height:140px}
+.quad:nth-child(1){border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.quad:nth-child(2){border-bottom:1px solid var(--line)}
+.quad:nth-child(3){border-right:1px solid var(--line)}
+.quad .q{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--c)}
+.quad blockquote{margin:8px 0 0;font-size:clamp(18px,2.6vw,24px);font-weight:600;line-height:1.25}
+.quad:nth-child(2),.quad:nth-child(4){text-align:right}
+.ehub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--ink);color:var(--bg);border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;text-align:center;max-width:220px;line-height:1.25;box-shadow:0 0 0 6px var(--panel)}
+@media (max-width:640px){
+  .emap{grid-template-columns:1fr}
+  .quad,.quad:nth-child(n){border-right:0;border-bottom:1px solid var(--line);text-align:left;min-height:0}
+  .ehub{position:static;transform:none;max-width:none;border-radius:0;box-shadow:none}
+}
+.insight-pin{margin:16px 0 18px;display:flex;gap:12px;align-items:flex-start;background:var(--green-bg);border-left:4px solid var(--green);padding:12px 14px;border-radius:0 8px 8px 0}
+.insight-pin b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);white-space:nowrap;padding-top:3px}
+.insight-pin p{margin:0}
+
+/* request-row list (generic) */
+.rows{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;box-shadow:var(--shadow)}
+.rows li{display:grid;grid-template-columns:52px 14px 1fr;gap:10px;align-items:start;padding:10px 14px;border-top:1px solid var(--line)}
+.rows li:first-child{border-top:0}
+.rows li:nth-child(even){background:color-mix(in srgb,var(--panel-2) 45%,var(--panel))}
+.rows .dot{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:7px}
+.rows .idx{padding-top:3px}
+.rows p{margin:0}
+@media (max-width:520px){.rows li{grid-template-columns:40px 10px 1fr;gap:8px;padding:10px}}
+
+/* persona timeline */
+.mail{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:6px}
+.mail .clock{font-family:var(--mono);font-weight:700;font-size:26px;color:var(--c)}
+.mail .from{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.mail .subj{font-weight:700;font-size:18px}
+.tl{list-style:none;margin:0;padding:6px 0 0 0;position:relative}
+.tl::before{content:"";position:absolute;left:21px;top:0;bottom:12px;width:2px;background:repeating-linear-gradient(to bottom,var(--c) 0 6px,transparent 6px 12px)}
+.tl li{position:relative;padding:10px 0 10px 54px}
+.tl li::before{content:"";position:absolute;left:14px;top:15px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:3px solid var(--c)}
+.tl .idx{display:block}
+.tl p{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+@media (min-width:860px){
+  .tl{columns:2;column-gap:28px}
+  .tl li{break-inside:avoid}
+  .tl::before{display:none}
+  .tl li::after{content:"";position:absolute;left:19px;top:30px;bottom:-12px;width:2px;background:repeating-linear-gradient(to bottom,var(--c) 0 6px,transparent 6px 12px)}
+}
+
+/* trait transfer */
+.pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+@media (max-width:360px){.pairs{grid-template-columns:1fr}}
+.pair{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.pair .from{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--c);font-weight:700}
+.pair .from::before{content:"BORROWED";font-size:9px;letter-spacing:.14em;border:1px solid var(--c);border-radius:3px;padding:1px 4px}
+.pair .arrow{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:var(--mono);font-size:11px}
+.pair .arrow::before{content:"";flex:1;height:0;border-top:2px dotted var(--c)}
+.pair .arrow::after{content:"\25B6";color:var(--c);font-size:10px}
+.pair p{margin:0}
+
+/* worst -> flip */
+.flips{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+@media (max-width:360px){.flips{grid-template-columns:1fr}}
+.flip{border-radius:12px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column;background:var(--panel)}
+.flip .worst,.flip .better{padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.flip .worst{background:var(--red-bg);color:var(--ink);position:relative}
+.flip .worst p{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--red) 55%,transparent);text-decoration-thickness:2px}
+.flip .better{background:var(--green-bg);flex:1;border-top:2px dashed var(--line)}
+.flip .lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;padding:2px 6px;border-radius:3px;color:#fff;margin-top:3px}
+.flip .worst .lbl{background:var(--red)}
+.flip .better .lbl{background:var(--green)}
+.flip p{margin:0}
+.flip .idx{padding:6px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+
+/* SCAMPER lanes */
+.lanes{display:flex;flex-direction:column;gap:10px}
+.lane{display:grid;grid-template-columns:76px 1fr;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.lane .L{background:var(--c);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;text-align:center}
+.lane .L b{font-size:40px;line-height:1;font-family:var(--mono)}
+.lane .L span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;opacity:.9}
+.lane ol{list-style:none;margin:0;padding:6px 0}
+.lane li{padding:8px 14px;border-top:1px dashed var(--line);display:grid;grid-template-columns:44px 1fr;gap:8px}
+.lane li:first-child{border-top:0}
+.lane li p{margin:0}
+@media (prefers-color-scheme: dark){.lane .L{color:#0e1017}}
+@media (max-width:520px){.lane{grid-template-columns:52px 1fr}.lane .L b{font-size:28px}.lane .L span{font-size:8px}.lane li{grid-template-columns:1fr;gap:0}}
+
+/* 1000x */
+.absurd{display:flex;flex-direction:column;gap:10px}
+.ab{display:grid;grid-template-columns:44px 1fr 34px 1fr;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.ab .idx{display:flex;align-items:center;justify-content:center;background:var(--panel-2);writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px}
+.ab .side{padding:12px 14px}
+.ab .side small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.ab .side p{margin:0}
+.ab .big{background:var(--violet-bg)}
+.ab .big small{color:var(--violet)}
+.ab .big p{font-style:italic}
+.ab .steal small{color:var(--green)}
+.ab .x{display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,var(--violet-bg) 50%,var(--panel) 50%);color:var(--c);font-weight:800;font-family:var(--mono);font-size:18px}
+@media (max-width:640px){
+  .ab{grid-template-columns:1fr}
+  .ab .idx{writing-mode:horizontal-tb;transform:none;justify-content:flex-start;padding:5px 14px}
+  .ab .x{background:var(--violet-bg);padding:0 14px;justify-content:flex-start;height:22px;font-size:14px}
+  .ab .x span{display:inline-block;transform:rotate(90deg)}
+}
+.subhead{margin:26px 0 10px;font-size:15px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600}
+
+/* ---------- synthesis: the climax ---------- */
+.verdict-zone{margin:64px 0 0;background:var(--board);color:#e8e6dc;padding:46px 0 56px;position:relative;overflow:hidden;scroll-margin-top:70px}
+.verdict-zone .wrap{position:relative}
+.vz-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.traffic{display:flex;flex-direction:column;gap:6px;background:#000;padding:8px;border-radius:12px;flex:none}
+.traffic i{width:20px;height:20px;border-radius:50%;opacity:.25}
+.traffic i:nth-child(1){background:#ff5a4a}.traffic i:nth-child(2){background:#ffb62e}.traffic i:nth-child(3){background:#41d683;opacity:1;box-shadow:0 0 14px #41d683}
+.verdict-zone .kick{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--board-dim)}
+.verdict-zone h2{font-size:clamp(30px,6vw,56px);color:#fff;letter-spacing:-.02em}
+.verdict-zone h2 em{font-style:normal;color:var(--board-ink)}
+.ins{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:30px}
+.in{background:#1a1d29;border:1px solid #2b3043;border-radius:14px;padding:18px 18px 20px;position:relative;grid-column:span 2}
+.in:nth-child(1){grid-column:span 6;background:linear-gradient(135deg,#1e2a24,#1a1d29 60%);border-color:#2f5c43}
+.in:nth-child(2){grid-column:span 3}
+.in:nth-child(3){grid-column:span 3}
+.in .n{font-family:var(--mono);font-size:44px;font-weight:800;line-height:1;color:var(--board-ink);opacity:.95}
+.in h3{font-size:19px;color:#fff;margin:10px 0 8px}
+.in:nth-child(1) h3{font-size:clamp(22px,3vw,30px)}
+.in p{margin:0;color:#c6c8d4;font-size:15px}
+.in .sig{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+.sig.g{color:#41d683}.sig.a{color:#ffb62e}.sig.r{color:#ff7a6b}.sig.b{color:#7fb0ff}
+.hats{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.hats span{font-size:12px;font-family:var(--mono);background:#0f1118;border:1px solid #2b3043;border-radius:6px;padding:3px 8px;color:#e8e6dc}
+@media (max-width:820px){.ins{grid-template-columns:1fr}.in,.in:nth-child(n){grid-column:auto}}
+
+.route{margin-top:46px}
+.route h3{font-size:clamp(22px,3.4vw,30px);color:#fff}
+.route .sub{color:var(--board-dim);font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.stops{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+.stops::before{content:"";position:absolute;left:12%;right:12%;top:27px;height:4px;background:linear-gradient(90deg,#41d683,#7fb0ff,#ffb62e,#c79bff);border-radius:4px}
+.stop{padding:0 10px;position:relative}
+.stop .st{width:58px;height:58px;border-radius:50%;background:var(--board);border:4px solid var(--sc);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:800;font-size:22px;color:var(--sc);margin:0 auto 14px;position:relative;z-index:1}
+.stop .card{background:#1a1d29;border:1px solid #2b3043;border-top:3px solid var(--sc);border-radius:10px;padding:14px}
+.stop h4{margin:0 0 8px;color:#fff;font-size:16px}
+.stop ul{margin:0;padding-left:18px;color:#c6c8d4;font-size:14px}
+.stop li{margin:3px 0}
+.s1{--sc:#41d683}.s2{--sc:#7fb0ff}.s3{--sc:#ffb62e}.s4{--sc:#c79bff}
+@media (max-width:820px){
+  .stops{grid-template-columns:1fr;gap:14px}
+  .stops::before{left:27px;right:auto;top:20px;bottom:20px;width:4px;height:auto;background:linear-gradient(180deg,#41d683,#7fb0ff,#ffb62e,#c79bff)}
+  .stop{display:grid;grid-template-columns:58px 1fr;gap:14px;padding:0}
+  .stop .st{margin:0}
+}
+footer{padding:26px 0 40px;font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;background:var(--bg)}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<header class="board">
+  <div class="wrap">
+    <div class="kicker"><span>Brainstorm log &middot; Departures</span><span>2026-11-20 &middot; 12:48</span></div>
+    <div class="flap" aria-hidden="true">
+      <span>D</span><span>E</span><span>C</span><span>O</span><span>D</span><span>E</span><span class="gap"></span><span>&rarr;</span><span class="gap"></span><span>P</span><span>A</span><span>I</span><span>D</span><span class="gap"></span><span>M</span><span>E</span><span>D</span><span>I</span><span>A</span>
+    </div>
+    <h1>Improving the Decode tab for the paid media team</h1>
+    <dl class="dep">
+      <div class="dep-row"><dt>Goal</dt><dd>More user-friendly for non-specialist paid media users, and surface more information at a glance without digging into raw requests / parameter tables</dd></div>
+      <div class="dep-row"><dt>Date</dt><dd>2026-11-20</dd></div>
+      <div class="dep-row"><dt>Stance</dt><dd><b>&ldquo;Ideate for me&rdquo;</b></dd></div>
+      <div class="dep-row"><dt>Payload</dt><dd><b>109 ideas</b> &middot; 6 techniques &middot; 5 synthesis insights &middot; 1 sequencing decision</dd></div>
+      <div class="dep-row"><dt>Status</dt><dd class="on-time">&#9679; COMPLETE &mdash; all signals received</dd></div>
+    </dl>
+  </div>
+</header>
+
+<nav class="dash" aria-label="Techniques">
+  <div class="wrap">
+    <div class="lamps" id="lamps">
+      <a class="lamp c-emp" style="--d:0" href="#t-empathy" data-t="empathy"><i></i>Empathy Map <small>20</small></a>
+      <a class="lamp c-per" style="--d:1" href="#t-persona" data-t="persona"><i></i>Persona Journey <small>19</small></a>
+      <a class="lamp c-tra" style="--d:2" href="#t-trait" data-t="trait"><i></i>Trait Transfer <small>16</small></a>
+      <a class="lamp c-wor" style="--d:3" href="#t-worst" data-t="worst"><i></i>Worst Possible <small>14</small></a>
+      <a class="lamp c-sca" style="--d:4" href="#t-scamper" data-t="scamper"><i></i>SCAMPER <small>17</small></a>
+      <a class="lamp c-k" style="--d:5" href="#t-1000x" data-t="1000x"><i></i>1000x Budget <small>23</small></a>
+    </div>
+    <span class="counter js-only" aria-live="polite"><span><b id="cnt">109</b> / 109 ideas lit</span></span>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <div class="constraint">
+    <span class="tag">Starting point</span>
+    <p>Decode rows now show <strong>event name, plain-English purpose and a Conversion tag</strong> (shipped this session). <strong>Hard constraint:</strong> zero network requests, single static file + tag-detector.js, no backend.</p>
+  </div>
+
+  <!-- ================= EMPATHY MAP ================= -->
+  <section class="tech c-emp" id="t-empathy" data-tech="empathy">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/empathy-map?who=paid_media_exec</span><span class="status">200 &middot; 20 ideas</span></div>
+    <h2>Empathy Map</h2>
+    <p class="lede">The paid media exec: a campaign manager, not a tracking engineer.</p>
+    <div class="emap">
+      <div class="quad"><div class="q">Says</div><blockquote>&lsquo;Is my purchase pixel firing?&rsquo;</blockquote></div>
+      <div class="quad"><div class="q">Thinks</div><blockquote>&lsquo;Which of these 40 rows matter?&rsquo;</blockquote></div>
+      <div class="quad"><div class="q">Does</div><blockquote>Paste &rarr; scan for red &rarr; copy to Slack</blockquote></div>
+      <div class="quad"><div class="q">Feels</div><blockquote>Jargon overwhelm + fear of blame</blockquote></div>
+      <div class="ehub">Paid media exec<br><span style="font-weight:400;opacity:.8">campaign manager</span></div>
+    </div>
+    <div class="insight-pin"><b>Insight</b><p>Paid media&rsquo;s real questions are platform-and-outcome shaped (&lsquo;is Meta getting purchases with value?&rsquo;), but Decode is organised request-by-request &mdash; the mismatch is the core usability gap.</p></div>
+    <ol class="rows">
+      <li><span class="idx">#001</span><span class="dot"></span><p>Question-first entry: chips like &lsquo;Is my purchase tracking?&rsquo;, &lsquo;Is consent working?&rsquo;, &lsquo;Will Meta + CAPI double count?&rsquo; that filter and highlight only the relevant rows and answer yes/no</p></li>
+      <li><span class="idx">#002</span><span class="dot"></span><p>Per-platform scorecard above the rows: Meta &ndash; purchase seen, value present, currency present, dedup key present, consent respected &ndash; one line per platform</p></li>
+      <li><span class="idx">#003</span><span class="dot"></span><p>Funnel coverage grid: standard stages (page view &gt; view item &gt; add to cart &gt; checkout &gt; purchase/lead) x platforms, ticks where an event was seen, blanks are gaps</p></li>
+      <li><span class="idx">#004</span><span class="dot"></span><p>&lsquo;What is missing&rsquo; findings: expected events not seen, e.g. a thank-you page URL in the paste but no purchase event to Meta/Google Ads</p></li>
+      <li><span class="idx">#005</span><span class="dot"></span><p>Value + currency chip on the collapsed row (e.g. &lsquo;&pound;249.99 GBP&rsquo;) so conversion hits are checkable at a glance</p></li>
+      <li><span class="idx">#006</span><span class="dot"></span><p>Order/transaction ID chip on the row so it can be matched against Shopify/CRM without opening the request</p></li>
+      <li><span class="idx">#007</span><span class="dot"></span><p>Pixel/account ID on the row, with friendly names mapped in Your setup (&lsquo;9988&hellip; = Client X main pixel&rsquo;)</p></li>
+      <li><span class="idx">#008</span><span class="dot"></span><p>Consent icons on every row: Ads granted/denied, Analytics granted/denied, decoded from gcs/gcd/asc</p></li>
+      <li><span class="idx">#009</span><span class="dot"></span><p>Page chip on the row: which page fired it (dl path, e.g. /checkout/thanks)</p></li>
+      <li><span class="idx">#010</span><span class="dot"></span><p>&lsquo;Send to developer&rsquo; button per finding producing a ticket-ready blurb: what, where, why it matters, how to fix, who owns it</p></li>
+      <li><span class="idx">#011</span><span class="dot"></span><p>Glossary hover tooltips on jargon terms (deduplication, CAPI, consent mode, sGTM, enhanced conversions)</p></li>
+      <li><span class="idx">#012</span><span class="dot"></span><p>One-paragraph plain-English headline at the top: &lsquo;Meta and GA4 are tracking purchases correctly; TikTok is missing a dedup key&rsquo;</p></li>
+      <li><span class="idx">#013</span><span class="dot"></span><p>Relabel severities as business impact: &lsquo;Costs you money&rsquo;, &lsquo;Compliance risk&rsquo;, &lsquo;Reporting noise&rsquo; instead of fail/warn</p></li>
+      <li><span class="idx">#014</span><span class="dot"></span><p>Impact phrasing on findings: &lsquo;Purchases may be counted up to 2x in Meta&rsquo; rather than technical cause</p></li>
+      <li><span class="idx">#015</span><span class="dot"></span><p>Group-by-event view (alternative to group-by-platform): &lsquo;purchase&rsquo; group shows GA4, Meta, TikTok side by side</p></li>
+      <li><span class="idx">#016</span><span class="dot"></span><p>Cross-platform value mismatch finding: GA4 says 249.99, Meta says 24999 for the same purchase</p></li>
+      <li><span class="idx">#017</span><span class="dot"></span><p>Cross-platform currency mismatch finding (GBP on GA4, USD on TikTok)</p></li>
+      <li><span class="idx">#018</span><span class="dot"></span><p>Duplicate-fire detection: same event fired twice to the same platform/pixel within one paste</p></li>
+      <li><span class="idx">#019</span><span class="dot"></span><p>&lsquo;Explain like I&rsquo;m the client&rsquo; toggle that rewrites findings into client-safe tone</p></li>
+      <li><span class="idx">#020</span><span class="dot"></span><p>Confidence label per finding: &lsquo;We are sure&rsquo; / &lsquo;Probably&rsquo; / &lsquo;Cannot tell from this paste&rsquo;</p></li>
+    </ol>
+  </section>
+
+  <!-- ================= PERSONA JOURNEY ================= -->
+  <section class="tech c-per" id="t-persona" data-tech="persona">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/persona-journey?persona=jess&amp;day=monday</span><span class="status">200 &middot; 19 ideas</span></div>
+    <h2>Persona Journey</h2>
+    <p class="lede">Jess, paid social manager. Monday morning. One email, and the next hour of her week.</p>
+    <div class="mail">
+      <div class="clock">09:00</div>
+      <div><div class="from">From: the client &middot; To: Jess, paid social manager</div><div class="subj">&lsquo;ROAS has dropped, is tracking broken?&rsquo;</div></div>
+    </div>
+    <ol class="tl">
+      <li><span class="idx">#021</span><p>Saved baseline snapshot per client (localStorage): decode once when healthy, later decodes highlight what changed</p></li>
+      <li><span class="idx">#022</span><p>Before/after diff of two pastes (e.g. pre and post a site release) &ndash; new, missing and changed events/params</p></li>
+      <li><span class="idx">#023</span><p>Client profile from Your setup pre-fills expected pixel IDs; flag &lsquo;unexpected pixel ID &ndash; not this client&rsquo;s&rsquo; (wrong or agency-leftover pixel)</p></li>
+      <li><span class="idx">#024</span><p>Import a tracking plan (CSV/paste of expected event names per platform); flag events not in plan and plan events not seen</p></li>
+      <li><span class="idx">#025</span><p>Near-miss event-name detection: &lsquo;AddtoCart&rsquo;, &lsquo;purchse&rsquo;, &lsquo;Purchase &rsquo; with trailing space &ndash; suggest the standard name</p></li>
+      <li><span class="idx">#026</span><p>Meta case-sensitivity warning: &lsquo;purchase&rsquo; lower-case is a custom event in Meta, not the standard Purchase</p></li>
+      <li><span class="idx">#027</span><p>Timeline view: requests in fire order with page transitions marked, so the journey reads top to bottom</p></li>
+      <li><span class="idx">#028</span><p>Bookmarklet records page URL + timestamp per captured request so Decode can group by journey step</p></li>
+      <li><span class="idx">#029</span><p>Guided &lsquo;test purchase&rsquo; mode: step 1 homepage, 2 product, 3 add to cart, 4 buy &ndash; a paste slot per step, each auto-checked against expected events</p></li>
+      <li><span class="idx">#030</span><p>Shareable summary link carrying findings only (no raw data) in the URL fragment, which never reaches a server</p></li>
+      <li><span class="idx">#031</span><p>&lsquo;Copy for Slack&rsquo; button: compact emoji-verdict summary formatted for a channel post</p></li>
+      <li><span class="idx">#032</span><p>CSV export of the row-level table (platform, event, value, consent, dedup, verdict) for audit spreadsheets</p></li>
+      <li><span class="idx">#033</span><p>Fix-owner chip on each row: &lsquo;Developer&rsquo;, &lsquo;GTM&rsquo;, &lsquo;Platform settings&rsquo;, &lsquo;Consent tool&rsquo; &ndash; lifted from remedy.who</p></li>
+      <li><span class="idx">#034</span><p>Effort chip: &lsquo;5-minute GTM fix&rsquo; vs &lsquo;needs a dev sprint&rsquo;</p></li>
+      <li><span class="idx">#035</span><p>Sort by business impact by default (conversions with failures first), with paste order as an option</p></li>
+      <li><span class="idx">#036</span><p>Collapse healthy rows into one line &lsquo;5 healthy requests &ndash; show&rsquo;</p></li>
+      <li><span class="idx">#037</span><p>Hide supporting requests (script downloads, cookie banner, audience pings) under a &lsquo;Supporting requests&rsquo; fold</p></li>
+      <li><span class="idx">#038</span><p>&lsquo;Conversions only&rsquo; quick filter</p></li>
+      <li><span class="idx">#039</span><p>Search/filter box over event name, pixel ID, page path</p></li>
+    </ol>
+  </section>
+
+  <!-- ================= TRAIT TRANSFER ================= -->
+  <section class="tech c-tra" id="t-trait" data-tech="trait">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/trait-transfer?from=trusted_tools,unrelated_domains</span><span class="status">200 &middot; 16 ideas</span></div>
+    <h2>Trait Transfer</h2>
+    <p class="lede">Borrowing winning traits from tools paid media already trust &mdash; or from domains that have nothing to do with tracking.</p>
+    <div class="pairs">
+      <div class="pair"><div class="from">Google Ads status</div><div class="arrow">#040</div><p>Google Ads conversion-status vocabulary (&lsquo;Recording conversions&rsquo;, &lsquo;No recent conversions&rsquo;, &lsquo;Unverified&rsquo;) for per-conversion status, language the team already speaks</p></div>
+      <div class="pair"><div class="from">Car dashboard</div><div class="arrow">#041</div><p>Car dashboard warning lights: a row of platform icons lit green/amber/red, click to filter</p></div>
+      <div class="pair"><div class="from">Credit score</div><div class="arrow">#042</div><p>Credit-score style tracking health score 0&ndash;100 per site with a breakdown, trackable over time</p></div>
+      <div class="pair"><div class="from">Pre-flight checklist</div><div class="arrow">#043</div><p>Pre-flight checklist strip per row: Pixel ID | Event | Value | Currency | Dedup | Consent &ndash; compact ticks/crosses</p></div>
+      <div class="pair"><div class="from">Lighthouse</div><div class="arrow">#044</div><p>Lighthouse-style category scores (Consent, Conversions, Deduplication, Data quality) plus an &lsquo;Opportunities&rsquo; list</p></div>
+      <div class="pair"><div class="from">Grammarly</div><div class="arrow">#045</div><p>Grammarly-style inline underline on bad parameter values with a suggestion popover</p></div>
+      <div class="pair"><div class="from">Till receipt</div><div class="arrow">#046</div><p>Receipt card for purchase hits: order ID, value, currency, items, quantity &ndash; laid out like a till receipt</p></div>
+      <div class="pair"><div class="from">Product list</div><div class="arrow">#047</div><p>Decode items/content_ids/ed JSON into a readable product list table</p></div>
+      <div class="pair"><div class="from">Weather forecast</div><div class="arrow">#048</div><p>Weather-forecast phrasing for reporting impact: &lsquo;Expect conversions in Meta to read ~2x high&rsquo;</p></div>
+      <div class="pair"><div class="from">Duolingo</div><div class="arrow">#049</div><p>Duolingo-style &lsquo;Did you know?&rsquo; micro-tips on first encounter of a concept, dismissible, remembered in localStorage</p></div>
+      <div class="pair"><div class="from">Spotify Wrapped</div><div class="arrow">#050</div><p>Spotify Wrapped-style client one-pager with big numbers: &lsquo;7 platforms, 3 conversion events, 1 thing to fix&rsquo;</p></div>
+      <div class="pair"><div class="from">GitHub PR checks</div><div class="arrow">#051</div><p>GitHub PR checks pattern: &lsquo;6 checks passed, 1 failing&rsquo; collapsed per request/platform</p></div>
+      <div class="pair"><div class="from">Route diagram</div><div class="arrow">#052</div><p>Route diagram per request: Browser &rarr; (first-party server?) &rarr; Meta, showing direct vs server-side path</p></div>
+      <div class="pair"><div class="from">Medical triage</div><div class="arrow">#053</div><p>Medical triage &lsquo;Fix first&rsquo; top-3 list across the whole paste</p></div>
+      <div class="pair"><div class="from">Google Ads Recommendations</div><div class="arrow">#054</div><p>Google Ads Recommendations pattern: &lsquo;Tracking opportunities&rsquo; e.g. &lsquo;Turn on enhanced conversions &ndash; improves match rate&rsquo;</p></div>
+      <div class="pair"><div class="from">Departures board</div><div class="arrow">#055</div><p>Departures-board compact table mode: Platform | Event | Value | Consent | Dedup | Status, sortable, for dense scanning</p></div>
+    </div>
+  </section>
+
+  <!-- ================= WORST POSSIBLE IDEA ================= -->
+  <section class="tech c-wor" id="t-worst" data-tech="worst">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/worst-possible-idea?mode=hostile&amp;then=flip</span><span class="status">200 &middot; 14 ideas</span></div>
+    <h2>Worst Possible Idea</h2>
+    <p class="lede">Design the most hostile Decode tab imaginable &mdash; then flip each one.</p>
+    <div class="flips">
+      <div class="flip"><div class="idx">#056</div><div class="worst"><span class="lbl">WORST</span><p>Only raw URLs.</p></div><div class="better"><span class="lbl">FLIP</span><p>Never show raw first &ndash; lead with a sentence, raw only on demand.</p></div></div>
+      <div class="flip"><div class="idx">#057</div><div class="worst"><span class="lbl">WORST</span><p>Everything red.</p></div><div class="better"><span class="lbl">FLIP</span><p>Ask context questions inline once (do you send CAPI? are you EEA?) and calibrate severity to the answers.</p></div></div>
+      <div class="flip"><div class="idx">#058</div><div class="worst"><span class="lbl">WORST</span><p>Assume the user knows dedup.</p></div><div class="better"><span class="lbl">FLIP</span><p>One-line inline definition inside every finding that uses a term.</p></div></div>
+      <div class="flip"><div class="idx">#059</div><div class="worst"><span class="lbl">WORST</span><p>Only show problems.</p></div><div class="better"><span class="lbl">FLIP</span><p>Explicit positive confirmations (&lsquo;Meta purchase: value ok, currency ok&rsquo;) for reassurance in client calls.</p></div></div>
+      <div class="flip"><div class="idx">#060</div><div class="worst"><span class="lbl">WORST</span><p>Find the right request among 200.</p></div><div class="better"><span class="lbl">FLIP</span><p>Auto-pin &lsquo;the interesting ones&rsquo; (conversions + failures) at the top.</p></div></div>
+      <div class="flip"><div class="idx">#061</div><div class="worst"><span class="lbl">WORST</span><p>Different words per platform for the same thing.</p></div><div class="better"><span class="lbl">FLIP</span><p>Normalised columns (Event, Value, Order ID, Dedup ID, Consent) regardless of platform param names.</p></div></div>
+      <div class="flip"><div class="idx">#062</div><div class="worst"><span class="lbl">WORST</span><p>Require DevTools skills.</p></div><div class="better"><span class="lbl">FLIP</span><p>Bookmarklet-first onboarding inside Decode with an inline animated walkthrough + prominent &lsquo;try an example&rsquo;.</p></div></div>
+      <div class="flip"><div class="idx">#063</div><div class="worst"><span class="lbl">WORST</span><p>No way to say &lsquo;this is expected&rsquo;.</p></div><div class="better"><span class="lbl">FLIP</span><p>Persistent per-client ignore rules (&lsquo;this client has no CAPI by design&rsquo;) in localStorage.</p></div></div>
+      <div class="flip"><div class="idx">#064</div><div class="worst"><span class="lbl">WORST</span><p>Everything gone when the tab closes.</p></div><div class="better"><span class="lbl">FLIP</span><p>Local history of past decodes named by client and date.</p></div></div>
+      <div class="flip"><div class="idx">#065</div><div class="worst"><span class="lbl">WORST</span><p>The tool lectures.</p></div><div class="better"><span class="lbl">FLIP</span><p>Verdict in 6 words, detail on click.</p></div></div>
+      <div class="flip"><div class="idx">#066</div><div class="worst"><span class="lbl">WORST</span><p>Healthy verdict when no purchase fired at all.</p></div><div class="better"><span class="lbl">FLIP</span><p>Absence-of-evidence banner &ndash; &lsquo;No purchase in this paste &ndash; healthy only covers what was pasted&rsquo;.</p></div></div>
+      <div class="flip"><div class="idx">#067</div><div class="worst"><span class="lbl">WORST</span><p>Numbers without context.</p></div><div class="better"><span class="lbl">FLIP</span><p>Format values with currency symbol; flag value=0, value as text (&lsquo;&pound;249&rsquo;), or value in pence.</p></div></div>
+      <div class="flip"><div class="idx">#068</div><div class="worst"><span class="lbl">WORST</span><p>Unreadable on a screen-share.</p></div><div class="better"><span class="lbl">FLIP</span><p>Present mode &ndash; large type, technical detail hidden, for client calls.</p></div></div>
+      <div class="flip"><div class="idx">#069</div><div class="worst"><span class="lbl">WORST</span><p>Colour-only status.</p></div><div class="better"><span class="lbl">FLIP</span><p>Icon + word on every status for accessibility and greyscale printouts.</p></div></div>
+    </div>
+  </section>
+
+  <!-- ================= SCAMPER ================= -->
+  <section class="tech c-sca" id="t-scamper" data-tech="scamper">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/scamper?target=current_decode_tab</span><span class="status">200 &middot; 17 ideas</span></div>
+    <h2>SCAMPER</h2>
+    <p class="lede">Seven lanes run over the current Decode tab.</p>
+    <div class="lanes">
+      <div class="lane"><div class="L"><b>S</b><span>Substitute</span></div><ol>
+        <li><span class="idx">#070</span><p>HAR file import (drag-drop, read locally via FileReader) &ndash; gets every request with bodies, timestamps and page context in one go</p></li>
+        <li><span class="idx">#071</span><p>Decode on paste automatically, no Decode button</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>C</b><span>Combine</span></div><ol>
+        <li><span class="idx">#072</span><p>&lsquo;Save to client record&rsquo; &ndash; push detected pixels, consent state, server-side presence into the Your setup tab</p></li>
+        <li><span class="idx">#073</span><p>Each Check-tab task deep-links into Decode with a matching filter/question preset</p></li>
+        <li><span class="idx">#074</span><p>Bookmarklet panel shows the same plain-English row summary (event + purpose) before you even paste</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>A</b><span>Adapt</span></div><ol>
+        <li><span class="idx">#075</span><p>Mirror platform UIs&rsquo; own terms &ndash; Meta &lsquo;Standard event&rsquo; vs &lsquo;Custom event&rsquo; label on the row</p></li>
+        <li><span class="idx">#076</span><p>&lsquo;Verify in the platform&rsquo; guidance per row &ndash; &lsquo;Meta Events Manager &gt; Test events, look for Purchase with event ID X&rsquo; with copy button</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>M</b><span>Magnify</span></div><ol>
+        <li><span class="idx">#077</span><p>Magnify conversions into big receipt cards; minify page views into one &lsquo;12 page views&rsquo; line</p></li>
+        <li><span class="idx">#078</span><p>Count roll-up per platform: &lsquo;Meta: 3 PageView, 1 AddToCart, 1 Purchase&rsquo;</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>P</b><span>Put to use</span></div><ol>
+        <li><span class="idx">#079</span><p>&lsquo;Launch readiness&rsquo; sign-off output before a campaign goes live</p></li>
+        <li><span class="idx">#080</span><p>Training mode for new paid media hires &ndash; example pastes with &lsquo;spot the problem&rsquo; quizzes</p></li>
+        <li><span class="idx">#081</span><p>Free &lsquo;tracking health check&rsquo; report template for new-business pitches</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>E</b><span>Eliminate</span></div><ol>
+        <li><span class="idx">#082</span><p>Eliminate the server-side checkbox: infer from first-party collection endpoints, or ask only when a relevant finding appears</p></li>
+        <li><span class="idx">#083</span><p>Eliminate the &lsquo;your domain&rsquo; field: infer site host from dl/url params</p></li>
+      </ol></div>
+      <div class="lane"><div class="L"><b>R</b><span>Reverse</span></div><ol>
+        <li><span class="idx">#084</span><p>Start from intent (&lsquo;I&rsquo;m checking Meta purchase&rsquo;), then paste; tool answers yes/no to that question</p></li>
+        <li><span class="idx">#085</span><p>&lsquo;Show me a correct one&rsquo; &ndash; golden example of a healthy Meta Purchase diffed against the pasted one</p></li>
+        <li><span class="idx">#086</span><p>The tool asks the user when ambiguous (&lsquo;Is order0 your purchase activity?&rsquo;) and remembers the answer per client</p></li>
+      </ol></div>
+    </div>
+  </section>
+
+  <!-- ================= 1000x BUDGET ================= -->
+  <section class="tech c-k" id="t-1000x" data-tech="1000x">
+    <div class="req-head"><span class="verb">GET</span><span class="path">/technique/1000x-budget?then=steal&amp;network=0</span><span class="status">200 &middot; 23 ideas</span></div>
+    <h2>1000x Budget</h2>
+    <p class="lede">Design the absurd version, then steal what fits a zero-network static file.</p>
+    <div class="absurd">
+      <div class="ab"><span class="idx">#087</span><div class="side big"><small>Absurd</small><p>Nightly cloud crawl of every client site with alerts.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>scripts/scan-url.js run locally, output imported straight into Decode.</p></div></div>
+      <div class="ab"><span class="idx">#088</span><div class="side big"><small>Absurd</small><p>AI chat about the findings.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Precomputed FAQ per finding (&lsquo;Will this affect my ROAS?&rsquo;, &lsquo;Does the client need to know?&rsquo;).</p></div></div>
+      <div class="ab"><span class="idx">#089</span><div class="side big"><small>Absurd</small><p>Live API pull from Events Manager/Google Ads to compare sent vs received.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Guided manual cross-check with copyable IDs.</p></div></div>
+      <div class="ab"><span class="idx">#090</span><div class="side big"><small>Absurd</small><p>Benchmark against every In Digital client.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Vertical templates (ecommerce, lead gen, B2B) of expected healthy setups.</p></div></div>
+      <div class="ab"><span class="idx">#091</span><div class="side big"><small>Absurd</small><p>Auto-generated GTM fix PRs.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>GTM-specific fix hints in remedies (variable, trigger, tag-setting names).</p></div></div>
+      <div class="ab"><span class="idx">#092</span><div class="side big"><small>Absurd</small><p>Per-client tracking dashboard over time.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>localStorage history with a health-score sparkline per client.</p></div></div>
+      <div class="ab"><span class="idx">#093</span><div class="side big"><small>Absurd</small><p>Natural-language querying.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Question chips covering the top 10 questions paid media actually ask.</p></div></div>
+      <div class="ab"><span class="idx">#094</span><div class="side big"><small>Absurd</small><p>Real-time decoding while browsing.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Bookmarklet &lsquo;Open in decoder&rsquo; button passing data via URL fragment (never sent to a server) &ndash; removes copy/paste entirely.</p></div></div>
+      <div class="ab"><span class="idx">#095</span><div class="side big"><small>Absurd</small><p>Specialist on call.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>&lsquo;Escalate to specialist&rsquo; button copying a full technical bundle vs the marketing summary.</p></div></div>
+      <div class="ab"><span class="idx">#096</span><div class="side big"><small>Absurd</small><p>Celebration when everything&rsquo;s perfect.</p></div><div class="x"><span>&rarr;</span></div><div class="side steal"><small>Steal</small><p>Explicit &lsquo;Safe to launch&rsquo; state when all conversion checks pass.</p></div></div>
+    </div>
+    <h3 class="subhead">More signal picked up on the same run</h3>
+    <ol class="rows">
+      <li><span class="idx">#097</span><span class="dot"></span><p>Spend-at-risk calculator: enter monthly spend per platform &rarr; &lsquo;&pound;X/month is optimising on a broken signal&rsquo;</p></li>
+      <li><span class="idx">#098</span><span class="dot"></span><p>Catalogue readiness: missing item IDs/content_ids blocks dynamic product ads / Advantage+ catalogue &ndash; flag on the row</p></li>
+      <li><span class="idx">#099</span><span class="dot"></span><p>Match-quality proxy: count of advanced-matching keys sent (&lsquo;2 of 8 Meta matching keys&rsquo;) as an EMQ indicator</p></li>
+      <li><span class="idx">#100</span><span class="dot"></span><p>Enhanced conversions status chip on Google Ads rows (working / empty / data problem)</p></li>
+      <li><span class="idx">#101</span><span class="dot"></span><p>Click-ID presence chip on landing hits (gclid, fbclid/fbc, ttclid) &ndash; &lsquo;attribution signal present&rsquo;</p></li>
+      <li><span class="idx">#102</span><span class="dot"></span><p>First-party cookie ID chip (fbp, _ttp, uuid_c1) &ndash; &lsquo;browser ID present, matching will work&rsquo;</p></li>
+      <li><span class="idx">#103</span><span class="dot"></span><p>Consent Mode v2 readiness card for EEA clients: ad_user_data and ad_personalization actually set</p></li>
+      <li><span class="idx">#104</span><span class="dot"></span><p>&lsquo;Which tag fired this&rsquo; chip: gtag vs GTM vs server container, from gtm/tm params</p></li>
+      <li><span class="idx">#105</span><span class="dot"></span><p>Flag platforms the client doesn&rsquo;t advertise on (&lsquo;Pinterest tag firing &ndash; do you run Pinterest?&rsquo;) as data-leakage/cleanup candidates</p></li>
+      <li><span class="idx">#106</span><span class="dot"></span><p>Expand vendor recognition to non-ad tools (Hotjar, Clarity, HubSpot, Klaviyo) so fewer rows read &lsquo;Unidentified&rsquo;</p></li>
+      <li><span class="idx">#107</span><span class="dot"></span><p>Keyboard navigation: j/k between rows, enter to expand, f to filter failures</p></li>
+      <li><span class="idx">#108</span><span class="dot"></span><p>Per-row &lsquo;Copy this request&rsquo;s summary&rsquo; button</p></li>
+      <li><span class="idx">#109</span><span class="dot"></span><p>Sticky summary/filter bar while scrolling long pastes</p></li>
+    </ol>
+  </section>
+</main>
+
+<!-- ================= SYNTHESIS ================= -->
+<section class="verdict-zone" id="synthesis" aria-labelledby="syn-h">
+  <div class="wrap">
+    <div class="vz-top">
+      <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div>
+        <div class="kick">Verdict &middot; 109 ideas &rarr; 5 insights &rarr; 1 route</div>
+        <h2 id="syn-h">What the signal <em>actually</em> says</h2>
+      </div>
+    </div>
+
+    <div class="ins">
+      <article class="in">
+        <div class="n">01</div>
+        <h3>One idea in three hats: an &lsquo;Answers&rsquo; layer</h3>
+        <p>Question chips + funnel coverage grid + per-platform scorecard are the same thing, an &lsquo;Answers&rsquo; layer (platform x outcome) sitting above the request list. This is the headline direction: paid media think in platforms and outcomes, not requests.</p>
+        <div class="hats"><span>Hat 1 &middot; Question chips</span><span>Hat 2 &middot; Funnel coverage grid</span><span>Hat 3 &middot; Per-platform scorecard</span></div>
+        <span class="sig g">&#9679; Headline direction</span>
+      </article>
+      <article class="in">
+        <div class="n">02</div>
+        <h3>The keystone: a normalised field layer</h3>
+        <p>A normalised field layer in tag-detector.js (Event, Value, Currency, Order ID, Dedup ID, Consent, Page, Pixel ID) mapped from each platform&rsquo;s param names, like describeEvent(). Build once and it powers row chips, checklist strip, compact table, receipt cards, cross-platform mismatch checks, CSV and Slack export.</p>
+        <span class="sig b">&#9670; Keystone</span>
+      </article>
+      <article class="in">
+        <div class="n">03</div>
+        <h3>The biggest silent risk is absence of evidence</h3>
+        <p>A green verdict when the purchase never fired. Expected-events (vertical templates, tracking plan import, Your setup client profile) is one mechanism that unlocks &lsquo;what is missing&rsquo;, unexpected-pixel, and event-name typo checks together.</p>
+        <span class="sig r">&#9650; Silent risk</span>
+      </article>
+      <article class="in">
+        <div class="n">04</div>
+        <h3>Friction is at the input, not the output</h3>
+        <p>HAR import and a bookmarklet &lsquo;Open in decoder&rsquo; via URL fragment remove DevTools and copy-paste entirely &ndash; likely the single biggest win for non-specialists, and both keep the zero-network guarantee (fragment never sent; flag the browser-history exposure).</p>
+        <span class="sig a">&#9632; Biggest win</span>
+      </article>
+      <article class="in">
+        <div class="n">05</div>
+        <h3>Findings become forwardable actions</h3>
+        <p>When phrased as business impact + owner + effort (relabel severities, fix-owner chip, spend-at-risk, Send to developer). Per-client memory in localStorage (baseline diff, ignore rules, pixel names, history) turns a one-off decoder into a recurring check.</p>
+        <span class="sig g">&#9679; One-off &rarr; recurring</span>
+      </article>
+      <article class="in" style="display:flex;flex-direction:column;justify-content:center;background:transparent;border-style:dashed">
+        <div class="kick">Constraint held throughout</div>
+        <p style="margin-top:8px">Zero network requests &middot; single static file + tag-detector.js &middot; no backend.</p>
+      </article>
+    </div>
+
+    <div class="route">
+      <div class="sub">Decision &middot; suggested sequencing</div>
+      <h3>The signal path, in four stops</h3>
+      <ol class="stops">
+        <li class="stop s1"><div class="st">1</div><div class="card"><h4>Quick wins on the row</h4><ul>
+          <li>Value / currency</li><li>Consent icons</li><li>Page</li><li>Owner chip</li><li>Collapse healthy + supporting requests</li><li>Conversions filter</li><li>Absence banner</li><li>Meta case + near-miss names</li></ul></div></li>
+        <li class="stop s2"><div class="st">2</div><div class="card"><h4>Normalised field layer + Answers</h4><ul>
+          <li>Normalised field layer</li><li>Answers scorecard / funnel grid</li></ul></div></li>
+        <li class="stop s3"><div class="st">3</div><div class="card"><h4>Fix the input</h4><ul>
+          <li>HAR import</li><li>Bookmarklet hand-off</li></ul></div></li>
+        <li class="stop s4"><div class="st">4</div><div class="card"><h4>Memory &amp; expectations</h4><ul>
+          <li>Per-client memory</li><li>Expected-events</li></ul></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">brainstorm-decode-tab-paid-media-2026-11-20 &middot; 0 network requests were harmed in the making of this page</div>
+</footer>
+
+<script>
+(function(){
+  document.documentElement.classList.add('js');
+  var lamps = document.getElementById('lamps');
+  var links = lamps.querySelectorAll('.lamp');
+  var secs = document.querySelectorAll('section.tech');
+  var cnt = document.getElementById('cnt');
+  var active = null;
+  function count(sec){ return sec.querySelectorAll('.idx, .pair .arrow').length; }
+  var total = 0; secs.forEach(function(s){ total += count(s); });
+  function apply(){
+    var shown = 0;
+    secs.forEach(function(s){
+      var on = !active || s.getAttribute('data-tech') === active;
+      s.classList.toggle('hidden', !on);
+      if (on) shown += count(s);
+    });
+    links.forEach(function(l){ l.setAttribute('aria-pressed', String(!active || l.getAttribute('data-t') === active)); });
+    lamps.classList.toggle('filtering', !!active);
+    cnt.textContent = shown;
+  }
+  links.forEach(function(l){
+    l.setAttribute('role','button');
+    l.addEventListener('click', function(e){
+      e.preventDefault();
+      var t = l.getAttribute('data-t');
+      active = (active === t) ? null : t;
+      apply();
+      var target = active ? document.getElementById('t-' + active) : document.querySelector('main');
+      if (target) target.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    });
+  });
+  apply();
+})();
+</script>
+</body>
+</html>

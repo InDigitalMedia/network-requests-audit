@@ -64,6 +64,15 @@
                     // (key -> [description, confidence]), same object the
                     // page uses to annotate the parameter table.
          params:   [ [key, value], ... ],   // every parsed query/body param, in order
+         event:    { name, label, purpose, conversion }
+                    // name: the raw event name read off the request (en, ev,
+                    //   event, event_type, evt/ea, cat, ...) or null if it has
+                    //   none (e.g. a LinkedIn page hit, a script download).
+                    // label: what to display - the name, or a synthetic one
+                    //   like 'Page view' / 'Tag code download'.
+                    // purpose: one plain-text sentence (no markup) on what the
+                    //   request is for. Descriptive only - never affects findings.
+                    // conversion: 'yes' | 'no' | 'unknown'.
          findings: [ { severity, category, title, detail, remedy } ],
                     // severity: 'pass' | 'warn' | 'fail' | 'info'
                     // category: a short machine-readable tag (see CATEGORY.*
@@ -85,6 +94,21 @@
      inline HTML markup (e.g. <span class="mono">, <strong>) - that is
      inherited unchanged from the original UI-embedded code, not introduced
      here. A plain-text consumer needs its own stripper.
+
+   Also on the result: `fields` - { value, currency, orderId, dedupId,
+   dedupApplies, pixelId, page, consent:{ads,analytics,source}|null }, the same
+   facts read off every platform's own parameter names (see FIELDMAP).
+
+   analyzePaste(results, {expectedEvents?, expectedIds?}) - whole-paste view over
+   an array of analyzeRequest() results: per-platform scorecard, funnel coverage,
+   cross-platform notes (value/currency mismatch, duplicate sends), expected
+   events seen/missing, unexpected pixel IDs. See the comment above it.
+
+   requestsFromHar(text) - DevTools "Save all as HAR" file -> {requests:[{url,
+   body, time, pageTitle}], siteHost, total}. Throws if the text isn't HAR.
+
+   checkJourney(steps) - guided test journey: did each platform receive each
+   step's event (page view, add to cart, purchase ...)? See its comment.
 
    Also exported, for reuse by callers building their own request extraction
    or rendering: extractRequests, parseParams, decodeGcs, decodeGcd,
@@ -481,6 +505,19 @@
               dev:'Needs a developer', legal:'Urgent - involve whoever owns privacy' };
 
   var REMEDIES = [
+    [/^Event name does not match the standard spelling/, { who: WHO.gtm,
+      steps: ['In your tag manager, open the tag that sends this event and find the event name field.',
+        'Change it to the exact standard spelling shown in the finding - same capitals, same underscores.',
+        'If campaigns or audiences were already built on the misspelt name, update them too, then publish and re-run this check.',
+        'If the name is deliberately custom, mark this finding as Ignore - but note the platform will not treat it as the standard event.'] }],
+    [/^Value is not a plain number/, { who: WHO.dev,
+      steps: ['Find where the value comes from - usually a data layer variable pushed by the website.',
+        'Make it a plain number: no currency symbol, no thousands separator, a full stop as the decimal point (249.99).',
+        'Send the currency separately in its own field.'] }],
+    [/^Purchase sent (with a value of 0|without a value)/, { who: WHO.gtm,
+      steps: ['Check the purchase tag in your tag manager has its value field mapped to the order total.',
+        'If it is mapped, check the website pushes the order total into the data layer on the confirmation page before the tag fires.',
+        'Place a test order and re-run this check to confirm a value now arrives.'] }],
     [/^Went direct to .+, bypassing your container/, { who: WHO.gtm,
       steps: ['This is not a fault - the tag simply has not been migrated to your server container. Decide whether it should be.',
         'Weigh it up: moving it means the request survives ad blockers and browser restrictions, so you recover conversions you are currently losing. Leaving it costs nothing to maintain.',
@@ -684,10 +721,15 @@
     PARTIAL_PASTE:'partial-paste', ROUTING:'routing', GA4:'ga4', EVENT_NAME:'event-name',
     CUSTOM_DIMENSIONS:'custom-dimensions', CONSENT:'consent', ENHANCED_CONVERSIONS:'enhanced-conversions',
     SECURITY:'security', DEDUPLICATION:'deduplication', META:'meta', FLOODLIGHT:'floodlight',
-    PII:'pii', UNDOCUMENTED_PARAMS:'undocumented-params'
+    PII:'pii', UNDOCUMENTED_PARAMS:'undocumented-params', VALUE:'value'
   };
 
   /* ---------- findings engine ---------- */
+  /* Conversion-vs-pageview classification of an event name. Gates the dedup findings in
+     findings() and the `event.conversion` flag from describeEvent(). */
+  var NONCONV = /^(page_?view|page_?visit|view_?content|view_?item|scroll|session_start|first_visit|user_engagement|page_?load|impression|view|click|custom)$/i;
+  var CONV = /(purchase|payment|order|checkout|lead|sign_?up|regist|subscribe|trial|donate|contact|applicat|schedul|add_?to_?cart|add_?payment|add_?to_?wishlist|form|submit|book|enquir|quote|call|complete)/i;
+
   function findings(plat, host, path, P, myHost, bare, siteHost, hasServerSide, beforeConsent){
     var F = [], get = function(k){ for (var i=0;i<P.length;i++) if (P[i][0]===k) return P[i][1]; return null; };
     var has = function(k){ return get(k) !== null; };
@@ -807,8 +849,7 @@
        inflates a number nobody optimises against; a purchase sent twice corrupts revenue and
        the platform's bidding signal. Flagging page views produced a red FAIL on every healthy
        page load, which is noise for a non-specialist reader. */
-    var NONCONV = /^(page_?view|page_?visit|view_?content|view_?item|scroll|session_start|first_visit|user_engagement|page_?load|impression|view|click|custom)$/i;
-    var CONV = /(purchase|payment|order|checkout|lead|sign_?up|regist|subscribe|trial|donate|contact|applicat|schedul|add_?to_?cart|add_?payment|add_?to_?wishlist|form|submit|book|enquir|quote|call|complete)/i;
+    /* NONCONV / CONV live at module scope (above findings()) - describeEvent() shares them. */
     var evName = null;
     if (name && EVFIELD[name] && has(EVFIELD[name][0])) evName = String(get(EVFIELD[name][0]));
     else if (has('en')) evName = String(get('en'));
@@ -929,6 +970,436 @@
       detail: 'Nothing to raise on this request. Remember this confirms what your website <em>sent</em> - not that the platform received it.'};
   }
 
+  /* ---------- what is this request? (event name + plain-English purpose) ----------
+     Powers the one-line description on each collapsed request in the Decode tab, so a
+     reader can see "Meta - Purchase - records a completed order" without opening it.
+     Pure description: it never adds, removes or changes a finding or verdict. */
+
+  /* Purposes keyed by a normalised event name (lower-case, letters/digits only), so
+     page_view / PageView / PAGE_VIEW / pageLoad all land on the same entry. Covers the
+     standard events of every platform in PLATFORMS - GA4 recommended events, Meta /
+     TikTok / Snap / Reddit / Pinterest standard events, and UET event types. */
+  var PV = 'Records a page being viewed. Feeds traffic reporting and builds remarketing audiences.';
+  var BUY = 'Records a completed order and its value. The main signal for revenue reporting and for the platform’s bidding.';
+  var LEAD = 'Records an enquiry or lead. Usually a key conversion for lead-generation sites.';
+  var EVENT_PURPOSE = {
+    pageview:PV, pagevisit:PV, pageload:PV, page:PV, screenview:PV,
+    sessionstart:'Fired automatically on the first event of a new visit. Starts a session in GA4.',
+    firstvisit:'Fired automatically the first time this browser is seen. Counts new users.',
+    userengagement:'Fired automatically to report time spent on the page. Feeds engagement metrics.',
+    scroll:'Records the visitor scrolling most of the way down a page (GA4 enhanced measurement).',
+    click:'Records a click, typically an outbound link (GA4 enhanced measurement).',
+    filedownload:'Records a file being downloaded.',
+    formstart:'Records a visitor starting to fill in a form.',
+    formsubmit:'Records a form being submitted.',
+    videostart:'Records a video starting to play.', videoprogress:'Records how far through a video the visitor got.',
+    videocomplete:'Records a video being watched to the end.', watchvideo:'Records a video being watched.',
+    viewsearchresults:'Records an on-site search and the term used.', search:'Records an on-site search.',
+    login:'Records a visitor logging in.',
+    viewitem:'Records a product or content page being viewed. Used for product-level reporting and dynamic retargeting.',
+    viewcontent:'Records a product or content page being viewed. Used for product-level reporting and dynamic retargeting.',
+    viewitemlist:'Records a list of products being shown (e.g. a category page).',
+    viewcategory:'Records a category page being viewed.',
+    selectitem:'Records a product being picked from a list.',
+    viewpromotion:'Records an internal promotion being shown.', selectpromotion:'Records an internal promotion being clicked.',
+    addtocart:'Records a product being added to the basket. An early buying signal used for retargeting and optimisation.',
+    addcart:'Records a product being added to the basket. An early buying signal used for retargeting and optimisation.',
+    removefromcart:'Records a product being removed from the basket.',
+    viewcart:'Records the basket being viewed.',
+    addtowishlist:'Records a product being saved to a wishlist.',
+    begincheckout:'Records the start of checkout. Used to measure checkout drop-off.',
+    initiatecheckout:'Records the start of checkout. Used to measure checkout drop-off.',
+    startcheckout:'Records the start of checkout. Used to measure checkout drop-off.',
+    addshippinginfo:'Records shipping details being entered during checkout.',
+    addpaymentinfo:'Records payment details being entered during checkout.',
+    addbilling:'Records payment details being entered during checkout.',
+    purchase:BUY, completepayment:BUY, placeanorder:BUY, checkout:BUY,
+    refund:'Records an order being refunded, so it can be taken out of revenue.',
+    generatelead:LEAD, lead:LEAD, submitform:LEAD, contact:LEAD,
+    signup:'Records an account sign-up or registration.', completeregistration:'Records an account sign-up or registration.',
+    subscribe:'Records a subscription starting.', starttrial:'Records a free trial starting.',
+    customizeproduct:'Records a product being customised.', findlocation:'Records a store-locator search.',
+    schedule:'Records an appointment being booked.', donate:'Records a donation.',
+    share:'Records content being shared.', applicationsubmitted:'Records an application being submitted.',
+    consent:'Not a visitor action: tells Microsoft Ads what the visitor chose on the cookie banner.',
+    gtmconsent:'Not a visitor action: passes the Google consent-mode state to Microsoft Ads.',
+    pid:'Not a visitor action: sends hashed customer details to Microsoft Ads for enhanced conversions.'
+  };
+
+  /* Read the first non-empty value of any of the given keys. */
+  function firstOf(P, keys){
+    for (var k=0;k<keys.length;k++) for (var i=0;i<P.length;i++) if (P[i][0] === keys[k] && P[i][1] !== '') return P[i][1];
+    return null;
+  }
+
+  function describeEvent(plat, path, P){
+    var name = plat ? plat.n : null;
+    var ev = null, label = null, purpose = null;
+    var has = function(k){ return P.some(function(p){ return p[0] === k; }); };
+
+    if (!plat) {
+      return { name:null, label:'Unknown request', purpose:'Not a recognised tracking vendor, so it is unclear what this is for. Open it to see every parameter it sent.', conversion:'unknown' };
+    }
+    switch (name) {
+      case 'Google tag library':
+        return { name:null, label:'Tag code download', purpose:'Downloads the Google tag / Tag Manager container code. Not an event itself - it is what lets the other Google requests fire.', conversion:'no' };
+      case 'Cookie banner':
+        return { name:null, label:'Banner script', purpose:'Loads the cookie consent banner. Not a tracking event - it decides whether the other tags may run.', conversion:'no' };
+      case 'Google audience ping':
+        return { name:null, label:'Audience ping', purpose:'Adds this visitor to a Google Ads remarketing audience so they can be shown ads later.', conversion:'no' };
+      case 'Google Ads remarketing':
+        return { name:null, label:'Remarketing ping', purpose:'Tells Google Ads this visitor was here, for remarketing audiences and view-through conversions.', conversion:'no' };
+      case 'Google Ads conversion pixel':
+        ev = firstOf(P, ['en']);
+        if (!ev || /conversion/i.test(ev)) return { name:ev, label:'Conversion', purpose:'Counts a Google Ads conversion' + (firstOf(P,['label']) ? ' (label ' + firstOf(P,['label']) + ')' : '') + ', so ad spend can be tied to results.', conversion:'yes' };
+        break;
+      case 'Floodlight':
+        ev = firstOf(P, ['cat']);
+        return { name:ev, label:ev || 'Floodlight activity', purpose:'Counts a conversion activity in Campaign Manager 360 / DV360' + (firstOf(P,['type']) ? ' (activity group ' + firstOf(P,['type']) + ')' : '') + '. The name is a code set up in CM360, so check it against the Floodlight activity list.', conversion:'yes' };
+      case 'LinkedIn':
+        if (has('error')) return { name:null, label:'Error beacon', purpose:'The Insight Tag reporting one of its own errors - not a visitor event. Worth investigating.', conversion:'no' };
+        if (has('conversionId')) return { name:null, label:'Conversion', purpose:'Counts a LinkedIn conversion (rule ' + firstOf(P,['conversionId']) + '), so campaign results can be measured.', conversion:'yes' };
+        return { name:null, label:'Page view', purpose:PV, conversion:'no' };
+      case 'Meta': ev = firstOf(P, ['ev']); break;
+      case 'TikTok': ev = firstOf(P, ['event']); break;
+      case 'Snapchat': ev = firstOf(P, ['event_type']); break;
+      case 'Reddit': ev = firstOf(P, ['event', 'event_type', 'event.tracking_type']); break;
+      case 'Pinterest': ev = firstOf(P, ['event']); break;
+      case 'Microsoft Advertising (UET)':
+        ev = firstOf(P, ['evt']);
+        /* custom UET events carry their real name in ea (event action) */
+        if (ev === 'custom' && firstOf(P, ['ea'])) ev = firstOf(P, ['ea']);
+        break;
+      case 'X (Twitter)':
+        var raw = firstOf(P, ['events']);
+        if (raw) { try { var j = JSON.parse(raw); ev = Array.isArray(j) && Array.isArray(j[0]) ? String(j[0][0]) : null; } catch(e){} }
+        if (!ev) return { name:null, label:'Conversion / page view', purpose:'Reports a visit or conversion to X Ads for campaign measurement and audiences.', conversion:'unknown' };
+        break;
+      default:
+        /* GA4 (all routes), GA4 Measurement Protocol, UA, Google Ads conversion measurement */
+        ev = firstOf(P, ['en', 'events.0.name', 't']);
+    }
+
+    var key = ev ? String(ev).toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+    var conversion = !ev ? 'unknown' : NONCONV.test(ev) ? 'no' : CONV.test(ev) ? 'yes' : 'unknown';
+    if (key === 'consent' || key === 'gtmconsent' || key === 'pid') conversion = 'no';
+    if (ev) {
+      purpose = EVENT_PURPOSE[key];
+      if (!purpose && key === 'event') purpose = 'A legacy Universal Analytics event hit (category/action/label).';
+      if (!purpose) purpose = conversion === 'yes'
+        ? 'A custom event that looks like a conversion. Its meaning is defined in this site’s tag setup - check it against the measurement plan.'
+        : 'A custom event specific to this site. Its meaning is defined in the tag setup - check it against the measurement plan.';
+      label = String(ev);
+    } else {
+      label = 'No event name';
+      purpose = 'This ' + plat.k + ' carries no event name, so it is not clear which action it records. Open it to see every parameter.';
+    }
+    return { name: ev ? String(ev) : null, label: label, purpose: purpose, conversion: conversion };
+  }
+
+  /* ---------- normalised fields ----------
+     Every platform names the same facts differently (value is epn.value / cd[value] /
+     cost / gv / price / tw_sale_amount ...). extractFields() maps them onto one shape so
+     the UI can show "Value 249.99 GBP · Order ORD-1 · Ads consent granted" on any row,
+     and analyzePaste() can compare platforms against each other. Descriptive only. */
+  var FIELDMAP = {
+    ga:        { value:['epn.value','ep.value','events.0.params.value'], currency:['cu','ep.currency','events.0.params.currency'],
+                 orderId:['ep.transaction_id','transaction_id','events.0.params.transaction_id'], pixelId:['tid','measurement_id'], page:['dl'] },
+    'Google Ads conversion measurement': { value:['value'], currency:['currency_code','currency'], orderId:['transaction_id','oid'], pixelId:['label','tid'], page:['url','dl'] },
+    'Google Ads conversion pixel':       { value:['value'], currency:['currency_code','currency'], orderId:['transaction_id','oid'], pixelId:['label'], page:['url'] },
+    'Google Ads remarketing':            { pixelId:['label'], page:['url'] },
+    'Floodlight':  { value:['cost'], orderId:['ord'], pixelId:['src'] },
+    'Meta':        { value:['cd[value]'], currency:['cd[currency]'], orderId:['cd[order_id]'], dedupId:['eid'], pixelId:['id'], page:['dl'] },
+    'TikTok':      { value:['properties.value','value'], currency:['properties.currency','currency'], orderId:['properties.order_id'], dedupId:['event_id','eventID'], pixelId:['pixelCode','context.pixel.code'], page:['context.page.url'] },
+    'LinkedIn':    { dedupId:['eventId'], pixelId:['pid'], page:['url'] },
+    'Microsoft Advertising (UET)': { value:['gv'], currency:['gc'], orderId:['transaction_id'], dedupId:['eventId'], pixelId:['ti'], page:['p'] },
+    'Reddit':      { value:['value','event.metadata.value'], currency:['currency','event.metadata.currency'], dedupId:['conversion_id','event.metadata.conversion_id'], pixelId:['id'], page:['url'] },
+    'Pinterest':   { dedupId:['eventID','event_id','eid'], pixelId:['tid'], page:['ad.loc'] },
+    'Snapchat':    { value:['price'], currency:['currency'], orderId:['transaction_id'], dedupId:['client_dedup_id','transaction_id'], pixelId:['pixel_id'], page:['page_url'] },
+    'X (Twitter)': { value:['tw_sale_amount'], dedupId:['conversion_id'], pixelId:['txn_id'], page:['tw_document_href'] }
+  };
+  /* Which platforms deduplicate browser vs server events at all - drives the "Dedup ID"
+     chip, so a platform without the concept doesn't show a misleading "missing". */
+  var HAS_DEDUP = { 'Meta':1, 'TikTok':1, 'LinkedIn':1, 'Microsoft Advertising (UET)':1, 'Reddit':1, 'Pinterest':1, 'Snapchat':1, 'X (Twitter)':1 };
+  /* gcd final-state letters: granted after any update vs denied after any update. */
+  var GCD_FINAL = { t:'granted', r:'granted', n:'granted', v:'granted', p:'denied', q:'denied', m:'denied', u:'denied' };
+
+  function consentFrom(P){
+    var gcs = firstOf(P, ['gcs']), gcd = firstOf(P, ['gcd']), asc = firstOf(P, ['asc']);
+    if (gcs && /^G1[01][01]$/.test(gcs)) return { ads: gcs.charAt(2) === '1' ? 'granted' : 'denied', analytics: gcs.charAt(3) === '1' ? 'granted' : 'denied', source:'gcs' };
+    if (gcd) {
+      var letters = gcd.replace(/^1?1/,'').split('1').filter(function(s){ return s.length; })
+        .map(function(s){ return s.replace(/[^a-z]/gi,'').charAt(0); });
+      var ads = GCD_FINAL[letters[0]] || null, an = GCD_FINAL[letters[1]] || null;
+      if (ads || an) return { ads: ads, analytics: an, source:'gcd' };
+    }
+    if (asc === 'G' || asc === 'D') return { ads: asc === 'G' ? 'granted' : 'denied', analytics: null, source:'asc' };
+    return null;
+  }
+
+  function pathOf(u){
+    if (!u) return null;
+    try { var x = new URL(u); return x.pathname || '/'; } catch(e){ return null; }
+  }
+
+  function extractFields(plat, P){
+    var name = plat ? plat.n : null;
+    var map = name && FIELDMAP[name] ? FIELDMAP[name]
+      : (name && /Analytics|GA4|Universal/.test(name)) ? FIELDMAP.ga : {};
+    var pick = function(f){ return map[f] ? firstOf(P, map[f]) : null; };
+    var value = pick('value'), currency = pick('currency'), orderId = pick('orderId');
+    /* Pinterest packs value/currency/order into the ed JSON blob */
+    if (name === 'Pinterest') {
+      var ed = firstOf(P, ['ed']);
+      if (ed) { try { var j = JSON.parse(ed); value = j.value != null ? String(j.value) : value; currency = j.currency || currency; orderId = j.order_id != null ? String(j.order_id) : orderId; } catch(e){} }
+    }
+    /* Floodlight: ord is only an order ID on sales tags (with cost/qty) - elsewhere it is a cache-buster */
+    if (name === 'Floodlight' && !firstOf(P, ['cost','qty'])) orderId = null;
+    var dedupId = pick('dedupId');
+    return {
+      value: value, currency: currency ? String(currency).toUpperCase() : null, orderId: orderId,
+      dedupId: dedupId, dedupApplies: !!(name && HAS_DEDUP[name]),
+      pixelId: pick('pixelId'), page: pathOf(pick('page')), consent: consentFrom(P)
+    };
+  }
+
+  /* ---------- standard event spellings, for typo / wrong-case detection ---------- */
+  var STANDARD_EVENTS = {
+    ga: ['page_view','view_item','view_item_list','select_item','add_to_cart','remove_from_cart','view_cart','begin_checkout','add_shipping_info','add_payment_info','purchase','refund','generate_lead','sign_up','login','search','add_to_wishlist','view_promotion','select_promotion','share'],
+    'Meta': ['PageView','ViewContent','Search','AddToCart','AddToWishlist','InitiateCheckout','AddPaymentInfo','Purchase','Lead','CompleteRegistration','Contact','CustomizeProduct','Donate','FindLocation','Schedule','StartTrial','SubmitApplication','Subscribe'],
+    'TikTok': ['Pageview','ViewContent','ClickButton','Search','AddToWishlist','AddToCart','InitiateCheckout','AddPaymentInfo','CompletePayment','PlaceAnOrder','Contact','Download','SubmitForm','CompleteRegistration','Subscribe'],
+    'Snapchat': ['PAGE_VIEW','VIEW_CONTENT','ADD_CART','START_CHECKOUT','ADD_BILLING','PURCHASE','SIGN_UP','SEARCH','SAVE','SUBSCRIBE','START_TRIAL','LIST_VIEW','SHARE','CUSTOM_EVENT_1'],
+    'Reddit': ['PageVisit','ViewContent','Search','AddToCart','AddToWishlist','Purchase','Lead','SignUp','Custom'],
+    'Pinterest': ['pagevisit','checkout','addtocart','signup','lead','search','viewcategory','watchvideo','custom']
+  };
+  function norm(s){ return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function editDistance(a, b){
+    if (Math.abs(a.length - b.length) > 2) return 3;
+    var prev = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a.charAt(i-1) === b.charAt(j-1) ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  /* Returns the standard spelling this event name was probably meant to be, or null if it
+     is already exact or isn't close to any standard name (then it is a genuine custom event). */
+  function suggestStandard(platName, ev){
+    var list = STANDARD_EVENTS[platName] || ((platName && /Analytics|GA4/.test(platName)) ? STANDARD_EVENTS.ga : null);
+    if (!list || !ev) return null;
+    if (list.indexOf(ev) !== -1) return null;
+    var n = norm(ev);
+    for (var i = 0; i < list.length; i++) if (norm(list[i]) === n) return list[i];
+    if (n.length < 6) return null;
+    for (var k = 0; k < list.length; k++) if (editDistance(n, norm(list[k])) <= 2) return list[k];
+    return null;
+  }
+  var PURCHASE_KEYS = { purchase:1, completepayment:1, placeanorder:1, checkout:1 };
+
+  /* Request-level findings that need the event/fields layer. Kept out of findings() so that
+     function's logic stays byte-for-byte what it was. */
+  function eventFindings(plat, event, fields, partial){
+    var F = [], name = plat ? plat.n : null;
+    var sug = event.name ? suggestStandard(name, event.name) : null;
+    if (sug) F.push(['warn','Event name does not match the standard spelling',
+      'This request sends <span class="mono">' + esc(event.name) + '</span>, but the platform’s standard event is <span class="mono">' + esc(sug) + '</span>. Event names are case- and spelling-sensitive, so this is recorded as a separate custom event: it will not count towards the standard event, and campaigns optimising on <span class="mono">' + esc(sug) + '</span> will not see it.', CATEGORY.EVENT_NAME]);
+    if (fields.value != null && fields.value !== '') {
+      var v = String(fields.value).trim();
+      if (!/^-?\d+(\.\d+)?$/.test(v)) F.push(['warn','Value is not a plain number',
+        'The value sent is <span class="mono">' + esc(v) + '</span>. Platforms expect a plain number such as <span class="mono">249.99</span> - currency symbols, thousands separators or a comma as the decimal point can make the value unreadable, so revenue is dropped or misreported.', CATEGORY.VALUE]);
+      else if (Number(v) === 0 && event.name && PURCHASE_KEYS[norm(event.name)]) F.push(['warn','Purchase sent with a value of 0',
+        'A purchase reached the platform with no revenue attached. Revenue reporting and value-based bidding will treat this order as worth nothing.', CATEGORY.VALUE]);
+    } else if (!partial && event.name && PURCHASE_KEYS[norm(event.name)] && name && name !== 'LinkedIn' && name !== 'Floodlight') {
+      F.push(['warn','Purchase sent without a value',
+        'This purchase carries no order value, so revenue reporting and value-based bidding (target ROAS) have nothing to work with.', CATEGORY.VALUE]);
+    }
+    return F;
+  }
+
+  /* ---------- whole-paste analysis ----------
+     analyzePaste(results, options) takes the array of analyzeRequest() results for one
+     paste and answers the questions paid media actually ask - per platform rather than
+     per request. options: { expectedEvents?: string[], expectedIds?: string[] }.
+     Returns {
+       platforms: [{ name, events:[{name,count}], conversions, checks:{value,currency,dedup,consent} }],
+       funnel:    { stages:[label], rows:[{ name, cells:[bool] }] },
+       notes:     [{ severity:'warn'|'info', title, detail }],   // cross-platform issues, plain text
+       hasConversion: bool,
+       expected:  null | [{ name, seenOn:[platform] }],
+       unexpectedIds: [{ platform, id }]
+     } */
+  var STAGES = [
+    ['Page view',   /^(pageview|pagevisit|pageload|page)$/],
+    ['Product view',/^(viewitem|viewcontent|viewcategory|viewitemlist)$/],
+    ['Add to cart', /^(addtocart|addcart)$/],
+    ['Checkout',    /^(begincheckout|initiatecheckout|startcheckout|addpaymentinfo|addbilling|addshippinginfo)$/],
+    ['Purchase',    /^(purchase|completepayment|placeanorder|checkout)$/],
+    ['Lead / sign-up', /^(generatelead|lead|submitform|contact|signup|completeregistration|subscribe)$/]
+  ];
+  function stageOf(evName){
+    if (!evName) return -1;
+    var n = norm(evName);
+    for (var i = 0; i < STAGES.length; i++) if (STAGES[i][1].test(n)) return i;
+    return -1;
+  }
+  var SUPPORT = { 'Google tag library':1, 'Cookie banner':1, 'Google audience ping':1, 'Google Ads remarketing':1 };
+
+  function analyzePaste(results, options){
+    options = options || {};
+    var ok = (results || []).filter(function(r){ return r && r.ok && r.platform; });
+    var byPlat = {}, order = [];
+    ok.forEach(function(r){
+      var n = r.platform.name;
+      if (SUPPORT[n]) return;
+      if (!byPlat[n]) { byPlat[n] = { name:n, events:{}, evOrder:[], conversions:0, convHits:[], stages:[] }; order.push(n); }
+      var p = byPlat[n], label = r.event.name || r.event.label;
+      if (!p.events[label]) { p.events[label] = 0; p.evOrder.push(label); }
+      p.events[label]++;
+      var st = stageOf(r.event.name || r.event.label);
+      if (st >= 0) p.stages[st] = true;
+      if (r.event.conversion === 'yes') { p.conversions++; p.convHits.push(r); }
+    });
+
+    var platforms = order.map(function(n){
+      var p = byPlat[n], hits = p.convHits;
+      function check(fn){ if (!hits.length) return null; return hits.every(fn) ? 'ok' : (hits.some(fn) ? 'partial' : 'missing'); }
+      var consentKnown = ok.filter(function(r){ return r.platform.name === n && r.fields.consent; });
+      var consent = null;
+      if (consentKnown.length) {
+        var denied = consentKnown.some(function(r){ return r.fields.consent.ads === 'denied' || r.fields.consent.analytics === 'denied'; });
+        consent = denied ? 'denied' : 'granted';
+      }
+      return {
+        name: n,
+        events: p.evOrder.map(function(e){ return { name:e, count:p.events[e] }; }),
+        conversions: p.conversions,
+        checks: {
+          value: n === 'LinkedIn' ? null : check(function(r){ return r.fields.value != null && r.fields.value !== ''; }),
+          currency: (n === 'LinkedIn' || n === 'Floodlight' || n === 'X (Twitter)') ? null : check(function(r){ return !!r.fields.currency; }),
+          dedup: HAS_DEDUP[n] ? check(function(r){ return !!r.fields.dedupId; }) : null,
+          consent: consent
+        }
+      };
+    });
+
+    var funnel = { stages: STAGES.map(function(s){ return s[0]; }),
+      rows: order.map(function(n){ return { name:n, cells: STAGES.map(function(s, i){ return !!byPlat[n].stages[i]; }) }; }) };
+
+    /* cross-platform consistency: the same purchase should carry the same value and currency everywhere */
+    var notes = [];
+    var purchases = ok.filter(function(r){ return r.event.name && PURCHASE_KEYS[norm(r.event.name)] && r.fields.value != null && /^-?\d+(\.\d+)?$/.test(String(r.fields.value).trim()); });
+    function addTo(m, k, v){ m[k] = m[k] || []; if (m[k].indexOf(v) === -1) m[k].push(v); }
+    var vals = {}; purchases.forEach(function(r){ addTo(vals, Number(r.fields.value).toFixed(2), r.platform.name); });
+    var vk = Object.keys(vals);
+    if (vk.length > 1) notes.push({ severity:'warn', title:'Purchase value differs between platforms',
+      detail: vk.map(function(k){ return vals[k].join(', ') + ': ' + k; }).join(' | ') + '. If these are the same order, one platform is reporting different revenue - often tax/shipping included in one and not the other, or a value sent in pence.' });
+    var curs = {}; purchases.forEach(function(r){ if (r.fields.currency) addTo(curs, r.fields.currency, r.platform.name); });
+    if (Object.keys(curs).length > 1) notes.push({ severity:'warn', title:'Purchase currency differs between platforms',
+      detail: Object.keys(curs).map(function(k){ return curs[k].join(', ') + ': ' + k; }).join(' | ') + '. Revenue will be converted differently on each platform.' });
+    /* the same conversion sent twice to the same platform/pixel */
+    var seen = {};
+    ok.forEach(function(r){
+      if (r.event.conversion !== 'yes') return;
+      var k = [r.platform.name, r.fields.pixelId || '', r.event.name || r.event.label, r.fields.orderId || '', r.fields.dedupId || ''].join('|');
+      seen[k] = (seen[k] || 0) + 1;
+    });
+    Object.keys(seen).forEach(function(k){
+      if (seen[k] < 2) return;
+      var parts = k.split('|');
+      notes.push({ severity:'warn', title: parts[2] + ' sent ' + seen[k] + ' times to ' + parts[0],
+        detail: 'The same conversion' + (parts[3] ? ' (same order ID)' : '') + ' fired more than once in this paste. '
+          + (parts[4] ? 'Both copies carry the same event ID, so the platform may discard the repeat - but it still usually means two tags are firing (e.g. a hard-coded pixel and a GTM tag).'
+                      : 'Unless you repeated the action on purpose, it is probably being counted ' + seen[k] + ' times - commonly two tags (e.g. a hard-coded pixel and a GTM tag) or a trigger firing on page reload.') });
+    });
+
+    var hasConversion = ok.some(function(r){ return r.event.conversion === 'yes'; });
+
+    var expected = null;
+    var exp = (options.expectedEvents || []).map(function(s){ return String(s).trim(); }).filter(Boolean);
+    if (exp.length) {
+      expected = exp.map(function(e){
+        var en = norm(e), es = stageOf(e);
+        var on = {};
+        ok.forEach(function(r){
+          if (SUPPORT[r.platform.name]) return;
+          var ev = r.event.name || r.event.label;
+          if (norm(ev) === en || (es >= 0 && stageOf(ev) === es)) on[r.platform.name] = 1;
+        });
+        return { name:e, seenOn:Object.keys(on) };
+      });
+    }
+    var unexpectedIds = [];
+    var ids = (options.expectedIds || []).map(function(s){ return String(s).trim().toLowerCase(); }).filter(Boolean);
+    if (ids.length) {
+      var flagged = {};
+      ok.forEach(function(r){
+        var id = r.fields.pixelId;
+        if (!id || SUPPORT[r.platform.name]) return;
+        var k = r.platform.name + '|' + id;
+        if (ids.indexOf(String(id).toLowerCase()) === -1 && !flagged[k]) { flagged[k] = 1; unexpectedIds.push({ platform:r.platform.name, id:String(id) }); }
+      });
+    }
+    return { platforms: platforms, funnel: funnel, notes: notes, hasConversion: hasConversion, expected: expected, unexpectedIds: unexpectedIds };
+  }
+
+  /* ---------- guided test journey ----------
+     checkJourney(steps) - steps: [{ stage: <index into STAGES>, results: [analyzeRequest results] }]
+     (results may be empty for a step not captured yet). For every non-supporting platform seen
+     anywhere in the journey, says whether it received that step's event:
+       { stages:[label], platforms:[name],
+         rows:[{ stage, captured:bool, cells:{ <platform>: 'yes'|'no' }, other:[event labels] }] }
+     A platform that never appears at all can't be judged, so it simply isn't a column. */
+  function checkJourney(steps){
+    var plats = [];
+    (steps || []).forEach(function(st){
+      (st.results || []).forEach(function(r){
+        if (r && r.ok && r.platform && !SUPPORT[r.platform.name] && plats.indexOf(r.platform.name) === -1) plats.push(r.platform.name);
+      });
+    });
+    var rows = (steps || []).map(function(st){
+      var rs = (st.results || []).filter(function(r){ return r && r.ok && r.platform && !SUPPORT[r.platform.name]; });
+      var cells = {}, other = [];
+      if (rs.length || (st.results && st.results.length)) {
+        plats.forEach(function(p){ cells[p] = 'no'; });
+        rs.forEach(function(r){
+          var ev = r.event.name || r.event.label;
+          if (stageOf(ev) === st.stage) cells[r.platform.name] = 'yes';
+          else { var lbl = r.platform.name + ': ' + ev; if (other.indexOf(lbl) === -1) other.push(lbl); }
+        });
+      }
+      return { stage: st.stage, captured: !!(st.results && st.results.length), cells: cells, other: other };
+    });
+    return { stages: STAGES.map(function(s){ return s[0]; }), platforms: plats, rows: rows };
+  }
+
+  /* ---------- HAR import ----------
+     A HAR file is DevTools' "Save all as HAR" export of the Network tab: every request on
+     the page, with POST bodies, in one file. Returns the same {url, body} shape as
+     extractRequests(), plus the page's own host (from the first HTML document) so routing
+     findings know which domain is first-party. Each request also carries `time` (epoch ms,
+     or null) and `pageTitle` (the HAR page it belongs to - Chrome uses the page URL) for the
+     Decode tab's timeline view. Throws on a file that isn't HAR. */
+  function requestsFromHar(text){
+    var har = JSON.parse(text);
+    var entries = har && har.log && har.log.entries;
+    if (!Array.isArray(entries)) throw new Error('Not a HAR file - expected log.entries.');
+    var siteHost = null, out = [], pages = {};
+    (har.log.pages || []).forEach(function(pg){ if (pg && pg.id) pages[pg.id] = pg.title || null; });
+    entries.forEach(function(e){
+      var rq = e && e.request; if (!rq || !rq.url || !/^https?:/i.test(rq.url)) return;
+      if (!siteHost) {
+        var mime = e.response && e.response.content && e.response.content.mimeType || '';
+        if (/text\/html/.test(mime)) { try { siteHost = new URL(rq.url).hostname.toLowerCase(); } catch(x){} }
+      }
+      var t = e.startedDateTime ? Date.parse(e.startedDateTime) : NaN;
+      out.push({ url: rq.url, body: rq.postData && rq.postData.text ? rq.postData.text : null,
+                 time: isNaN(t) ? null : t, pageTitle: e.pageref && pages[e.pageref] ? pages[e.pageref] : null });
+    });
+    return { requests: out, siteHost: siteHost, total: entries.length };
+  }
+
   /* ---------- public entry point ---------- */
   function analyzeRequest(input, options){
     input = input || {}; options = options || {};
@@ -945,6 +1416,10 @@
     var name = plat ? plat.n : null;
 
     var F = findings(plat, host, path, P, options.myHost || null, bare, options.siteHost || null, !!options.hasServerSide, !!options.beforeConsent);
+    var event = describeEvent(plat, path, P);
+    var fields = extractFields(plat, P);
+    var partial = F.some(function(f){ return f[3] === CATEGORY.PARTIAL_PASTE; });
+    F = F.concat(eventFindings(plat, event, fields, partial));
 
     var verdict = verdictFor(
       F.filter(function(f){ return f[0]==='fail'; }).map(function(f){ return f[1]; }),
@@ -960,6 +1435,8 @@
       request: { url: input.url, host: host, path: path, bare: bare },
       platform: plat ? { name: plat.n, kind: plat.k, tab: plat.tab, inferred: !!plat.inferred, params: plat.d } : null,
       params: P,
+      event: event,
+      fields: fields,
       findings: findingObjs,
       verdict: verdict
     };
@@ -974,6 +1451,9 @@
     verdictFor: verdictFor,
     escapeHtml: esc,
     isSha256: isSha256,
-    PLATFORMS: PLATFORMS
+    PLATFORMS: PLATFORMS,
+    analyzePaste: analyzePaste,
+    checkJourney: checkJourney,
+    requestsFromHar: requestsFromHar
   };
 }));

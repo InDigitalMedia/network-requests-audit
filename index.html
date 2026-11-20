@@ -517,6 +517,118 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .rq-green { background:var(--good-line); } .rq-amber { background:var(--warn-line); } .rq-red { background:var(--bad-line); }
 .rq-name { font-weight:700; font-size:14px; color:var(--head); }
 .rq-host { font-size:11.5px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.rq-main { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.rq-line { display:flex; align-items:center; gap:9px; min-width:0; flex-wrap:wrap; row-gap:4px; }
+.rq-ev {
+  flex:0 1 auto; font-size:12px; font-weight:700; color:var(--navy); background:var(--muted);
+  border:1px solid var(--grid); border-radius:var(--r-pill); padding:1px 8px;
+  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.rq-conv {
+  flex:0 0 auto; font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--ink-3);
+}
+.rq-purpose { font-size:12.5px; line-height:1.45; color:var(--ink-2); }
+/* facts line under each collapsed row (value, order, dedup, consent, page, ID, who fixes) */
+.rq-facts { display:flex; flex-wrap:wrap; gap:5px; margin-top:3px; }
+.rq-fact {
+  font-size:11px; line-height:1.4; color:var(--ink-2); background:var(--surface-1);
+  border:1px solid var(--grid); border-radius:var(--r-pill); padding:1px 8px; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.rq-fl { font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); }
+.rq-fact--good { color:var(--good); background:var(--good-bg); border-color:var(--good-line); }
+.rq-fact--warn { color:var(--warn); background:var(--warn-bg); border-color:var(--warn-line); }
+.rq-fact--muted { color:var(--ink-3); }
+.rq-fact--owner { color:var(--navy); border-color:var(--navy); font-weight:700; }
+:root[data-theme="dark"] .id-root .rq-fact--owner { color:var(--accent-txt); border-color:var(--accent-txt); }
+.rq-fact--good .rq-fl, .rq-fact--warn .rq-fl { color:inherit; opacity:.8; }
+
+/* decoder inputs added for HAR import / expectations */
+.dq-hint { font-size:12px; color:var(--ink-3); line-height:1.5; flex:1 1 320px; margin:0; }
+.dq-inp--wide { width:100%; max-width:560px; display:block; margin-top:6px; }
+.dq-setup { margin-top:14px; }
+.dq-srcnote { margin-top:14px; font-size:12.5px; color:var(--ink-2); padding:9px 13px; border:1px dashed var(--line); border-radius:var(--r-ctl); }
+
+/* "At a glance" panel */
+.dq-ans {
+  margin-top:12px; background:var(--surface-1); border:1px solid var(--line);
+  border-radius:var(--r-card); box-shadow:var(--sh-card); padding:13px 16px 15px;
+}
+.dq-ans-banner {
+  font-size:13px; line-height:1.55; color:var(--warn); background:var(--warn-bg);
+  border:1px solid var(--warn-line); border-radius:var(--r-ctl); padding:9px 12px; margin-bottom:10px;
+}
+.dq-ans-list { list-style:none; margin:0 0 4px; padding:0; display:flex; flex-direction:column; gap:6px; }
+.dq-ans-list li { font-size:13px; line-height:1.5; color:var(--ink-1); padding:7px 11px; border-left:4px solid var(--line); border-radius:var(--r-ctl); background:var(--ghost); }
+.dq-ans-list li.dq-ans-warn { border-left-color:var(--warn-line); background:var(--warn-bg); }
+.dq-ans-list li.dq-ans-ok { border-left-color:var(--good-line); background:var(--good-bg); }
+.dq-ans-list li.dq-ans-new { border-left-color:var(--accent); }
+.dq-ans-h { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:16px 0 7px; }
+.dq-ans-cap { font-size:12px; color:var(--ink-3); line-height:1.5; margin:6px 0 0; }
+.dq-score { font-size:12.5px; }
+.dq-score th, .dq-score td { text-align:center; padding:7px 9px; white-space:nowrap; }
+.dq-score th:first-child, .dq-score td:first-child, .dq-score td.dq-sc-ev, .dq-score th:nth-child(2) { text-align:left; }
+.dq-score td.dq-sc-ev { white-space:normal; min-width:180px; color:var(--ink-2); }
+.dq-funnel th:nth-child(2) { text-align:center; }
+.dq-sc-x { color:var(--ink-3); font-size:11px; }
+.dq-sc-ok { color:var(--good); font-weight:700; }
+.dq-sc-part { color:var(--warn); font-weight:700; }
+.dq-sc-no { color:var(--bad); font-weight:700; }
+.dq-sc-na { color:var(--ink-4); }
+.dq-base .dq-toggle { margin-top:8px; }
+
+/* view toolbar above the request list */
+.dq-tools { display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; margin-top:10px; }
+.dq-tools .dq-inp { flex:1 1 200px; max-width:320px; }
+.dq-tools-n { font-weight:600; color:var(--ink-3); }
+.dq-nomatch { margin-top:12px; font-size:13px; color:var(--ink-3); }
+
+/* timeline layout */
+.rq-time { display:none; flex:0 0 auto; font-size:10.5px; font-weight:700; color:var(--ink-3); font-variant-numeric:tabular-nums; min-width:38px; }
+#dq-cards.is-timeline .rq-time { display:inline-block; }
+.dq-tl-seg .dq-gh-n { font-family:inherit; font-size:13px; }
+.dq-seg { display:inline-flex; border:1px solid var(--line); border-radius:var(--r-pill); overflow:hidden; }
+.dq-seg-b {
+  font:inherit; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  padding:6px 12px; border:0; background:var(--surface-1); color:var(--ink-2); cursor:pointer;
+}
+.dq-seg-b + .dq-seg-b { border-left:1px solid var(--line); }
+.dq-seg-b[aria-pressed="true"] { background:var(--btn-active-bg); color:var(--btn-active-fg); }
+
+/* glossary terms */
+.gl { position:relative; border-bottom:1px dotted currentColor; cursor:help; }
+.gl:focus-visible { outline:none; box-shadow:var(--focus); border-radius:3px; }
+.gl-tip {
+  display:none; position:absolute; left:0; bottom:calc(100% + 6px); z-index:30;
+  width:max-content; max-width:min(300px, 80vw); padding:8px 11px; border-radius:var(--r-ctl);
+  background:var(--ink-1); color:var(--surface-1); box-shadow:var(--sh-hover);
+  font-size:12px; font-weight:500; line-height:1.45; letter-spacing:0; text-transform:none; white-space:normal; text-align:left;
+}
+.gl:hover > .gl-tip, .gl:focus > .gl-tip { display:block; }
+@media (max-width:620px) {
+  .gl-tip { position:fixed; left:16px; right:16px; bottom:16px; width:auto; max-width:none; }
+}
+
+/* guided test journey */
+.dq-journey { margin-top:10px; }
+.id-chip.dq-jtype[aria-pressed="true"] { background:var(--btn-active-bg); color:var(--btn-active-fg); border-color:var(--btn-active-bg); }
+.dq-jsteps { margin:14px 0 0; padding-left:22px; display:flex; flex-direction:column; gap:14px; }
+.dq-jstep::marker { font-weight:800; color:var(--head); }
+.dq-jstep-h { font-size:13.5px; color:var(--head); display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; }
+.dq-jstage { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-3); }
+.dq-jin { margin-top:6px; }
+.dq-jopen { margin-top:6px; }
+.dq-jout { margin-top:16px; }
+.dq-jsum { font-size:13px; line-height:1.5; padding:9px 12px; border-radius:var(--r-ctl); border:1px solid var(--line); border-left-width:4px; margin-bottom:10px; }
+.dq-jsum.is-gap { border-left-color:var(--warn-line); background:var(--warn-bg); }
+.dq-jsum.is-ok { border-left-color:var(--good-line); background:var(--good-bg); }
+
+/* phones: the name/event/purpose block drops onto its own full-width line under the
+   dot / #n / verdict / + row, instead of being squeezed into a ~110px column between them */
+@media (max-width:620px) {
+  .dq-req > summary { flex-wrap:wrap; row-gap:8px; }
+  .rq-main { order:3; flex-basis:100%; }
+}
 .rq-v {
   flex:0 0 auto; font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase;
   padding:3px 9px; border-radius:var(--r-pill); border:1px solid;
@@ -1688,6 +1800,40 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <input id="dq-host" class="dq-inp aud-spec" type="text" spellcheck="false" placeholder="metrics.yoursite.com">
           </div>
           <div class="dq-row">
+            <button class="id-btn" id="dq-har-btn" type="button">Import HAR file</button>
+            <input type="file" id="dq-har" accept=".har,application/json" hidden>
+            <span class="dq-hint">No copy-pasting: in DevTools' Network tab, right-click any request &rarr; <strong>Save all as HAR</strong>, then import that file here. Every tracking request on the page is decoded at once - the file is read in this page and never uploaded.</span>
+          </div>
+          <details class="fix dq-setup">
+            <summary>What should this site be sending? Optional - unlocks the &ldquo;what's missing&rdquo; checks</summary>
+            <div class="fix-b">
+              <label class="id-label" for="dq-expected">Events you expect to see</label>
+              <input id="dq-expected" class="dq-inp dq-inp--wide" type="text" spellcheck="false" placeholder="page_view, add_to_cart, purchase">
+              <div class="dq-row" style="margin-top:8px">
+                <span class="id-label">Start from</span>
+                <button class="id-chip dq-tpl" data-tpl="ecom" type="button">Ecommerce</button>
+                <button class="id-chip dq-tpl" data-tpl="lead" type="button">Lead generation</button>
+              </div>
+              <label class="id-label" for="dq-ids" style="display:block;margin-top:14px">This client's pixel and tag IDs</label>
+              <input id="dq-ids" class="dq-inp dq-inp--wide" type="text" spellcheck="false" placeholder="G-ABC123XYZ, 998877665544, 1234567">
+              <p class="dq-hint" style="margin-top:8px">Separate with commas. Use any of the platforms' own names for events (purchase, Purchase and CompletePayment all count as a purchase). Any pixel or tag ID in a paste that isn't listed is flagged - that catches a pixel left behind by a previous agency, or one belonging to a different client. Remembered in this browser only.</p>
+            </div>
+          </details>
+          <details class="fix dq-journey" id="dq-journey">
+            <summary>Guided test journey - check a whole purchase or lead, step by step</summary>
+            <div class="fix-b">
+              <p class="dq-hint">Do each step on the site, then capture what fired and paste it into that step's box - the bookmarklet's <strong>Copy all for the decoder</strong>, a Copy as cURL from DevTools, or a whole HAR file's contents all work. Every platform the journey uses is checked at every step, so a tag that fires on the confirmation page but not on add-to-cart shows up straight away. Nothing here is saved.</p>
+              <div class="dq-row">
+                <span class="id-label">Journey</span>
+                <button class="id-chip dq-jtype" data-j="ecom" type="button" aria-pressed="true">Ecommerce purchase</button>
+                <button class="id-chip dq-jtype" data-j="lead" type="button" aria-pressed="false">Lead form</button>
+                <button class="id-btn dq-toggle" id="dq-jclear" type="button">Clear steps</button>
+              </div>
+              <ol id="dq-jsteps" class="dq-jsteps"></ol>
+              <div id="dq-jout" class="dq-jout" aria-live="polite"></div>
+            </div>
+          </details>
+          <div class="dq-row">
             <span class="id-label">Try one</span>
             <button class="id-chip dq-eg" data-eg="ga4ok" type="button">GA4, consent granted</button>
             <button class="id-chip dq-eg" data-eg="ga4bad" type="button">GA4, consent problem</button>
@@ -2159,12 +2305,35 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     try { SSGTM.checked = localStorage.getItem('id-ssgtm') === '1'; } catch(e){}
     SSGTM.addEventListener('change', function(){
       try { localStorage.setItem('id-ssgtm', SSGTM.checked ? '1' : '0'); } catch(e){}
-      if (OUT.innerHTML) run();
+      rerun();
     });
   }
   /* Shared state, read/written by both run() and the "Ignore"/filter handlers below -
      kept live across those so ignoring a finding doesn't need a full re-decode. */
   var metas = [], order = [], activeFilter = null;
+  /* lastResults[i] is the raw TD.analyzeRequest() result behind metas[i] (null if unreadable);
+     lastAnalysis is TD.analyzePaste() over all of them - the "At a glance" panel's source. */
+  var lastResults = [], lastAnalysis = null, harSource = null;
+  var MAXREQ = 60;
+  /* view-only filters layered on top of activeFilter (see applyFilter) */
+  var view = { conv:false, hideSupport:true, q:'', layout:'platform' };
+  try { view.hideSupport = localStorage.getItem('id-dq-hide-support') !== '0'; } catch(e){}
+  var SUPPORT_PLAT = { 'Google tag library':1, 'Cookie banner':1, 'Google audience ping':1, 'Google Ads remarketing':1 };
+  var OWNER_SHORT = { 'You can do this yourself':'You', 'Needs whoever manages your tag manager':'Tag manager',
+    'Needs a developer':'Developer', 'Urgent - involve whoever owns privacy':'Privacy owner' };
+  /* who fixes the worst live (not ignored) problem on a request - from its remedy's `who` */
+  function ownerOf(findings){
+    var pick = null;
+    findings.forEach(function(f){
+      if (f.ignored || !f.remedy) return;
+      if (f.sev === 'fail' && (!pick || pick.sev !== 'fail')) pick = f;
+      else if (f.sev === 'warn' && !pick) pick = f;
+    });
+    return pick ? (OWNER_SHORT[pick.remedy.who] || pick.remedy.who) : null;
+  }
+  function splitList(v){ return String(v || '').split(/[,\n]/).map(function(x){ return x.trim(); }).filter(Boolean); }
+  var EXPIN = document.getElementById('dq-expected'), IDSIN = document.getElementById('dq-ids');
+  try { if (EXPIN) EXPIN.value = localStorage.getItem('id-dq-expected') || ''; if (IDSIN) IDSIN.value = localStorage.getItem('id-dq-ids') || ''; } catch(e){}
 
   /* Parameter dictionaries, platform registry, extraction/parsing, consent decoding,
      remedies and the findings/verdict engine all moved to tag-detector.js - see its header
@@ -2188,13 +2357,43 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   var CONF = {d:['Documented','dq-c-d'], p:['Practitioner','dq-c-p'], u:['Undocumented','dq-c-u']};
   var SHORT = { red:'Needs attention', amber:'Look at this', green:'Healthy' };
 
+  /* The facts line under each collapsed row: the handful of values paid media check most,
+     read from TD's normalised `fields` so every platform shows them the same way. */
+  function fact(label, value, cls, title){
+    return '<span class="rq-fact' + (cls ? ' rq-fact--' + cls : '') + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>'
+      + '<span class="rq-fl">' + label + '</span> ' + value + '</span>';
+  }
+  function pageKeyOf(u){ if (!u) return null; try { var x = new URL(u); return x.pathname || '/'; } catch(e){ return null; } }
+  function trunc(v, n){ v = String(v); return v.length > n ? v.slice(0, n - 1) + '…' : v; }
+  function factsHtml(E, Fd, owner){
+    var b = [];
+    if (Fd.value != null && Fd.value !== '') b.push(fact('Value', '<span class="mono">' + esc(trunc(Fd.value, 18)) + (Fd.currency ? ' ' + esc(Fd.currency) : '') + '</span>'));
+    else if (E.conversion === 'yes' && Fd.currency) b.push(fact('Currency', '<span class="mono">' + esc(Fd.currency) + '</span>'));
+    if (Fd.orderId) b.push(fact('Order', '<span class="mono">' + esc(trunc(Fd.orderId, 22)) + '</span>', null, 'Order / transaction ID - match this against the order in your shop or CRM'));
+    if (E.conversion === 'yes' && Fd.dedupApplies) b.push(Fd.dedupId
+      ? fact('Dedup ID', '&#10003; sent', 'good', 'Lets the platform recognise this event if your server sends it too, so it is only counted once')
+      : fact('Dedup ID', 'none', 'muted', 'No deduplication ID - only matters if this event is also sent from your server'));
+    if (Fd.consent) {
+      var c = Fd.consent, bits = [];
+      if (c.ads) bits.push('Ads ' + (c.ads === 'granted' ? '&#10003;' : '&#10005;'));
+      if (c.analytics) bits.push('Analytics ' + (c.analytics === 'granted' ? '&#10003;' : '&#10005;'));
+      var denied = c.ads === 'denied' || c.analytics === 'denied';
+      b.push(fact('Consent', bits.join(' &middot; '), denied ? 'warn' : 'good', denied ? 'The visitor\u2019s consent state when this fired: something was denied. That is the visitor\u2019s choice, not a fault - but this hit will be limited or modelled.' : 'The visitor\u2019s consent state when this fired: granted.'));
+    }
+    if (Fd.page) b.push(fact('Page', '<span class="mono">' + esc(trunc(Fd.page, 32)) + '</span>', null, Fd.page));
+    if (Fd.pixelId) b.push(fact('ID', '<span class="mono">' + esc(trunc(Fd.pixelId, 22)) + '</span>', null, 'Pixel / tag / measurement ID this was sent to'));
+    if (owner) b.push(fact('Fix', esc(owner), 'owner', 'Who usually fixes the most serious finding on this request'));
+    return b.length ? '<span class="rq-facts">' + b.join('') + '</span>' : '';
+  }
+
   function renderOne(req, i, myHost, metas, siteHost, hasServerSide){
     var result = TD.analyzeRequest(
       { url: req.url, body: req.body, bare: !!req.bare },
       { myHost: myHost, siteHost: siteHost, hasServerSide: hasServerSide }
     );
+    lastResults[i] = result.ok ? result : null;
     if (!result.ok) {
-      if (metas) metas.push({name:'Unreadable', kind:'could not be parsed', sev:'red', findings:[]});
+      if (metas) metas.push({name:'Unreadable', kind:'could not be parsed', sev:'red', findings:[], text:'unreadable'});
       return '<details class="dq-req" data-idx="'+i+'" data-sev="red" open><summary><span class="rq-dot rq-red"></span>'
         + '<span class="rq-name">Unreadable request</span></summary>'
         + '<div class="dq-card"><div class="dq-err">'+result.error+'</div></div></details>';
@@ -2220,6 +2419,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
        + '<div><div class="vt">'+V.headline+'</div><div class="vd">'+V.detail+'</div></div></div>';
     if (metas) metas.push({ name: plat ? plat.name : 'Unidentified endpoint',
       kind: plat ? plat.kind : 'no known vendor matches this host', host: host, sev: V.level,
+      event: result.event.label, purpose: result.event.purpose, conv: result.event.conversion === 'yes',
+      support: !!(plat && SUPPORT_PLAT[plat.name]), fields: result.fields,
+      t: typeof req.time === 'number' ? req.time : null, pageKey: pageKeyOf(req.pageTitle) || result.fields.page || null,
+      text: [plat ? plat.name : '', result.event.label, result.fields.pixelId || '', result.fields.page || '', result.fields.orderId || '', host].join(' ').toLowerCase(),
       findings: F.map(function(f){ return { sev: f.severity, title: f.title, detail: f.detail, remedy: f.remedy, ignored: false }; }) });
 
     h += '<div class="dq-sub">Findings</div>';
@@ -2261,12 +2464,22 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
     h += '</details>';
     var openAttr = '';  /* everything starts collapsed; the summary is the way in */
+    /* what this request is (event name) and what it is for, readable without opening it */
+    var E = result.event;
     var sumRow = '<summary><span class="rq-dot rq-'+V.level+'"></span>'
       + '<span class="rq-idx">#'+(i+1)+'</span>'
-      + '<span class="rq-name">'+ (plat ? esc(plat.name) : 'Unidentified endpoint') +'</span>'
-      + '<span class="rq-host mono">'+ esc(req.bare ? '(pasted parameters)' : host) +'</span>'
+      + '<span class="rq-time" aria-hidden="true"></span>'
+      + '<span class="rq-main"><span class="rq-line">'
+      +   '<span class="rq-name">'+ (plat ? esc(plat.name) : 'Unidentified endpoint') +'</span>'
+      +   '<span class="rq-ev'+(E.name ? ' mono' : '')+'" title="'+(E.name ? 'Event name sent in this request' : 'This request carries no event name')+'">'+esc(E.label)+'</span>'
+      +   (E.conversion === 'yes' ? '<span class="rq-conv" title="This event name looks like a conversion">Conversion</span>' : '')
+      +   '<span class="rq-host mono">'+ esc(req.bare ? '(pasted parameters)' : host) +'</span>'
+      + '</span><span class="rq-purpose">'+esc(E.purpose)+'</span>'
+      + factsHtml(E, result.fields, metas ? ownerOf(metas[metas.length-1].findings) : null)
+      + '</span>'
       + '<span class="rq-v rq-v-'+V.level+'">'+SHORT[V.level]+'</span></summary>';
-    return '<details class="dq-req" data-plat="'+esc(plat ? plat.name : 'Unidentified endpoint')+'" data-idx="'+i+'" data-sev="'+V.level+'"'+openAttr+'>'
+    return '<details class="dq-req" data-plat="'+esc(plat ? plat.name : 'Unidentified endpoint')+'" data-idx="'+i+'" data-sev="'+V.level+'"'
+      + (E.conversion === 'yes' ? ' data-conv="1"' : '') + (plat && SUPPORT_PLAT[plat.name] ? ' data-support="1"' : '') + openAttr+'>'
       + sumRow + '<div class="dq-card">' + h + '</div></details>';
   }
 
@@ -2326,6 +2539,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + '<span id="dq-copy-summary-desc" class="sr-only">Verdicts and their business-impact explanations only - no raw parameters, no visitor data.</span>'
       + '<button class="id-btn dq-toggle" id="dq-export-pdf" type="button" title="A clean, client-facing report - same PII rule as the text summary." aria-describedby="dq-export-pdf-desc">Export client PDF</button>'
       + '<span id="dq-export-pdf-desc" class="sr-only">A clean, client-facing report - same PII rule as the text summary.</span>'
+      + '<button class="id-btn dq-toggle" id="dq-export-csv" type="button" title="One row per request: platform, event, value, currency, order ID, consent, verdict - for an audit spreadsheet. Downloaded straight from this page.">Export CSV</button>'
       + '<button class="id-btn dq-toggle" id="dq-expand" type="button">Expand all</button></div>';
     h += '<div class="dq-sum-grid">';
     rows.forEach(function(r){
@@ -2343,9 +2557,402 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + (tally.red ? 'Start with anything marked <strong>needs attention</strong>. ' : '')
       + 'Select a row above to filter down to that platform, or open one below - then open <strong>How to fix this</strong> under any finding for the steps. Filtering also narrows what <strong>Copy findings summary</strong> and <strong>Export client PDF</strong> include.</div>';
     h += '</div>';
-    h += '<div class="dq-listlabel">All requests, grouped by platform'
-      + '<span> - all collapsed; <span class="mono">#n</span> shows where each sat in your paste</span></div>';
     return h;
+  }
+
+  /* ---------- "At a glance": the paste answered per platform rather than per request ----------
+     Built from TD.analyzePaste(); none of it depends on Ignore toggles, so it renders once per
+     decode (the baseline block re-renders itself on save/clear). */
+  var CHECK_SYM = { ok:['&#10003;','ok','Sent on every conversion'], partial:['Some','part','Sent on some conversions, missing on others'],
+    missing:['&#10005;','no','Missing on every conversion'] };
+  function checkCell(v, naTitle){
+    if (!v) return '<td class="dq-sc-na" title="' + esc(naTitle || 'Not applicable, or no conversion event seen for this platform') + '">&ndash;</td>';
+    var c = CHECK_SYM[v];
+    return '<td class="dq-sc-' + c[1] + '" title="' + c[2] + '">' + c[0] + '</td>';
+  }
+  function renderAnswers(A){
+    if (!A) return '';
+    var h = '<div class="dq-ans">';
+    h += '<div class="dq-sum-eyebrow">At a glance</div>';
+    if (!A.hasConversion && A.platforms.length) {
+      h += '<div class="dq-ans-banner"><strong>No conversion events in this paste.</strong> Every "healthy" below only covers what was pasted - it says nothing about purchase or lead tracking. To check those, complete a test purchase or form on the site, capture the requests again, and decode them.</div>';
+    }
+    var issues = [];
+    A.notes.forEach(function(n){ issues.push('<li class="dq-ans-warn"><strong>' + esc(n.title) + '.</strong> ' + esc(n.detail) + '</li>'); });
+    if (A.expected) {
+      A.expected.forEach(function(e){
+        issues.push(e.seenOn.length
+          ? '<li class="dq-ans-ok"><strong>' + esc(e.name) + '</strong> seen on ' + esc(e.seenOn.map(shortName).join(', ')) + '.</li>'
+          : '<li class="dq-ans-warn"><strong>' + esc(e.name) + ' - expected but not seen.</strong> Nothing in this paste matches it on any platform. Either the action wasn’t performed while capturing, or the tag isn’t firing.</li>');
+      });
+    }
+    A.unexpectedIds.forEach(function(u){
+      issues.push('<li class="dq-ans-warn"><strong>Unexpected ' + esc(shortName(u.platform)) + ' ID <span class="mono">' + esc(u.id) + '</span>.</strong> It isn’t in this client’s ID list - check whether it is a leftover pixel, another client’s, or just missing from the list.</li>');
+    });
+    if (issues.length) h += '<ul class="dq-ans-list">' + issues.join('') + '</ul>';
+
+    if (A.platforms.length) {
+      h += '<div class="dq-ans-h">Per platform</div>';
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Per-platform scorecard, scroll horizontally to see all columns"><table class="id-table dq-score"><thead><tr>'
+        + '<th>Platform</th><th>Events seen</th>'
+        + '<th title="Conversion events carry an order value">Value</th>'
+        + '<th title="Conversion events carry a currency code">Currency</th>'
+        + '<th title="Conversion events carry a deduplication ID, so browser and server copies are counted once">Dedup ID</th>'
+        + '<th title="Consent state reported on this platform’s hits">Consent</th></tr></thead><tbody>';
+      A.platforms.forEach(function(p){
+        var evs = p.events.map(function(e){ return esc(e.name) + (e.count > 1 ? ' <span class="dq-sc-x">&times;' + e.count + '</span>' : ''); }).join(', ');
+        var cons = p.checks.consent === 'granted' ? '<td class="dq-sc-ok" title="Granted on every hit that reported consent">Granted</td>'
+          : p.checks.consent === 'denied' ? '<td class="dq-sc-part" title="Denied on at least one hit - the visitor’s choice, not a fault, but those hits are limited or modelled">Denied</td>'
+          : '<td class="dq-sc-na" title="This platform’s requests carry no consent signal">&ndash;</td>';
+        h += '<tr><td><strong>' + esc(shortName(p.name)) + '</strong>' + (p.conversions ? ' <span class="rq-conv">' + p.conversions + ' conversion' + (p.conversions === 1 ? '' : 's') + '</span>' : '') + '</td>'
+          + '<td class="dq-sc-ev">' + evs + '</td>'
+          + checkCell(p.checks.value) + checkCell(p.checks.currency) + checkCell(p.checks.dedup, 'This platform has no browser/server deduplication, or no conversion was seen') + cons + '</tr>';
+      });
+      h += '</tbody></table></div>';
+      h += '<div class="dq-ans-cap">Value, currency and dedup ID are only checked on conversion events. &ndash; means not applicable or no conversion seen.</div>';
+
+      h += '<div class="dq-ans-h">Funnel coverage</div>';
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Funnel coverage by platform, scroll horizontally to see all columns"><table class="id-table dq-score dq-funnel"><thead><tr><th>Platform</th>'
+        + A.funnel.stages.map(function(st){ return '<th>' + esc(st) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      A.funnel.rows.forEach(function(r){
+        h += '<tr><td><strong>' + esc(shortName(r.name)) + '</strong></td>'
+          + r.cells.map(function(c, i){ return c ? '<td class="dq-sc-ok" title="' + esc(A.funnel.stages[i]) + ' seen">&#10003;</td>' : '<td class="dq-sc-na" title="Not in this paste">&middot;</td>'; }).join('') + '</tr>';
+      });
+      h += '</tbody></table></div>';
+      h += '<div class="dq-ans-cap">Which standard funnel steps each platform received in this paste. A gap is only a problem if that step happened while you were capturing.</div>';
+    }
+    h += renderBaseline();
+    return h + '</div>';
+  }
+
+  /* ---------- baseline: decode once when tracking is known-good, compare later ----------
+     Stored in localStorage (this browser only): platform + event + verdict per request, no
+     parameter values at all, so nothing sensitive is kept. */
+  var BASE_KEY = 'id-dq-baseline';
+  function sigsOf(ms){
+    var sig = {};
+    ms.forEach(function(m){
+      if (!m.event || m.support) return;
+      var k = m.name + ' – ' + m.event;
+      if (!(k in sig) || SEVRANK[m.sev] < SEVRANK[sig[k]]) sig[k] = m.sev;
+    });
+    return sig;
+  }
+  function loadBaseline(){ try { var b = JSON.parse(localStorage.getItem(BASE_KEY) || 'null'); return b && b.sigs ? b : null; } catch(e){ return null; } }
+  function renderBaseline(){
+    var b = loadBaseline();
+    var h = '<div class="dq-base"><div class="dq-ans-h">Compare with a known-good baseline</div>';
+    if (!b) {
+      h += '<p class="dq-ans-cap">When tracking is working, save this decode as the baseline. After a site release or a ROAS drop, decode the same journey again and this shows what changed. Only platform, event name and verdict are stored - in this browser, nothing else.</p>';
+      return h + '<button class="id-btn dq-toggle" id="dq-base-save" type="button">Save as baseline</button></div>';
+    }
+    var now = sigsOf(metas), added = [], missing = [], changed = [];
+    Object.keys(now).forEach(function(k){ if (!(k in b.sigs)) added.push(k); else if (now[k] !== b.sigs[k]) changed.push([k, b.sigs[k], now[k]]); });
+    Object.keys(b.sigs).forEach(function(k){ if (!(k in now)) missing.push(k); });
+    h += '<p class="dq-ans-cap">Baseline saved ' + esc(new Date(b.saved).toLocaleString()) + (b.client ? ' for <strong>' + esc(b.client) + '</strong>' : '') + '.</p>';
+    if (!added.length && !missing.length && !changed.length) h += '<ul class="dq-ans-list"><li class="dq-ans-ok"><strong>No change.</strong> Same platforms, events and verdicts as the baseline.</li></ul>';
+    else {
+      h += '<ul class="dq-ans-list">';
+      missing.forEach(function(k){ h += '<li class="dq-ans-warn"><strong>Missing since baseline:</strong> ' + esc(k) + '</li>'; });
+      changed.forEach(function(c){ var worse = SEVRANK[c[2]] < SEVRANK[c[1]];
+        h += '<li class="' + (worse ? 'dq-ans-warn' : 'dq-ans-ok') + '"><strong>' + (worse ? 'Got worse' : 'Improved') + ':</strong> ' + esc(c[0]) + ' (' + sevLabel(c[1], 1) + ' &rarr; ' + sevLabel(c[2], 1) + ')</li>'; });
+      added.forEach(function(k){ h += '<li class="dq-ans-new"><strong>New since baseline:</strong> ' + esc(k) + '</li>'; });
+      h += '</ul>';
+    }
+    return h + '<button class="id-btn dq-toggle" id="dq-base-save" type="button">Replace baseline with this decode</button> '
+      + '<button class="id-btn dq-toggle" id="dq-base-clear" type="button">Clear baseline</button></div>';
+  }
+  function refreshBaseline(){
+    var el = OUT.querySelector('.dq-base');
+    if (el) el.outerHTML = renderBaseline();
+    glossify(OUT.querySelector('.dq-base'));
+  }
+
+  /* ---------- view toolbar: sits between the summary/answers and the request list ---------- */
+  function renderTools(){
+    var tl = hasTimes();
+    return '<div class="dq-listlabel" id="dq-listlabel">' + listLabel(view.layout === 'timeline' && tl) + '</div>'
+      + '<div class="dq-tools">'
+      + (tl ? '<span class="dq-seg" role="group" aria-label="Show requests">'
+          + '<button type="button" class="dq-seg-b" data-layout="platform" aria-pressed="' + (view.layout !== 'timeline') + '">By platform</button>'
+          + '<button type="button" class="dq-seg-b" data-layout="timeline" aria-pressed="' + (view.layout === 'timeline') + '">Timeline</button></span>' : '')
+      + '<label class="dq-ssw"><input type="checkbox" id="dq-v-conv"' + (view.conv ? ' checked' : '') + '> Conversions only</label>'
+      + '<label class="dq-ssw" title="Tag code downloads, cookie banner scripts, audience and remarketing pings - needed, but not events you report on"><input type="checkbox" id="dq-v-support"' + (view.hideSupport ? ' checked' : '') + '> Hide supporting requests <span id="dq-support-n" class="dq-tools-n"></span></label>'
+      + '<input id="dq-v-q" class="dq-inp" type="search" spellcheck="false" placeholder="Filter: event, ID, page…" aria-label="Filter requests by event name, pixel ID, page or host" value="' + esc(view.q) + '">'
+      + '</div>'
+      + '<div class="dq-nomatch" hidden>Nothing matches the current filters.</div>';
+  }
+
+  /* ---------- timeline vs by-platform layout ----------
+     Moves the already-rendered .dq-req nodes between containers rather than re-rendering them,
+     so open/closed state and Ignore toggles survive a switch. Timeline needs per-request times,
+     which only HAR imports carry today. */
+  function hasTimes(){ return metas.some(function(m){ return typeof m.t === 'number'; }); }
+  function listLabel(timeline){
+    return timeline
+      ? 'All requests, in the order they fired<span> - split by page; <span class="mono">+s</span> is seconds since the first request</span>'
+      : 'All requests, grouped by platform<span> - all collapsed; <span class="mono">#n</span> shows where each sat in your paste</span>';
+  }
+  function fmtOffset(ms){ var s = ms / 1000; return '+' + (s < 10 ? s.toFixed(1) : Math.round(s)) + 's'; }
+  function layoutCards(mode){
+    var box = OUT.querySelector('#dq-cards');
+    if (!box) return;
+    var nodes = {};
+    OUT.querySelectorAll('.dq-req').forEach(function(d){ nodes[d.dataset.idx] = d; });
+    var idxs = Object.keys(nodes).map(Number);
+    box.innerHTML = '';
+    function section(cls, plat, head){
+      var sec = document.createElement('section');
+      sec.className = cls;
+      if (plat) sec.dataset.plat = plat;
+      sec.innerHTML = head;
+      box.appendChild(sec);
+      return sec;
+    }
+    if (mode === 'timeline') {
+      var t0 = Math.min.apply(null, metas.filter(function(m){ return typeof m.t === 'number'; }).map(function(m){ return m.t; }));
+      idxs.sort(function(a, b){
+        var ta = metas[a] && typeof metas[a].t === 'number' ? metas[a].t : Infinity, tb = metas[b] && typeof metas[b].t === 'number' ? metas[b].t : Infinity;
+        return (ta - tb) || (a - b);
+      });
+      var cur = null, curKey;
+      idxs.forEach(function(i){
+        var m = metas[i] || {}, key = m.pageKey || '(page not known)';
+        if (!cur || key !== curKey) {
+          curKey = key;
+          cur = section('dq-group dq-tl-seg', null,
+            '<div class="dq-grouphead"><span class="dq-gh-n"><span class="rq-fl">Page</span> <span class="mono">' + esc(key) + '</span></span>'
+            + '<span class="dq-gh-c">' + (typeof m.t === 'number' ? fmtOffset(m.t - t0) : '') + '</span></div>');
+        }
+        var tEl = nodes[i].querySelector('.rq-time');
+        if (tEl) tEl.textContent = typeof m.t === 'number' ? fmtOffset(m.t - t0) : '';
+        cur.appendChild(nodes[i]);
+      });
+      box.classList.add('is-timeline');
+    } else {
+      var groups = {}, ord = [];
+      idxs.sort(function(a, b){ return a - b; }).forEach(function(i){
+        var m = metas[i] || { name:'Unreadable', sev:'red' };
+        if (!groups[m.name]) { groups[m.name] = { worst:m.sev, items:[] }; ord.push(m.name); }
+        groups[m.name].items.push(i);
+        if (SEVRANK[m.sev] < SEVRANK[groups[m.name].worst]) groups[m.name].worst = m.sev;
+      });
+      ord.sort(function(a, b){ return (SEVRANK[groups[a].worst] - SEVRANK[groups[b].worst]) || (groups[b].items.length - groups[a].items.length) || a.localeCompare(b); });
+      ord.forEach(function(k){
+        var g = groups[k];
+        var sec = section('dq-group', k, '<div class="dq-grouphead"><span class="rq-dot rq-' + g.worst + '"><span class="sr-only">' + SHORT[g.worst] + '</span></span>'
+          + '<span class="dq-gh-n">' + esc(shortName(k)) + '</span>'
+          + '<span class="dq-gh-c">' + g.items.length + ' request' + (g.items.length === 1 ? '' : 's') + '</span></div>');
+        g.items.forEach(function(i){ sec.appendChild(nodes[i]); });
+      });
+      box.classList.remove('is-timeline');
+    }
+    view.layout = mode;
+    var lbl = OUT.querySelector('#dq-listlabel');
+    if (lbl) lbl.innerHTML = listLabel(mode === 'timeline');
+    OUT.querySelectorAll('.dq-seg-b').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.layout === mode)); });
+    applyFilter();
+  }
+
+  /* ---------- glossary: plain-English definitions on the jargon, on hover / focus ----------
+     Wraps the first use of each term per text block in a .gl span with a role="tooltip" child.
+     Skips .mono (parameter names/values), links and existing .gl. Inside a <summary> the term
+     isn't made focusable - tabbing into a summary row should land on the row, not a word in it. */
+  var GLOSSARY = [
+    [/\bdeduplicat\w*|\bdedup\b|\bdouble[- ]count\w*/i, 'Deduplication: when the same action is sent from both the browser and your server, a shared ID lets the platform count it once instead of twice.'],
+    [/\bConversions API\b|\bEvents API\b|\bCAPI\b/, 'Server-to-server tracking: your server sends the event straight to the ad platform, alongside the browser pixel. It survives ad blockers and browser privacy restrictions.'],
+    [/\bconsent mode\b/i, 'Google\u2019s way of passing the visitor\u2019s cookie-banner choice to its tags, so they adjust what they collect and store.'],
+    [/\bserver[- ]side\b|\bserver container\b|\bsGTM\b/i, 'Tracking routed through a tag server you control (usually server-side Google Tag Manager) before it reaches Google, Meta and the rest.'],
+    [/\benhanced conversions\b/i, 'A Google Ads feature that sends hashed customer details (such as email) with a conversion, so more conversions can be matched back to ad clicks.'],
+    [/\badvanced matching\b/i, 'Meta\u2019s version of enhanced conversions: hashed customer details sent with the event to improve matching to Meta users.'],
+    [/\bevent match quality\b/i, 'Meta\u2019s 0-10 score for how well your events can be matched to Meta users - driven by how many customer details you send, and how well formatted they are.'],
+    [/\bhash(?:ed|ing)?\b|\bSHA-256\b/i, 'Scrambling a value (like an email address) one way, so the platform can match it without ever receiving the readable data.'],
+    [/\bMeasurement Protocol\b/, 'Google\u2019s API for sending GA4 events from a server instead of a browser.'],
+    [/\bdata layer\b/i, 'A JavaScript object on the website where the site puts information (order value, product IDs) for tags to read. Wrong data here means wrong data everywhere.'],
+    [/\bfirst-party\b/i, 'Served from the website\u2019s own domain rather than the vendor\u2019s, which survives more ad blockers and browser privacy restrictions.'],
+    [/\bclick ID\b|\bgclid\b/i, 'An ID added to the landing page address when someone clicks an ad (gclid for Google, fbclid for Meta, ttclid for TikTok). It ties the later conversion back to that click.'],
+    [/\bclient ID\b/i, 'GA4\u2019s anonymous ID for this browser - how GA4 strings a visitor\u2019s hits together into sessions.'],
+    [/\bmodell?ed\b/i, 'Where consent was denied, Google estimates the missing conversions statistically instead of measuring them.'],
+    [/\bHAR\b/, 'A file of everything the browser\u2019s Network tab recorded. In DevTools: right-click any request and choose Save all as HAR.']
+  ];
+  var GL_SEL = '.dq-fd, .vd, .rq-purpose, .dq-ans-list li, .dq-ans-cap, .dq-ans-banner, .fix-steps li, .dq-jnote';
+  var glId = 0;
+  function glossify(root){
+    if (!root) return;
+    var blocks = root.matches && root.matches(GL_SEL) ? [root] : Array.prototype.slice.call(root.querySelectorAll(GL_SEL));
+    blocks.forEach(function(el){
+      if (el.dataset.gl) return;
+      el.dataset.gl = '1';
+      var inSummary = !!el.closest('summary');
+      GLOSSARY.forEach(function(g){
+        var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
+        while ((n = walker.nextNode())) {
+          var par = n.parentNode;
+          if (!par || (par.closest && par.closest('.mono, a, .gl, code'))) continue;
+          var m = g[0].exec(n.nodeValue);
+          if (!m) continue;
+          var after = n.splitText(m.index);
+          after.splitText(m[0].length);
+          var span = document.createElement('span'), tip = document.createElement('span');
+          span.className = 'gl';
+          if (!inSummary) span.tabIndex = 0;
+          tip.className = 'gl-tip'; tip.setAttribute('role', 'tooltip'); tip.id = 'gl-' + (++glId); tip.textContent = g[1];
+          span.setAttribute('aria-describedby', tip.id);
+          par.replaceChild(span, after);
+          span.appendChild(after); span.appendChild(tip);
+          break;
+        }
+      });
+    });
+  }
+
+  /* ---------- guided test journey ----------
+     One paste box per step; every platform seen anywhere in the journey is checked for that
+     step's event via TD.checkJourney(). Pastes are not stored anywhere. */
+  var JOURNEYS = {
+    ecom: [
+      { stage:0, title:'Land on the site', how:'Open the homepage or a campaign landing page, then capture.' },
+      { stage:1, title:'View a product', how:'Open any product page, then capture.' },
+      { stage:2, title:'Add it to the basket', how:'Click add to basket, then capture straight away - before the page changes.' },
+      { stage:3, title:'Start checkout', how:'Go to the first checkout page, then capture.' },
+      { stage:4, title:'Complete a test purchase', how:'Use a test order or a low-value product, then capture on the order confirmation page.' }
+    ],
+    lead: [
+      { stage:0, title:'Land on the page with the form', how:'Open the landing page, then capture.' },
+      { stage:5, title:'Submit the form', how:'Submit with test details, then capture on the thank-you page (or straight after submitting if there isn\u2019t one).' }
+    ]
+  };
+  var jType = 'ecom';
+  try { jType = localStorage.getItem('id-dq-journey') === 'lead' ? 'lead' : 'ecom'; } catch(e){}
+  var JSTEPS = document.getElementById('dq-jsteps'), JOUT = document.getElementById('dq-jout');
+  function renderJourneySteps(){
+    if (!JSTEPS) return;
+    document.querySelectorAll('.dq-jtype').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.j === jType)); });
+    JSTEPS.innerHTML = JOURNEYS[jType].map(function(st, k){
+      return '<li class="dq-jstep"><div class="dq-jstep-h"><strong>' + esc(st.title) + '</strong> <span class="dq-jstage">' + esc(TD.checkJourney([]).stages[st.stage]) + ' event expected</span></div>'
+        + '<div class="dq-hint">' + esc(st.how) + '</div>'
+        + '<textarea class="dq-ta dq-jin" rows="2" spellcheck="false" data-step="' + k + '" aria-label="Requests captured at step ' + (k + 1) + ': ' + esc(st.title) + '" placeholder="Paste what fired at this step"></textarea>'
+        + '<button class="id-btn dq-toggle dq-jopen" type="button" data-step="' + k + '">Open this step in the decoder</button></li>';
+    }).join('');
+    JOUT.innerHTML = '';
+  }
+  function reqsFromText(text){
+    var t = text.trim();
+    if (!t) return [];
+    if (/^\{[\s\S]*"log"\s*:/.test(t)) { try { return TD.requestsFromHar(t).requests; } catch(e){} }
+    return extract(t);
+  }
+  function runJourney(){
+    if (!JSTEPS) return;
+    var steps = JOURNEYS[jType].map(function(st, k){
+      var ta = JSTEPS.querySelector('.dq-jin[data-step="' + k + '"]');
+      var reqs = reqsFromText(ta ? ta.value : '');
+      return { stage: st.stage, results: reqs.map(function(r){ return TD.analyzeRequest({ url:r.url, body:r.body, bare:!!r.bare }, {}); }) };
+    });
+    var J = TD.checkJourney(steps);
+    var captured = J.rows.filter(function(r){ return r.captured; }).length;
+    if (!captured) { JOUT.innerHTML = ''; return; }
+    var gaps = [];
+    J.rows.forEach(function(r, k){
+      if (!r.captured) return;
+      Object.keys(r.cells).forEach(function(p){ if (r.cells[p] === 'no') gaps.push(shortName(p) + ' at \u201c' + JOURNEYS[jType][k].title.toLowerCase() + '\u201d'); });
+    });
+    var h = '<div class="dq-jsum ' + (gaps.length ? 'is-gap' : 'is-ok') + '">'
+      + captured + ' of ' + J.rows.length + ' step' + (J.rows.length === 1 ? '' : 's') + ' captured. '
+      + (!J.platforms.length ? 'No tracking platform recognised in what was pasted yet.'
+         : gaps.length ? '<strong>Missing:</strong> ' + esc(gaps.join('; ')) + '.'
+         : '<strong>Every platform received every captured step\u2019s event.</strong>')
+      + '</div>';
+    if (J.platforms.length) {
+      h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Journey results by step and platform, scroll horizontally to see all columns"><table class="id-table dq-score"><thead><tr><th>Step</th>'
+        + J.platforms.map(function(p){ return '<th>' + esc(shortName(p)) + '</th>'; }).join('') + '<th>Also fired</th></tr></thead><tbody>';
+      J.rows.forEach(function(r, k){
+        h += '<tr><td><strong>' + (k + 1) + '. ' + esc(JOURNEYS[jType][k].title) + '</strong></td>'
+          + J.platforms.map(function(p){
+              if (!r.captured) return '<td class="dq-sc-na" title="Not captured yet">&ndash;</td>';
+              return r.cells[p] === 'yes' ? '<td class="dq-sc-ok" title="Received the ' + esc(J.stages[r.stage].toLowerCase()) + ' event">&#10003;</td>'
+                : '<td class="dq-sc-no" title="Fired nothing for this step - check the tag\u2019s trigger">&#10005;</td>';
+            }).join('')
+          + '<td class="dq-sc-ev">' + esc(r.other.slice(0, 6).join(', ')) + (r.other.length > 6 ? ' \u2026' : '') + '</td></tr>';
+      });
+      h += '</tbody></table></div>'
+        + '<p class="dq-ans-cap dq-jnote">A cross means that platform fired nothing matching this step, even though it fired elsewhere in the journey - usually a missing trigger in the tag manager. Open the step in the decoder for the full findings on each request.</p>';
+    }
+    JOUT.innerHTML = h;
+    glossify(JOUT);
+  }
+  if (JSTEPS) {
+    renderJourneySteps();
+    var jTimer = null;
+    JSTEPS.addEventListener('input', function(e){
+      if (!e.target.classList.contains('dq-jin')) return;
+      clearTimeout(jTimer); jTimer = setTimeout(runJourney, 150);
+    });
+    JSTEPS.addEventListener('click', function(e){
+      var b = e.target.closest('.dq-jopen');
+      if (!b) return;
+      var ta = JSTEPS.querySelector('.dq-jin[data-step="' + b.dataset.step + '"]');
+      var text = ta ? ta.value.trim() : '';
+      if (!text) { ta && ta.focus(); return; }
+      var reqs = reqsFromText(text);
+      if (/^\{/.test(text) && reqs.length) {
+        var har = null; try { har = TD.requestsFromHar(text); } catch(x){}
+        if (har) {
+          var tracking = har.requests.filter(function(r){ var a = TD.analyzeRequest({ url:r.url, body:r.body }, {}); return a.ok && a.platform; });
+          IN.value = ''; run({ reqs: tracking, siteHost: har.siteHost, note: 'Step ' + (+b.dataset.step + 1) + ' of the guided journey (HAR).' });
+        }
+      } else { IN.value = text; run(); }
+      OUT.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+    document.querySelectorAll('.dq-jtype').forEach(function(b){
+      b.addEventListener('click', function(){
+        jType = b.dataset.j;
+        try { localStorage.setItem('id-dq-journey', jType); } catch(x){}
+        renderJourneySteps();
+      });
+    });
+    var JCLR = document.getElementById('dq-jclear');
+    if (JCLR) JCLR.addEventListener('click', function(){ renderJourneySteps(); });
+  }
+
+  /* ---------- CSV: one row per request, for an audit spreadsheet ---------- */
+  /* Only free-text columns go through redactPii(): its phone pattern matches any 9+ digit run,
+     which would wipe out numeric pixel IDs, values and order numbers - none of them personal data. */
+  function csvCell(v, scrub){ v = v == null ? '' : String(v); if (scrub) v = redactPii(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function buildCsv(ms){
+    var rows = [['#','Platform','Event','What it is for','Conversion','Value','Currency','Order ID','Dedup ID','Pixel / tag ID','Page','Ads consent','Analytics consent','Verdict','Who fixes it','Issues']];
+    ms.forEach(function(m){
+      var i = metas.indexOf(m), f = m.fields || {}, c = f.consent || {};
+      var issues = (m.findings || []).filter(function(x){ return !x.ignored && (x.sev === 'fail' || x.sev === 'warn'); }).map(function(x){ return x.title; }).join('; ');
+      rows.push([i + 1, m.name, m.event || '', m.purpose || '', m.conv ? 'yes' : '', f.value || '', f.currency || '', f.orderId || '',
+        f.dedupApplies ? (f.dedupId ? 'sent' : 'none') : '', f.pixelId || '', f.page || '', c.ads || '', c.analytics || '',
+        sevLabel(m.sev, 1), ownerOf(m.findings || []) || '', issues]);
+    });
+    var SCRUB = { 2:1, 10:1, 15:1 };   /* Event, Page, Issues */
+    return rows.map(function(r){ return r.map(function(v, ci){ return csvCell(v, SCRUB[ci]); }).join(','); }).join('\r\n');
+  }
+  function downloadText(text, filename, type){
+    var blob = new Blob([text], { type: type });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* Paste-level lines for the two exports - cross-platform notes and expectations apply to the
+     whole paste, so they're labelled as such even when the request list is filtered. Built only
+     from platform names, event names, IDs, values and currencies - never a visitor field - so
+     they skip redactPii() (which would mangle numeric pixel IDs); the one user-typed part, an
+     expected event name, is scrubbed individually. */
+  function pasteLevelLines(A){
+    if (!A) return [];
+    var out = [];
+    if (!A.hasConversion && A.platforms.length) out.push('No conversion events in this paste - healthy verdicts only cover what was pasted.');
+    A.notes.forEach(function(n){ out.push(n.title + ': ' + n.detail); });
+    (A.expected || []).forEach(function(e){ if (!e.seenOn.length) out.push('Expected but not seen: ' + redactPii(e.name)); });
+    A.unexpectedIds.forEach(function(u){ out.push('Unexpected ' + u.platform + ' ID ' + u.id + ' - not in this client’s ID list'); });
+    return out;
   }
 
   /* ---------- findings summary: plain text for pasting into a ticket, Slack message or
@@ -2386,9 +2993,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
       .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
     if (tallyBits.length) lines.push(tallyBits.join(', '));
+    var pl = pasteLevelLines(lastAnalysis);
+    if (pl.length) { lines.push(''); lines.push('Across the whole paste:'); pl.forEach(function(x){ lines.push('   - ' + x); }); }
     metas.forEach(function(m, i){
       lines.push('');
       lines.push((i+1) + '. ' + m.name + (m.host ? ' (' + m.host + ')' : ''));
+      if (m.event) lines.push(redactPii('   Event: ' + m.event + ' - ' + m.purpose));
       var shown = (m.findings || []).filter(function(f){ return !f.ignored; })
         .sort(function(a,b){ return FINDSEV_ORDER[a.sev] - FINDSEV_ORDER[b.sev]; });
       if (!shown.length) { lines.push('   Nothing to raise.'); return; }
@@ -2437,9 +3047,13 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           ? 'Showing ' + metas.length + ' of ' + totalCount + ' request' + (totalCount===1?'':'s') + ', filtered: ' + esc(filterLabel)
           : metas.length + ' request' + (metas.length===1?'':'s') + ' decoded')
       + (tallyBits.length ? ' - ' + tallyBits.join(', ') : '') + '</div>';
+    var pl = pasteLevelLines(lastAnalysis);
+    if (pl.length) h += '<div class="dqp-find dqp-warn"><span class="dqp-sev">Across the whole paste</span>'
+      + pl.map(function(x){ return '<div class="dqp-detail">' + esc(x) + '</div>'; }).join('') + '</div>';
     metas.forEach(function(m, i){
       h += '<h2>' + (i+1) + '. ' + esc(m.name) + '</h2>';
       if (m.host) h += '<div class="dqp-host">' + esc(m.host) + '</div>';
+      if (m.event) h += '<div class="dqp-host">' + esc(redactPii('Event: ' + m.event + ' - ' + m.purpose)) + '</div>';
       var shown = (m.findings || []).filter(function(f){ return !f.ignored; })
         .sort(function(a,b){ return FINDSEV_ORDER[a.sev] - FINDSEV_ORDER[b.sev]; });
       if (!shown.length) { h += '<div class="dqp-clean">Nothing to raise.</div>'; return; }
@@ -2473,22 +3087,25 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
   }
 
-  function run(){
-    var raw = IN.value.trim();
+  function run(src){
+    if (!(src && src.reqs)) src = null;
+    harSource = src;
+    var raw = src ? '' : IN.value.trim();
     var myHost = (HOSTIN.value || '').trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'').toLowerCase() || null;
     var sm = raw.match(/^#\s*site:\s*([a-z0-9.\-]+)/im);
-    var siteHost = sm ? sm[1].toLowerCase() : null;
+    var siteHost = src ? src.siteHost : (sm ? sm[1].toLowerCase() : null);
     var hasServerSide = !!(SSGTM && SSGTM.checked);
     activeFilter = null;
-    if (!raw) { OUT.innerHTML = ''; announce(''); return; }
-    var reqs = extract(raw);
+    if (!src && !raw) { OUT.innerHTML = ''; lastResults = []; lastAnalysis = null; announce(''); return; }
+    var reqs = src ? src.reqs : extract(raw);
     if (!reqs.length) {
       OUT.innerHTML = '<div class="dq-card"><div class="dq-err">Could not find a URL, query string or body in that. Paste the full request URL - in DevTools, right-click the request then Copy &rarr; Copy link address.</div></div>';
       announce('Could not find a request in that paste.');
       return;
     }
-    metas = []; var parts = [];
-    reqs.slice(0, 12).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
+    metas = []; lastResults = []; var parts = [];
+    reqs.slice(0, MAXREQ).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
+    lastAnalysis = TD.analyzePaste(lastResults, { expectedEvents: splitList(EXPIN && EXPIN.value), expectedIds: splitList(IDSIN && IDSIN.value) });
 
     /* group by platform, ordered worst-first, so the summary works as a table of contents */
     var groups = {}; order = [];
@@ -2510,9 +3127,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         + '<span class="dq-gh-c">'+g.items.length+' request'+(g.items.length===1?'':'s')+'</span></div>'
         + g.items.join('') + '</section>';
     }).join('');
-    var html = renderSummary(metas, order) + cards;
-    if (reqs.length > 12) html += '<div class="dq-count">Only the first 12 were decoded - paste fewer at a time to see the rest.</div>';
+    var html = (src && src.note ? '<div class="dq-srcnote">' + src.note + '</div>' : '')
+      + renderSummary(metas, order) + renderAnswers(lastAnalysis) + renderTools() + '<div id="dq-cards">' + cards + '</div>';
+    if (reqs.length > MAXREQ) html += '<div class="dq-count">Only the first ' + MAXREQ + ' were decoded - paste fewer at a time to see the rest.</div>';
     OUT.innerHTML = html;
+    if (view.layout === 'timeline' && hasTimes()) layoutCards('timeline');
+    else { view.layout = 'platform'; }
+    applyFilter();
+    glossify(OUT);
     var tally = computeTally(metas);
     var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
       .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
@@ -2526,17 +3148,29 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
      active filter at a time, same single-select feel either way. Both filteredMetas() (what the
      exports read) and applyFilter() (what's shown on screen) key off this one piece of state, so
      they can never disagree about what "currently filtered to" means. */
+  function viewOk(m, platFilter){
+    if (view.conv && !m.conv) return false;
+    if (view.hideSupport && m.support && platFilter !== m.name) return false;
+    if (view.q && (m.text || '').indexOf(view.q) === -1) return false;
+    return true;
+  }
   function filteredMetas(){
+    var pf = activeFilter && activeFilter.type === 'plat' ? activeFilter.value : null;
+    return baseFilteredMetas().filter(function(m){ return viewOk(m, pf); });
+  }
+  function baseFilteredMetas(){
     if (!activeFilter) return metas;
     if (activeFilter.type === 'sev') return metas.filter(function(m){ return m.sev === activeFilter.value; });
     if (activeFilter.type === 'plat') return metas.filter(function(m){ return m.name === activeFilter.value; });
     return metas;
   }
   function activeFilterLabel(){
-    if (!activeFilter) return null;
-    if (activeFilter.type === 'sev') return sevLabel(activeFilter.value, 1);
-    if (activeFilter.type === 'plat') return shortName(activeFilter.value);
-    return null;
+    var bits = [];
+    if (activeFilter && activeFilter.type === 'sev') bits.push(sevLabel(activeFilter.value, 1));
+    if (activeFilter && activeFilter.type === 'plat') bits.push(shortName(activeFilter.value));
+    if (view.conv) bits.push('conversions only');
+    if (view.q) bits.push('matching "' + view.q + '"');
+    return bits.length ? bits.join(', ') : null;
   }
   function applyFilter(){
     var sevFilter = activeFilter && activeFilter.type === 'sev' ? activeFilter.value : null;
@@ -2552,11 +3186,19 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       row.setAttribute('aria-pressed', String(on));
       row.style.display = (!sevFilter || row.dataset.worst === sevFilter) ? '' : 'none';
     });
+    var hiddenSupport = 0;
     OUT.querySelectorAll('.dq-req').forEach(function(d){
       var sevOk = !sevFilter || d.dataset.sev === sevFilter;
       var platOk = !platFilter || d.dataset.plat === platFilter;
-      d.style.display = (sevOk && platOk) ? '' : 'none';
+      var m = metas[+d.dataset.idx] || {};
+      var vOk = viewOk(m, platFilter);
+      if (sevOk && platOk && !vOk && view.hideSupport && m.support) hiddenSupport++;
+      d.style.display = (sevOk && platOk && vOk) ? '' : 'none';
     });
+    var hs = OUT.querySelector('#dq-support-n');
+    if (hs) hs.textContent = hiddenSupport ? '(' + hiddenSupport + ' hidden)' : '';
+    var none = OUT.querySelector('.dq-nomatch');
+    if (none) none.hidden = Array.prototype.some.call(OUT.querySelectorAll('.dq-req'), function(d){ return d.style.display !== 'none'; });
     OUT.querySelectorAll('.dq-group').forEach(function(g){
       var reqs = g.querySelectorAll('.dq-req');
       var any = Array.prototype.some.call(reqs, function(d){ return d.style.display !== 'none'; });
@@ -2584,14 +3226,20 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       var vsym = verdictEl.querySelector('.vsym'), vt = verdictEl.querySelector('.vt'), vd = verdictEl.querySelector('.vd');
       if (vsym) vsym.textContent = V.symbol;
       if (vt) vt.textContent = V.headline;
-      if (vd) vd.innerHTML = V.detail;
+      if (vd) { vd.innerHTML = V.detail; delete vd.dataset.gl; glossify(vd); }
     }
     var dot = reqDiv.querySelector('summary .rq-dot');
     if (dot) dot.className = 'rq-dot rq-' + V.level;
     var badge = reqDiv.querySelector('summary .rq-v');
     if (badge) { badge.className = 'rq-v rq-v-' + V.level; badge.textContent = SHORT[V.level]; }
     reqDiv.dataset.sev = V.level;
-    if (metas[idx]) metas[idx].sev = V.level;
+    if (metas[idx]) {
+      metas[idx].sev = V.level;
+      var ownerEl = reqDiv.querySelector('summary .rq-fact--owner');
+      var owner = ownerOf(metas[idx].findings);
+      if (ownerEl && !owner) ownerEl.remove();
+      else if (ownerEl) ownerEl.innerHTML = '<span class="rq-fl">Fix</span> ' + esc(owner);
+    }
   }
 
   /* After an Ignore toggle, the per-platform group dot and the whole summary panel
@@ -2648,6 +3296,27 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       applyFilter();
       return;
     }
+    if ((b = e.target.closest('.dq-seg-b'))) {
+      if (b.dataset.layout !== view.layout) layoutCards(b.dataset.layout);
+      return;
+    }
+    if ((b = e.target.closest('#dq-export-csv'))) {
+      var clientF = document.getElementById('ft-client');
+      var cn = clientF && clientF.value ? clientF.value.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '-' : '';
+      downloadText('\ufeff' + buildCsv(filteredMetas()), 'tracking-check-' + cn + new Date().toISOString().slice(0, 10) + '.csv', 'text/csv;charset=utf-8');
+      return;
+    }
+    if ((b = e.target.closest('#dq-base-save'))) {
+      var cf = document.getElementById('ft-client');
+      try { localStorage.setItem(BASE_KEY, JSON.stringify({ saved: new Date().toISOString(), client: cf ? cf.value : '', sigs: sigsOf(metas) })); } catch(x){}
+      refreshBaseline();
+      return;
+    }
+    if ((b = e.target.closest('#dq-base-clear'))) {
+      try { localStorage.removeItem(BASE_KEY); } catch(x){}
+      refreshBaseline();
+      return;
+    }
     if ((b = e.target.closest('#dq-expand'))) {
       var all = OUT.querySelectorAll('details.dq-req');
       var anyClosed = Array.prototype.some.call(all, function(d){ return !d.open; });
@@ -2686,11 +3355,71 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }
   });
 
-  document.getElementById('dq-go').addEventListener('click', run);
-  document.getElementById('dq-clear').addEventListener('click', function(){ IN.value=''; OUT.innerHTML=''; IN.focus(); });
-  HOSTIN.addEventListener('input', function(){ if (OUT.innerHTML) run(); });
+  /* toolbar (inside OUT, rebuilt on every decode - delegated) */
+  OUT.addEventListener('change', function(e){
+    if (e.target.id === 'dq-v-conv') { view.conv = e.target.checked; applyFilter(); }
+    if (e.target.id === 'dq-v-support') {
+      view.hideSupport = e.target.checked;
+      try { localStorage.setItem('id-dq-hide-support', view.hideSupport ? '1' : '0'); } catch(x){}
+      applyFilter();
+    }
+  });
+  OUT.addEventListener('input', function(e){
+    if (e.target.id === 'dq-v-q') { view.q = e.target.value.trim().toLowerCase(); applyFilter(); }
+  });
+
+  /* re-decode with the same source after a setting changes - a HAR import has no textarea text */
+  function rerun(){ if (harSource) run(harSource); else if (OUT.innerHTML) run(); }
+  function saveExpectations(){
+    try { localStorage.setItem('id-dq-expected', EXPIN.value); localStorage.setItem('id-dq-ids', IDSIN.value); } catch(x){}
+    rerun();
+  }
+  if (EXPIN) EXPIN.addEventListener('change', saveExpectations);
+  if (IDSIN) IDSIN.addEventListener('change', saveExpectations);
+  var TPL = { ecom: 'page_view, view_item, add_to_cart, begin_checkout, purchase', lead: 'page_view, generate_lead' };
+  document.querySelectorAll('.dq-tpl').forEach(function(b){
+    b.addEventListener('click', function(){ EXPIN.value = TPL[b.dataset.tpl] || ''; saveExpectations(); });
+  });
+
+  /* HAR import: read locally with FileReader, keep only requests a known vendor sent */
+  var HARIN = document.getElementById('dq-har'), HARBTN = document.getElementById('dq-har-btn');
+  if (HARIN && HARBTN) {
+    HARBTN.addEventListener('click', function(){ HARIN.click(); });
+    HARIN.addEventListener('change', function(){
+      var file = HARIN.files && HARIN.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        var parsed;
+        try { parsed = TD.requestsFromHar(String(reader.result)); }
+        catch(err){
+          OUT.innerHTML = '<div class="dq-card"><div class="dq-err">That file couldn\u2019t be read as a HAR export. In DevTools\u2019 Network tab, right-click any request and choose Save all as HAR.</div></div>';
+          announce('Could not read that file.');
+          HARIN.value = ''; return;
+        }
+        var tracking = parsed.requests.filter(function(r){
+          var a = TD.analyzeRequest({ url: r.url, body: r.body }, {});
+          return a.ok && a.platform;
+        });
+        HARIN.value = '';
+        if (!tracking.length) {
+          OUT.innerHTML = '<div class="dq-card"><div class="dq-err">No tracking requests found in ' + esc(file.name) + ' (' + parsed.total + ' requests checked). Make sure the Network tab was recording while the page loaded, with "Preserve log" ticked if you moved between pages.</div></div>';
+          announce('No tracking requests found in that file.');
+          return;
+        }
+        IN.value = '';
+        run({ reqs: tracking, siteHost: parsed.siteHost,
+          note: 'Decoded from <strong>' + esc(file.name) + '</strong>: ' + tracking.length + ' tracking request' + (tracking.length === 1 ? '' : 's') + ' out of ' + parsed.total + ' in the file' + (parsed.siteHost ? ', site <span class="mono">' + esc(parsed.siteHost) + '</span>' : '') + '.' });
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  document.getElementById('dq-go').addEventListener('click', function(){ run(); });
+  document.getElementById('dq-clear').addEventListener('click', function(){ IN.value=''; OUT.innerHTML=''; harSource = null; lastResults = []; lastAnalysis = null; IN.focus(); });
+  HOSTIN.addEventListener('input', rerun);
   IN.addEventListener('keydown', function(e){ if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') run(); });
-  IN.addEventListener('paste', function(){ setTimeout(run, 30); });
+  IN.addEventListener('paste', function(){ setTimeout(function(){ run(); }, 30); });
   document.querySelectorAll('.dq-eg').forEach(function(b){
     b.addEventListener('click', function(){
       IN.value = EGS[b.dataset.eg] || '';

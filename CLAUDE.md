@@ -120,6 +120,27 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      `metas` in `renderOne`) rendered via `printRemedyHtml()` — a static "How to fix this" block
      (who/steps/docs, no `<details>` since there's nothing to click on paper), `esc()`d throughout
      since `REMEDIES`/`GENERIC_FIX` are plain text with no markup of their own.
+   - Paid-media layer on top of the per-request cards: `factsHtml()` (facts line under each
+     collapsed row, from `result.fields`; `ownerOf()` maps a remedy's `who` to the "Fix" chip and
+     is recomputed in `recalcRequest()` after Ignore), `renderAnswers()` ("At a glance", from
+     `TD.analyzePaste()` stored in `lastAnalysis`), `renderBaseline()` (localStorage
+     `id-dq-baseline`: platform + event + verdict only, never parameter values), `renderTools()`
+     (Conversions only / Hide supporting requests / search — `view` state, honoured by both
+     `applyFilter()` and `filteredMetas()` so exports match the screen), `buildCsv()` (scrubs only
+     free-text columns: `redactPii()`'s phone pattern eats numeric pixel IDs), and HAR import
+     (`#dq-har`, read with FileReader; `run(src)` takes `{reqs, siteHost, note}` and `rerun()`
+     replays it when a setting changes). Expected events / client IDs live in
+     `#dq-expected`/`#dq-ids`, persisted to `id-dq-expected`/`id-dq-ids`. `MAXREQ` caps a decode
+     at 60 requests.
+   - `layoutCards('platform'|'timeline')` — switches the request list between grouped-by-platform
+     and fire order split by page. It *moves* the existing `.dq-req` nodes into `#dq-cards` rather
+     than re-rendering, so open state and Ignore toggles survive. Timeline only appears when
+     requests carry `time` (HAR imports today; `metas[i].t`/`pageKey`).
+   - `glossify(root)` / `GLOSSARY` — wraps the first use of each jargon term per text block
+     (`GL_SEL`) in a `.gl` span with a `role="tooltip"` child; skips `.mono`, links and summary
+     focus. Call it on any newly rendered prose (run, baseline refresh, recalc, journey).
+   - Guided test journey (`#dq-journey`, `JOURNEYS`, `runJourney()`) — one paste box per step
+     (ecommerce or lead), checked with `TD.checkJourney()`. Step pastes are never persisted.
    - `activeFilter` / `filteredMetas()` / `applyFilter()` — a single active filter, either
      `{type:'sev', value:'red'|'amber'|'green'}` (the summary's severity chips) or `{type:'plat',
      value:<platform name>}` (the summary's per-platform rows — these filter now, they used to
@@ -157,11 +178,23 @@ just downloads and double-clicks the file.)
 - `analyzeRequest(input, options)` — the primary entry point and the contract a future automated
   consumer builds against; treat its shape as stable. `input: {url, body?, bare?}`, `options:
   {myHost?, siteHost?, hasServerSide?, beforeConsent?}`. Returns `{ok:true, request, platform,
-  params, findings, verdict}` on success or `{ok:false, error, request}` if `input.url` doesn't
+  params, event, findings, verdict}` on success (`event` = `{name, label, purpose, conversion}`
+  from `describeEvent()`, shown on each collapsed Decode row; descriptive only, never affects
+  findings — add new event names to its `EVENT_PURPOSE` map) or `{ok:false, error, request}` if `input.url` doesn't
   parse as a URL. Full field-by-field documentation is in the file's header comment.
   `beforeConsent` is only set by `scripts/scan-url.js` (an experimental local scan-by-URL tool),
   which knows a hit fired before the cookie banner was answered; a paste can't know that, so
   `index.html` never sets it.
+- `fields` on each result (`extractFields()`, driven by the `FIELDMAP` table) — value, currency,
+  order ID, dedup ID, pixel ID, page path and consent, read off each platform's own param names.
+  Adding a platform means adding its `FIELDMAP` row too, or its rows show no facts line.
+- `eventFindings()` — the event-name typo/wrong-case check (`STANDARD_EVENTS`) and the value
+  checks (not a number / 0 / missing on a purchase). Kept separate from `findings()` so that
+  function's logic is unchanged; concatenated in `analyzeRequest()` before the verdict.
+- `analyzePaste(results, {expectedEvents, expectedIds})` — the Decode tab's "At a glance" panel:
+  per-platform scorecard, funnel grid (`STAGES`), cross-platform notes, expected/unexpected
+  checks. `requestsFromHar(text)` — HAR import (each request also gets `time` and `pageTitle`).
+  `checkJourney(steps)` — the guided journey: per step, did each platform get that step's event.
 - `PLATFORMS` — the vendor registry: each entry has a hostname/path matcher `t()`, display name `n`,
   kind `k`, and a documented-parameters map `d` (values tagged `'d'` documented / `'p'`
   practitioner-sourced / `'u'` undocumented). Exported read-only for reference use.

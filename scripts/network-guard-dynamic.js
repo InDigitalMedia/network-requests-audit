@@ -105,6 +105,58 @@ function extractBmCode(html) {
   await page.evaluate(() => { window.print = function () {}; }); // no real print dialog in headless
   if (await page.locator('#dq-export-pdf').count()) { await page.click('#dq-export-pdf'); await page.waitForTimeout(60); }
 
+  // Decode: expectations, view toolbar, CSV export, baseline, HAR import.
+  if (await page.locator('.dq-setup').count()) {
+    await page.locator('.dq-setup > summary').click();
+    await page.click('.dq-tpl[data-tpl="ecom"]'); await page.waitForTimeout(40);
+    await page.click('.dq-tpl[data-tpl="lead"]'); await page.waitForTimeout(40);
+    await page.fill('#dq-ids', 'G-ABC123XYZ, 998877665544'); await page.dispatchEvent('#dq-ids', 'change'); await page.waitForTimeout(40);
+  }
+  if (await page.locator('#dq-v-conv').count()) {
+    await page.check('#dq-v-conv'); await page.uncheck('#dq-v-conv');
+    await page.uncheck('#dq-v-support'); await page.check('#dq-v-support');
+    await page.fill('#dq-v-q', 'meta'); await page.fill('#dq-v-q', ''); await page.waitForTimeout(40);
+  }
+  if (await page.locator('#dq-export-csv').count()) {
+    const [csv] = await Promise.all([page.waitForEvent('download'), page.click('#dq-export-csv')]);
+    await csv.delete();
+  }
+  if (await page.locator('#dq-base-save').count()) {
+    await page.click('#dq-base-save'); await page.waitForTimeout(40);
+    if (await page.locator('#dq-base-clear').count()) { await page.click('#dq-base-clear'); await page.waitForTimeout(40); }
+  }
+  if (await page.locator('#dq-har').count()) {
+    // A HAR whose entries point at real tracking hosts - decoding must only read them, never fetch them.
+    const harPath = path.join(os.tmpdir(), 'network-guard-test.har');
+    fs.writeFileSync(harPath, JSON.stringify({ log: { entries: [
+      { request: { url: 'https://www.example.com/', method: 'GET' }, response: { content: { mimeType: 'text/html' } } },
+      { request: { url: 'https://www.facebook.com/tr/?id=1&ev=Purchase&cd%5Bvalue%5D=10&cd%5Bcurrency%5D=GBP', method: 'GET' }, response: { content: { mimeType: 'image/gif' } } },
+      { request: { url: 'https://analytics.tiktok.com/api/v2/pixel', method: 'POST', postData: { text: '{"event":"CompletePayment","context":{"pixel":{"code":"X"}}}' } }, response: { content: { mimeType: 'application/json' } } }
+    ] } }));
+    await page.setInputFiles('#dq-har', harPath);
+    await page.waitForTimeout(150);
+    fs.unlinkSync(harPath);
+  }
+  // Timeline/platform layout switch (only rendered when requests carry times, i.e. after a HAR import).
+  if (await page.locator('.dq-seg-b[data-layout="timeline"]').count()) {
+    await page.click('.dq-seg-b[data-layout="timeline"]'); await page.waitForTimeout(40);
+    await page.click('.dq-seg-b[data-layout="platform"]'); await page.waitForTimeout(40);
+  }
+  // Glossary tooltips: hover and focus one.
+  if (await page.locator('#dq-out .gl').count()) {
+    await page.locator('#dq-out .gl').first().hover(); await page.waitForTimeout(20);
+  }
+  // Guided test journey: both journey types, fill a step, open it in the decoder, clear.
+  if (await page.locator('#dq-journey').count()) {
+    await page.locator('#dq-journey > summary').click();
+    await page.click('.dq-jtype[data-j="lead"]'); await page.click('.dq-jtype[data-j="ecom"]');
+    await page.fill('.dq-jin[data-step="0"]', 'https://www.facebook.com/tr/?id=1&ev=PageView&ud%5Bem%5D=jane.doe%40example.com');
+    await page.fill('.dq-jin[data-step="2"]', 'https://www.facebook.com/tr/?id=1&ev=AddToCart');
+    await page.waitForTimeout(250);
+    await page.click('.dq-jopen[data-step="0"]'); await page.waitForTimeout(60);
+    await page.click('#dq-jclear'); await page.waitForTimeout(40);
+  }
+
   // "Your setup": fill everything, export JSON, clear, re-import, export PDF.
   if (await page.locator('#tab-ft').count()) {
     await page.click('#tab-ft');
