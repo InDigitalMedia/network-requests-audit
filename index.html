@@ -550,10 +550,6 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-srcnote { margin-top:14px; font-size:12.5px; color:var(--ink-2); padding:9px 13px; border:1px dashed var(--line); border-radius:var(--r-ctl); }
 
 /* "At a glance" panel */
-.dq-ans {
-  margin-top:12px; background:var(--surface-1); border:1px solid var(--line);
-  border-radius:var(--r-card); box-shadow:var(--sh-card); padding:13px 16px 15px;
-}
 .dq-ans-banner {
   font-size:13px; line-height:1.55; color:var(--warn); background:var(--warn-bg);
   border:1px solid var(--warn-line); border-radius:var(--r-ctl); padding:9px 12px; margin-bottom:10px;
@@ -644,16 +640,35 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
    otherwise silently win, hiding that this chip is also keyboard-focused right now. */
 .dq-filter-chip.is-active:focus-visible { box-shadow:var(--focus); }
 
-/* ---- summary of everything pasted: tinted, labelled, distinct from the cards ---- */
-.dq-summary {
+/* ---- the three decode-output sections (summary, at a glance, all requests): one shared
+   tinted panel + labelled header, so they read as a set. Each header carries a numbered
+   marker in its own colour (--sec) so the three stay distinguishable at a glance. ---- */
+.dq-summary, .dq-ans, .dq-reqs {
   margin-top:14px; background:var(--muted); border:1px solid var(--line);
   border-radius:var(--r-card); box-shadow:var(--sh-card); padding:13px 16px 15px;
+  --sec:var(--navy); --sec-fg:#fff;
 }
-:root[data-theme="dark"] .id-root .dq-summary { background:var(--muted); border-color:var(--line); }
+.dq-ans { --sec:var(--green); --sec-fg:#131519; }
+.dq-reqs { --sec:var(--gold); --sec-fg:#131519; }
+:root[data-theme="dark"] .id-root .dq-summary,
+:root[data-theme="dark"] .id-root .dq-ans,
+:root[data-theme="dark"] .id-root .dq-reqs { background:var(--muted); border-color:var(--line); }
 .dq-sum-eyebrow {
+  display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px;
   font-size:9.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3);
   padding-bottom:8px; margin-bottom:11px; border-bottom:1px solid var(--line);
 }
+.dq-step {
+  flex:0 0 auto; width:18px; height:18px; border-radius:var(--r-pill); display:inline-flex;
+  align-items:center; justify-content:center; background:var(--sec); color:var(--sec-fg);
+  font-size:10px; font-weight:800; letter-spacing:0;
+}
+:root[data-theme="dark"] .id-root .dq-summary .dq-step { color:#131519; }
+.dq-eb-sub { font-weight:600; letter-spacing:0.04em; text-transform:none; }
+#dq-listlabel { flex:1 1 0; min-width:0; line-height:1.5; }
+.dq-reqs .dq-tools { margin-top:0; }
+.dq-reqs #dq-cards > .dq-group:first-child .dq-grouphead { margin-top:12px; }
+.dq-reqs .dq-count { margin-top:14px; }
 .dq-sum-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .dq-sum-t { font-family:'Montserrat',sans-serif; font-weight:800; font-size:15px; color:var(--head); display:flex; align-items:baseline; gap:7px; }
 .dq-sum-num { font-size:27px; line-height:1; letter-spacing:-0.02em; }
@@ -684,11 +699,6 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 }
 :root[data-theme="dark"] .id-root .dq-sum-go { color:var(--accent-txt); }
 .dq-sum-foot { font-size:12.5px; color:var(--ink-3); margin-top:11px; line-height:1.55; }
-.dq-listlabel {
-  font-size:9.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3);
-  margin:22px 0 0; padding-bottom:7px; border-bottom:1px solid var(--grid);
-}
-.dq-listlabel span { font-weight:600; letter-spacing:0.04em; text-transform:none; }
 
 /* ---- request groups ---- */
 .dq-group { scroll-margin-top:74px; border-radius:var(--r-card); }
@@ -2531,7 +2541,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       .map(function(s){ var on = !!(activeFilter && activeFilter.type==='sev' && activeFilter.value===s);
         return '<button type="button" class="rq-v rq-v-'+s+' dq-filter-chip'+(on?' is-active':'')+'" data-filter="'+s+'" aria-pressed="'+on+'" title="Show only requests marked '+sevLabel(s, 2)+' - click again to clear">'+tally[s]+' '+sevLabel(s, tally[s])+'</button>'; }).join('');
     var h = '<div class="dq-summary">';
-    h += '<div class="dq-sum-eyebrow">Summary of what you pasted</div>';
+    h += '<div class="dq-sum-eyebrow"><span class="dq-step" aria-hidden="true">1</span>Summary of what you pasted</div>';
     h += '<div class="dq-sum-head">'
       + '<div class="dq-sum-t"><span class="dq-sum-num">'+metas.length+'</span> request'+(metas.length===1?'':'s')+' decoded</div>'
       + '<div class="dq-sum-chips">'+chips+'</div>'
@@ -2573,7 +2583,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   function renderAnswers(A){
     if (!A) return '';
     var h = '<div class="dq-ans">';
-    h += '<div class="dq-sum-eyebrow">At a glance</div>';
+    h += '<div class="dq-sum-eyebrow"><span class="dq-step" aria-hidden="true">2</span>At a glance<span class="dq-eb-sub">- answered per platform rather than per request</span></div>';
     if (!A.hasConversion && A.platforms.length) {
       h += '<div class="dq-ans-banner"><strong>No conversion events in this paste.</strong> Every "healthy" below only covers what was pasted - it says nothing about purchase or lead tracking. To check those, complete a test purchase or form on the site, capture the requests again, and decode them.</div>';
     }
@@ -2669,9 +2679,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   }
 
   /* ---------- view toolbar: sits between the summary/answers and the request list ---------- */
-  function renderTools(){
+  /* the "All requests" panel: header, view toolbar, then the request cards themselves */
+  function renderTools(cardsHtml, footHtml){
     var tl = hasTimes();
-    return '<div class="dq-listlabel" id="dq-listlabel">' + listLabel(view.layout === 'timeline' && tl) + '</div>'
+    return '<div class="dq-reqs"><div class="dq-sum-eyebrow"><span class="dq-step" aria-hidden="true">3</span><span id="dq-listlabel">' + listLabel(view.layout === 'timeline' && tl) + '</span></div>'
       + '<div class="dq-tools">'
       + (tl ? '<span class="dq-seg" role="group" aria-label="Show requests">'
           + '<button type="button" class="dq-seg-b" data-layout="platform" aria-pressed="' + (view.layout !== 'timeline') + '">By platform</button>'
@@ -2680,7 +2691,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + '<label class="dq-ssw" title="Tag code downloads, cookie banner scripts, audience and remarketing pings - needed, but not events you report on"><input type="checkbox" id="dq-v-support"' + (view.hideSupport ? ' checked' : '') + '> Hide supporting requests <span id="dq-support-n" class="dq-tools-n"></span></label>'
       + '<input id="dq-v-q" class="dq-inp" type="search" spellcheck="false" placeholder="Filter: event, ID, page…" aria-label="Filter requests by event name, pixel ID, page or host" value="' + esc(view.q) + '">'
       + '</div>'
-      + '<div class="dq-nomatch" hidden>Nothing matches the current filters.</div>';
+      + '<div class="dq-nomatch" hidden>Nothing matches the current filters.</div>'
+      + '<div id="dq-cards">' + cardsHtml + '</div>' + (footHtml || '') + '</div>';
   }
 
   /* ---------- timeline vs by-platform layout ----------
@@ -2690,8 +2702,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   function hasTimes(){ return metas.some(function(m){ return typeof m.t === 'number'; }); }
   function listLabel(timeline){
     return timeline
-      ? 'All requests, in the order they fired<span> - split by page; <span class="mono">+s</span> is seconds since the first request</span>'
-      : 'All requests, grouped by platform<span> - all collapsed; <span class="mono">#n</span> shows where each sat in your paste</span>';
+      ? 'All requests, in the order they fired <span class="dq-eb-sub">- split by page; <span class="mono">+s</span> is seconds since the first request</span>'
+      : 'All requests, grouped by platform <span class="dq-eb-sub">- all collapsed; <span class="mono">#n</span> shows where each sat in your paste</span>';
   }
   function fmtOffset(ms){ var s = ms / 1000; return '+' + (s < 10 ? s.toFixed(1) : Math.round(s)) + 's'; }
   function layoutCards(mode){
@@ -3128,8 +3140,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         + g.items.join('') + '</section>';
     }).join('');
     var html = (src && src.note ? '<div class="dq-srcnote">' + src.note + '</div>' : '')
-      + renderSummary(metas, order) + renderAnswers(lastAnalysis) + renderTools() + '<div id="dq-cards">' + cards + '</div>';
-    if (reqs.length > MAXREQ) html += '<div class="dq-count">Only the first ' + MAXREQ + ' were decoded - paste fewer at a time to see the rest.</div>';
+      + renderSummary(metas, order) + renderAnswers(lastAnalysis)
+      + renderTools(cards, reqs.length > MAXREQ ? '<div class="dq-count">Only the first ' + MAXREQ + ' were decoded - paste fewer at a time to see the rest.</div>' : '');
     OUT.innerHTML = html;
     if (view.layout === 'timeline' && hasTimes()) layoutCards('timeline');
     else { view.layout = 'platform'; }
