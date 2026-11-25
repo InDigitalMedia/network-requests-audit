@@ -11,3 +11,6 @@ __pycache__/
 # person's local answers. See _bmad/custom/.gitignore for the same pattern
 # applied to _bmad/custom/.
 _bmad/config.user.toml
+
+# scripts/package-extension.sh output (Chrome Web Store upload zips)
+dist/

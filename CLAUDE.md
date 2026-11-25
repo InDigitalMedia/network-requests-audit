@@ -58,6 +58,16 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      platform (see `AUDIT.md` for the known drift risk here). `bookmarklet.source.js` (sibling file)
      is a readable, commented reference copy of this exact logic — see its header for how to
      regenerate the `BM` line after editing it; there is no build step that does this automatically.
+     `extension/` packages the same script as a Manifest V3 Chrome extension (toolbar click →
+     `chrome.scripting.executeScript` in `world:'MAIN'`, permissions `activeTab`+`scripting` only).
+     `extension/bookmarklet.source.js` must stay a byte-identical copy of the root file — after
+     editing the root, `cp` it across; `network-guard.sh` fails on drift or widened permissions.
+     The Check tab's "Add the Chrome extension" button (`#bm-ext`) stays hidden until
+     `EXT_STORE_URL` (just above the audience-view code) is set to the Web Store listing URL; the
+     guard pins that value to `''` or a `chromewebstore.google.com/detail/` URL. `privacy.html`
+     (root, deployed with the site) is the store's privacy policy — keep it true if permissions
+     change. Upload zip: `scripts/package-extension.sh` → `dist/` (git-ignored). See
+     `extension/README.md`.
    - `selectTab(b, focus)` / `readHash()` / `writeHash()` / `restoreFromHash()` — tab selection is
      shareable via `location.hash` (`#p=<tab>&q=<search term>`, written with `history.replaceState`).
      Route any new way of changing the active tab or search term through `selectTab`/`writeHash` so

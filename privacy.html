@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check tracking – Privacy policy</title>
+<!--
+  Privacy policy for the "Check tracking" Chrome extension (extension/) and the
+  bookmarklet / tag checker it comes from. The Chrome Web Store listing links to
+  this page's deployed URL. Self-contained like index.html: no external fonts,
+  scripts, images or styles, so it makes zero network requests too
+  (scripts/network-guard.sh checks this file).
+  Keep it TRUE: if the extension ever gains a permission or sends anything
+  anywhere, update this page in the same change.
+-->
+<style>
+  :root { --bg:#ffffff; --ink:#101828; --ink-2:#364153; --ink-3:#6a7282; --rule:#e5e4e4; --accent:#262453; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12121f; --ink:#f2f2f5; --ink-2:#c9cad3; --ink-3:#9a9cab; --rule:#2c2c40; --accent:#9d9bdc; }
+  }
+  html { background:var(--bg); }
+  body { margin:0; background:var(--bg); color:var(--ink-2);
+    font:15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width:680px; margin:0 auto; padding:40px 16px 64px; }
+  h1 { color:var(--ink); font-size:26px; line-height:1.25; margin:0 0 6px; }
+  h2 { color:var(--ink); font-size:17px; margin:32px 0 6px; }
+  .meta { color:var(--ink-3); font-size:13px; margin:0 0 28px; padding-bottom:20px; border-bottom:1px solid var(--rule); }
+  strong { color:var(--ink); }
+  code { font:13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  ul { padding-left:20px; } li { margin-bottom:6px; }
+  .summary { border-left:4px solid var(--accent); padding:10px 16px; margin:0 0 8px; color:var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Check tracking – Privacy policy</h1>
+  <p class="meta">Applies to the "In Digital – Check tracking" Chrome extension, the "Check tracking" bookmarklet and the tag &amp; tracking checker web page. Last updated 25 November 2026.</p>
+
+  <p class="summary"><strong>In short: it collects nothing and sends nothing.</strong> Everything happens inside your own browser, on the page you're looking at, and only when you click it.</p>
+
+  <h2>What it does</h2>
+  <p>When you click the extension's toolbar icon, it reads the list of network requests the current page has <em>already made</em> and shows the marketing and analytics tags among them (for example Google Analytics, Google Ads, Meta, TikTok and LinkedIn) in a panel on that page.</p>
+  <p>If you click <strong>Record payloads</strong>, it also watches for tracking requests the page makes <em>after</em> that click, so it can show what they contained. That recording exists only in the open tab and disappears when you close it or move to another page.</p>
+
+  <h2>What data it collects</h2>
+  <p><strong>None.</strong> The extension has no server, no analytics, no accounts and no cookies of its own. It doesn't store anything between visits and doesn't send anything anywhere: not to In Digital, not to Google, not to anyone else.</p>
+  <p>The panel's <strong>Copy all for the decoder</strong> button puts the list of requests on your clipboard, so you can paste it into the tag checker page. That only happens when you click it. Where you paste it is up to you, and the checker page also analyses it entirely in your browser.</p>
+
+  <h2>Permissions it asks for, and why</h2>
+  <ul>
+    <li><code>activeTab</code>: lets it see the tab you clicked the icon on, only at the moment you click. It can't see your other tabs, your browsing history, or any page you haven't clicked it on.</li>
+    <li><code>scripting</code>: lets it show the results panel on that page.</li>
+  </ul>
+  <p>It doesn't ask to "read and change all your data on all websites", and it doesn't run on any page unless you click it there.</p>
+
+  <h2>Sharing and selling data</h2>
+  <p>Because it collects no data, there is nothing to share, sell or transfer. It doesn't use or pass on anything for advertising, credit-worthiness, lending or any purpose beyond showing you the panel.</p>
+
+  <h2>Changes</h2>
+  <p>If this ever changes, this page will be updated before the new version is released, and the date at the top will change.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this tool: contact In Digital through your usual account contact.</p>
+</main>
+</body>
+</html>

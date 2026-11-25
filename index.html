@@ -395,6 +395,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 :root[data-theme="dark"] .id-root .bm-btn { background:var(--btn-active-bg); color:var(--btn-active-fg); border-color:var(--btn-active-bg); }
 .bm-copy { width:100%; }
 .bm-note { font-size:10.5px; color:var(--ink-3); text-align:center; line-height:1.4; }
+/* Chrome extension alternative - shown only once EXT_STORE_URL is set in the page script */
+.bm-ext { display:flex; flex-direction:column; gap:8px; margin-top:6px; padding-top:12px; border-top:1px solid var(--grid); }
+.bm-ext[hidden], .bm-p[hidden] { display:none; }
+.bm-ext-btn { display:block; box-sizing:border-box; width:100%; text-align:center; text-decoration:none; }
 
 /* ---- task accordions ---- */
 .tasks { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
@@ -968,11 +972,16 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <p class="bm-p"><strong>Two platforms need one extra click.</strong> TikTok and Snapchat hide their data inside the request rather than in its address, so the panel will name them but show no detail. Click <strong>Record payloads</strong> in the panel, repeat the action, then click the bookmark again. It only works for actions that stay on the same page.</p>
             <p class="bm-p"><strong>Can't see your bookmarks bar?</strong> Press Cmd+Shift+B on a Mac, or Ctrl+Shift+B on Windows. If dragging does not work, use <strong>Copy the code</strong> instead, then create a new bookmark manually and paste it into the address or URL field.</p>
             <p class="bm-p"><strong>On a phone or tablet?</strong> Bookmarklets are unreliable on mobile browsers - do this step on a desktop browser instead.</p>
+            <p class="bm-p" id="bm-ext-p" hidden><strong>Using Chrome?</strong> Install the Chrome extension instead. It does exactly the same thing from an icon on your toolbar, with no bookmarks bar needed, and it keeps itself up to date. Click its icon where these steps say to click the bookmark.</p>
           </div>
           <div class="bm-r">
             <a class="bm-btn" id="bm-link" href="#">Check tracking</a>
             <button class="id-btn bm-copy" id="bm-copy" type="button">Copy the code</button>
             <div class="bm-note" id="bm-msg">Drag the button to your bookmarks bar</div>
+            <div class="bm-ext" id="bm-ext" hidden>
+              <a class="id-btn bm-ext-btn" id="bm-ext-link" href="#" target="_blank" rel="noopener noreferrer">Add the Chrome extension</a>
+              <div class="bm-note">Opens the Chrome Web Store in a new tab</div>
+            </div>
           </div>
         </div>
 
@@ -2169,6 +2178,20 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         report(fallbackCopy());
       }
     });
+  }
+
+  /* ---- Chrome extension link ----
+     The same checker packaged as a Chrome extension (see extension/README.md).
+     Paste the Chrome Web Store listing URL here once it's published; while this
+     is empty the extension button and its paragraph stay hidden. Only a
+     chromewebstore.google.com/detail/ URL is accepted - network-guard.sh checks
+     this line too. It's a plain link the visitor chooses to click: nothing is
+     fetched from the store unless they do. */
+  var EXT_STORE_URL = '';
+  if (/^https:\/\/chromewebstore\.google\.com\/detail\/[A-Za-z0-9_\-\/]+$/.test(EXT_STORE_URL)) {
+    document.getElementById('bm-ext-link').setAttribute('href', EXT_STORE_URL);
+    document.getElementById('bm-ext').hidden = false;
+    document.getElementById('bm-ext-p').hidden = false;
   }
 
   /* ---- audience view ---- */

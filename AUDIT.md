@@ -523,6 +523,31 @@ and `./scripts/network-guard.sh` - zero console errors, zero network requests be
 local file load, both still passing after this many touched lines. Screenshotted the full page in
 both themes before/after to confirm no unintended visual drift beyond the deliberate fixes.
 
+## 2026-11-25: gcd decoder only read the first slot or two of '13…' values
+
+Reported from a real test: a Google tag with no consent mode (`gcd=13l3l3l3l1l1`, no `gcs`) showed
+"Detailed consent" with only ad_storage and analytics_storage, and a "Never set by consent mode"
+warning naming just those two.
+
+- [x] **Root cause:** `decodeGcd()` (and `consentFrom()`'s copy of the same parsing) split the
+  value on the digit `1`. The separators between slot letters vary (`11p1p1p1p5`, `13r3r3r2r5`,
+  `13l3l3l3l1l1` are all real), so in the very common `3`-separated form every slot landed in one
+  chunk and only one or two were decoded. Effects beyond the report: "Granted by default" (a red
+  finding) named only ad_storage on `13t3t3t3t5`, and `fields.consent` lost analytics on
+  `13r3r3r2r5`. Fixed with a shared `gcdLetters()` that reads the letters in order and ignores the
+  digits.
+- [x] **Extra slots:** some tags now send more than the four documented letters. They're reported
+  as "plus N further slot(s) Google has not documented (not decoded)" rather than guessed at.
+- [x] **No consent mode at all:** when all four documented slots are `l`, there's now one finding,
+  "Consent mode is not set up on this tag" (warn, with its own remedy), instead of the
+  "Never set by consent mode: …" list. A missing `gcs` is folded in as corroboration (Google only
+  sends `gcs` once consent mode is active) rather than raised as a second card for the same root
+  cause. That sentence is suppressed on partial pastes, like every other "missing" claim. Partial
+  `l` slots still get the original "Never set by consent mode" warning.
+- [ ] **Not added:** a standalone "gcs missing while gcd shows consent mode is active" finding.
+  It's plausible (sGTM or a custom loader could strip it), but there's no documented rule to hang
+  it on, so it would be a guess.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

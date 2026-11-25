@@ -482,18 +482,31 @@
     v:'GRANTED BY DEFAULT and after update'
   };
   var GCD_SLOTS = ['ad_storage','analytics_storage','ad_user_data','ad_personalization'];
+  /* gcd's slot letters, in order. The digits around them are separators whose value
+     varies (11p1p1p1p5, 13r3r3r2r5, 13l3l3l3l1l1 are all real), so read the letters and
+     ignore the digits. Splitting on '1' (the original approach) lumped every slot of a
+     '3'-separated value into one chunk, so only the first slot or two were ever decoded. */
+  function gcdLetters(v){
+    return (String(v || '').match(/[a-z]/gi) || []).map(function(c){ return c.toLowerCase(); });
+  }
   function decodeGcd(v){
-    var letters = v.replace(/^1?1/,'').split('1').filter(function(s){ return s.length; });
+    var letters = gcdLetters(v);
     var out = [], flags = [];
     GCD_SLOTS.forEach(function(name, i){
-      var raw = letters[i] || '';
-      var ch = raw.replace(/[^a-z]/gi,'').charAt(0);
+      var ch = letters[i];
       if (!ch) return;
       out.push(name + ' = ' + (GCD_MAP[ch] || 'unrecognised code "' + ch + '"'));
       if (ch === 't' || ch === 'v') flags.push(name);
       if (ch === 'l') flags.push('!' + name);
     });
-    return {text: out.join('; ') || 'Could not split the slots reliably - read it manually.', granted: flags.filter(function(f){return f.charAt(0)!=='!';}), unset: flags.filter(function(f){return f.charAt(0)==='!';}).map(function(f){return f.slice(1);})};
+    /* Some tags now send more letters than the four documented slots (e.g. 13l3l3l3l1l1).
+       Google hasn't documented what they mean, so say they exist rather than guess. */
+    var extra = Math.max(0, letters.length - GCD_SLOTS.length);
+    if (out.length && extra) out.push('plus ' + extra + ' further slot' + (extra === 1 ? '' : 's') + ' Google has not documented (not decoded)');
+    var unset = flags.filter(function(f){return f.charAt(0)==='!';}).map(function(f){return f.slice(1);});
+    return {text: out.join('; ') || 'Could not split the slots reliably - read it manually.',
+      granted: flags.filter(function(f){return f.charAt(0)!=='!';}), unset: unset,
+      allUnset: unset.length === GCD_SLOTS.length};
   }
 
   /* ============================================================
@@ -584,6 +597,14 @@
         'Re-test in a fresh incognito window: load the page, do not touch the banner, and confirm this request no longer appears until you click accept.'],
       docs: [['ICO - guidance on cookies and similar technologies','https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/'],
              ['Google - consent mode','https://developers.google.com/tag-platform/security/concepts/consent-mode']] }],
+
+    [/^Consent mode is not set up on this tag/, { who: WHO.gtm,
+      steps: ['Consent mode has to be set up separately from the cookie banner. A banner on its own does not tell Google’s tags anything.',
+        'In your tag manager, set consent defaults (usually denied for ad_storage, analytics_storage, ad_user_data and ad_personalization for UK/EEA visitors) so they run before any Google tag fires. Most consent platforms provide a tag manager template that does this.',
+        'Then make sure the banner sends a consent update when the visitor answers. The same template usually handles it.',
+        'Re-test in a fresh incognito window: before answering the banner, gcd slots should read p (denied, no update yet) and gcs should appear. After accepting, the slots should read r (granted after update).'],
+      docs: [['Google - consent mode','https://developers.google.com/tag-platform/security/concepts/consent-mode'],
+             ['Google - set up consent in a container','https://support.google.com/tagmanager/answer/10718549']] }],
 
     [/^Never set by consent mode/, { who: WHO.gtm,
       steps: ['This is the signature of a cookie banner that looks fine but is not wired through: it shows, it records the answer, and the tags never hear about it.',
@@ -810,7 +831,13 @@
         var d = decodeGcd(get('gcd'));
         F.push(['info','Detailed consent: '+esc(get('gcd')),d.text, CATEGORY.CONSENT]);
         if (d.granted.length) F.push(['fail','Granted by default: '+d.granted.join(', '),'These permissions were set to granted before the visitor made a choice. Under GDPR that is the wrong default for advertising and analytics storage - consent must be opt-in. This is a finding to raise immediately, not an observation to file.', CATEGORY.CONSENT]);
-        if (d.unset.length) F.push(['warn','Never set by consent mode: '+d.unset.join(', '),'A slot reading "l" means consent mode never set this signal. That is the signature of a cookie banner that is not actually wired up to Google’s tags - the banner shows, the choice is recorded, and the tags never hear about it.', CATEGORY.CONSENT]);
+        /* Every documented slot "l" = consent mode was never set up for this tag at all - one
+           root cause, so one finding (not four "never set" slots plus a separate missing-gcs card).
+           gcs is only sent once consent mode is active, so its absence corroborates it. */
+        if (d.allUnset) F.push(['warn','Consent mode is not set up on this tag','Every consent signal in <span class="mono">gcd</span> reads "l" - not set - so this Google tag has no consent mode at all: no default state, and no update when the visitor answers the cookie banner.'
+          + (absent('gcs') ? ' The <span class="mono">gcs</span> parameter, which Google only sends once consent mode is active, is missing too, which confirms it.' : '')
+          + ' The tag cannot behave differently for people who decline. If the banner blocks the tag outright until acceptance, that can still be compliant, but Google Ads loses consent-dependent features for UK and EEA visitors (audiences, conversion modelling) because it never receives <span class="mono">ad_user_data</span> or <span class="mono">ad_personalization</span>.', CATEGORY.CONSENT]);
+        else if (d.unset.length) F.push(['warn','Never set by consent mode: '+d.unset.join(', '),'A slot reading "l" means consent mode never set this signal. That is the signature of a cookie banner that is not actually wired up to Google’s tags - the banner shows, the choice is recorded, and the tags never hear about it.', CATEGORY.CONSENT]);
       }
       if (has('em')) {
         var em = get('em');
@@ -1128,8 +1155,7 @@
     var gcs = firstOf(P, ['gcs']), gcd = firstOf(P, ['gcd']), asc = firstOf(P, ['asc']);
     if (gcs && /^G1[01][01]$/.test(gcs)) return { ads: gcs.charAt(2) === '1' ? 'granted' : 'denied', analytics: gcs.charAt(3) === '1' ? 'granted' : 'denied', source:'gcs' };
     if (gcd) {
-      var letters = gcd.replace(/^1?1/,'').split('1').filter(function(s){ return s.length; })
-        .map(function(s){ return s.replace(/[^a-z]/gi,'').charAt(0); });
+      var letters = gcdLetters(gcd);
       var ads = GCD_FINAL[letters[0]] || null, an = GCD_FINAL[letters[1]] || null;
       if (ads || an) return { ads: ads, analytics: an, source:'gcd' };
     }

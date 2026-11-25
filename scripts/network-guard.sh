@@ -2,7 +2,7 @@
 # ============================================================================
 # network-guard.sh — re-runnable check that nothing pasted, filled in, or
 # captured by this app ever leaves the browser. Run this after any change
-# that touches index.html, tag-detector.js, or bookmarklet.source.js, and
+# that touches index.html, tag-detector.js, bookmarklet.source.js or extension/, and
 # definitely after adding anything that talks to a file, the clipboard, or
 # an external URL.
 #
@@ -128,7 +128,68 @@ if [ "$BM_SRC_FAIL" -eq 0 ]; then
 fi
 
 echo
-echo "== 4. Dynamic sweep (headless browser) =="
+echo "== 4. Static sweep: extension/ =="
+echo "  The Chrome extension packaging of the bookmarklet. Its injected script must be"
+echo "  a byte-identical copy of $BOOKMARKLET (so section 3 covers it), its service"
+echo "  worker must make no network calls, and its manifest must not quietly widen"
+echo "  permissions beyond activeTab + scripting."
+EXT=extension
+EXT_FAIL=0
+ext_fail() { echo "  [FAIL] $1"; [ -n "${2:-}" ] && echo "$2" | sed 's/^/    /'; STATIC_FAIL=1; EXT_FAIL=1; }
+if [ ! -d "$EXT" ]; then
+  echo "  (no $EXT/ folder - skipped)"
+else
+  if ! cmp -s "$BOOKMARKLET" "$EXT/$BOOKMARKLET"; then
+    ext_fail "$EXT/$BOOKMARKLET differs from $BOOKMARKLET - run: cp $BOOKMARKLET $EXT/$BOOKMARKLET"
+  fi
+  # Anything other than the reviewed injected copy is extension-only code.
+  for f in $(find "$EXT" -type f \( -name '*.js' -o -name '*.html' \) ! -path "$EXT/$BOOKMARKLET"); do
+    for pat in 'fetch\(' 'XMLHttpRequest' 'sendBeacon' 'new WebSocket\(' 'new EventSource\(' 'https?://' 'importScripts\(' '\bimport\(' 'chrome\.runtime\.connectNative' ; do
+      hits=$(grep -nE "$pat" "$f" || true)
+      [ -n "$hits" ] && ext_fail "$f: banned pattern /$pat/" "$hits"
+    done
+  done
+  MANIFEST="$EXT/manifest.json"
+  if [ -f "$MANIFEST" ]; then
+    for key in host_permissions optional_host_permissions content_scripts externally_connectable update_url web_accessible_resources content_security_policy; do
+      grep -q "\"$key\"" "$MANIFEST" && ext_fail "$MANIFEST declares \"$key\" - widens what the extension can reach; see $EXT/README.md before allowing it"
+    done
+    PERMS=$(tr -d '\n ' < "$MANIFEST" | grep -oE '"permissions":\[[^]]*\]' || true)
+    if [ "$PERMS" != '"permissions":["activeTab","scripting"]' ]; then
+      ext_fail "$MANIFEST permissions changed (expected exactly activeTab + scripting)" "$PERMS"
+    fi
+  else
+    ext_fail "$MANIFEST missing"
+  fi
+  # index.html's "Add the Chrome extension" link: the only off-site link it builds
+  # in JS. It must stay empty (button hidden) or point at a Web Store listing -
+  # never somewhere that could receive anything. The dynamic sweep never clicks it.
+  STORE_LINE=$(grep -nE "var EXT_STORE_URL = " "$FILE" || true)
+  if [ -z "$STORE_LINE" ]; then
+    ext_fail "$FILE: could not find 'var EXT_STORE_URL = ' (renamed? update this check)"
+  elif ! echo "$STORE_LINE" | grep -qE "var EXT_STORE_URL = '(https://chromewebstore\.google\.com/detail/[A-Za-z0-9_/-]+)?';"; then
+    ext_fail "$FILE: EXT_STORE_URL must be '' or a https://chromewebstore.google.com/detail/... URL" "$STORE_LINE"
+  fi
+  [ "$EXT_FAIL" -eq 0 ] && echo "  [PASS]"
+fi
+
+echo
+echo "== 4b. Static sweep: privacy.html =="
+echo "  The extension's public privacy policy. Plain static page: no scripts or external resources at all."
+PRIV=privacy.html
+PRIV_FAIL=0
+if [ -f "$PRIV" ]; then
+  for pat in '<script' '<link[^>]*href=' '<img[^>]*src="https?:' '<iframe' '<form[ >]' '@import' 'url\(.{0,2}https?:'; do
+    hits=$(grep -nE "$pat" "$PRIV" || true)
+    if [ -n "$hits" ]; then echo "  [FAIL] $PRIV: /$pat/"; echo "$hits" | sed 's/^/    /'; STATIC_FAIL=1; PRIV_FAIL=1; fi
+  done
+  [ "$PRIV_FAIL" -eq 0 ] && echo "  [PASS]"
+else
+  echo "  (no $PRIV - skipped)"
+fi
+
+echo
+echo "== 5. Dynamic sweep (headless browser) =="
 GUARD_DEPS=".guard-deps"
 if [ ! -d "$GUARD_DEPS/node_modules/playwright" ]; then
   echo "  Installing Playwright into $GUARD_DEPS/ (one-time, git-ignored, no package.json added)..."
