@@ -102,6 +102,11 @@ function extractBmCode(html) {
   await page.waitForTimeout(100);
   await page.check('#dq-ssgtm'); await page.waitForTimeout(40);
   await page.uncheck('#dq-ssgtm'); await page.waitForTimeout(40);
+  // "Captured before answering the cookie banner" - re-decodes with beforeConsent on/off.
+  if (await page.locator('#dq-preconsent').count()) {
+    await page.check('#dq-preconsent'); await page.waitForTimeout(40);
+    await page.uncheck('#dq-preconsent'); await page.waitForTimeout(40);
+  }
 
   if (await page.locator('.dq-req').count()) {
     await page.locator('.dq-req').first().locator('> summary').click();
@@ -154,6 +159,11 @@ function extractBmCode(html) {
     const harPath = path.join(os.tmpdir(), 'network-guard-test.har');
     fs.writeFileSync(harPath, JSON.stringify({ log: { entries: [
       { request: { url: 'https://www.example.com/', method: 'GET' }, response: { content: { mimeType: 'text/html' } } },
+      // OneTrust loader + site requests with/without its "answered" cookie, so the HAR
+      // consent-timing path (requestsFromHar -> harConsentTiming) runs too.
+      { startedDateTime: '2026-11-25T10:00:01Z', request: { url: 'https://cdn.cookielaw.org/scripttemplates/otSDKStub.js', method: 'GET', cookies: [] }, response: { content: { mimeType: 'application/javascript' } } },
+      { startedDateTime: '2026-11-25T10:00:03Z', request: { url: 'https://www.example.com/api', method: 'GET', cookies: [{ name: 'OptanonConsent', value: 'x' }] }, response: { content: { mimeType: 'application/json' } } },
+      { startedDateTime: '2026-11-25T10:00:09Z', request: { url: 'https://www.example.com/next', method: 'GET', cookies: [{ name: 'OptanonAlertBoxClosed', value: 'x' }] }, response: { content: { mimeType: 'text/html' } } },
       { request: { url: 'https://www.facebook.com/tr/?id=1&ev=Purchase&cd%5Bvalue%5D=10&cd%5Bcurrency%5D=GBP', method: 'GET' }, response: { content: { mimeType: 'image/gif' } } },
       { request: { url: 'https://analytics.tiktok.com/api/v2/pixel', method: 'POST', postData: { text: '{"event":"CompletePayment","context":{"pixel":{"code":"X"}}}' } }, response: { content: { mimeType: 'application/json' } } }
     ] } }));

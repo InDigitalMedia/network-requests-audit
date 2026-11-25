@@ -798,8 +798,13 @@
     }
 
     /* fired before the visitor answered the cookie banner - only knowable by a caller that
-       watched it happen (see beforeConsent in the header), never from a paste */
-    if (beforeConsent && plat && !bare && !/^(Cookie banner|Google tag library)$/.test(name)) {
+       watched it happen (see beforeConsent in the header): scan-url.js, or a Decode-tab user
+       who ticked "Captured before answering the cookie banner" / used the journey's
+       pre-consent step. A vendor's JavaScript library download (bat.js, insight.min.js,
+       events.js...) is skipped, matching scan-url.js's script/stylesheet/font exclusion:
+       it isn't a tracking hit, and a pre-consent paste is full of them. */
+    var libraryLoad = /\.js$/i.test(path || '');
+    if (beforeConsent && plat && !bare && !libraryLoad && !/^(Cookie banner|Google tag library)$/.test(name)) {
       var gcsPre = get('gcs'), googleHit = /Google|Floodlight/.test(name);
       /* gcs=G1xy: x = advertising, y = analytics. Advertising granted early is a fail.
          Analytics-only (G101) is a warn: the UK Data (Use and Access) Act 2025 added an
@@ -1406,12 +1411,86 @@
      extractRequests(), plus the page's own host (from the first HTML document) so routing
      findings know which domain is first-party. Each request also carries `time` (epoch ms,
      or null) and `pageTitle` (the HAR page it belongs to - Chrome uses the page URL) for the
-     Decode tab's timeline view. Throws on a file that isn't HAR. */
+     Decode tab's timeline view, and `consent` ('before' | 'after' | null: whether it fired
+     before the cookie banner was answered, read from the site's cookies - see
+     harConsentTiming() below). The result's `consentTiming` = {cmp, status} says whether that
+     could be worked out at all: status 'ok', 'no-cookies' (Chrome's default sanitized export),
+     'unreadable-cmp' (banner keeps its choice outside cookies), 'no-cmp' or 'no-site'.
+     Only cookie names (and CookieYes's action flag) are read; no cookie value is returned.
+     Throws on a file that isn't HAR. */
+  /* ---------- consent timing from a HAR's cookies ----------
+     Consent platforms that record "the visitor has answered the banner" in a first-party
+     cookie. `loader` spots the platform's own requests in the HAR; `answered` reads the
+     cookies of one request (names -> value). Only platforms with a reliable, documented-
+     by-practice marker are listed: a platform that keeps the choice in localStorage
+     (Usercentrics, for example) can't be read from a HAR at all, and is reported as such
+     rather than guessed at. Answering includes declining - every marker below is set on a
+     decline too - so "after" means "after the visitor answered", not "after they accepted". */
+  var CMPS = [
+    { n:'OneTrust',  loader:/cookielaw\.org|onetrust\.(com|io)/i, answered:function(c){ return 'OptanonAlertBoxClosed' in c; } },
+    { n:'Cookiebot', loader:/cookiebot\.(com|eu)/i,               answered:function(c){ return 'CookieConsent' in c; } },
+    { n:'CookieYes', loader:/cookieyes\.com/i,                    answered:function(c){ return /action:yes/.test(c['cookieyes-consent'] || ''); } },
+    { n:'Didomi',    loader:/privacy-center\.org|didomi\.io/i,    answered:function(c){ return 'didomi_token' in c; } },
+    { n:'TrustArc',  loader:/trustarc\.com|truste\.com/i,         answered:function(c){ return 'notice_gdpr_prefs' in c || 'notice_preferences' in c; } }
+  ];
+  var CMP_UNREADABLE = [ { n:'Usercentrics', loader:/usercentrics\.(eu|com)/i }, { n:'Osano', loader:/osano\.com/i } ];
+
+  /* One request's cookies as {name: value}. HAR has both request.cookies and a Cookie
+     header; Chrome's default "sanitized" export strips both, which is why `harHasCookies`
+     is checked before any of this is trusted. */
+  function harCookies(rq){
+    var c = {};
+    (rq.cookies || []).forEach(function(k){ if (k && k.name) c[k.name] = String(k.value || ''); });
+    (rq.headers || []).forEach(function(h){
+      if (!h || !/^cookie$/i.test(h.name || '')) return;
+      String(h.value || '').split(/;\s*/).forEach(function(pair){
+        var i = pair.indexOf('='); if (i > 0) c[pair.slice(0, i).trim()] = pair.slice(i + 1);
+      });
+    });
+    return c;
+  }
+
+  /* Marks each request consent:'before' | 'after' | null. The site's own requests show what
+     the banner state was at that moment. The marker cookie only ever appears, never goes, so:
+       - a site request at or AFTER a hit that still lacks the marker => the hit was 'before';
+       - a site request at or BEFORE a hit that already has it      => the hit was 'after';
+       - neither                                                     => null (can't place it).
+     Third-party hits (facebook.com/tr...) never carry the site's cookies themselves, which is
+     why it works from the surrounding site requests instead. */
+  function harConsentTiming(entries, out, siteHost){
+    var res = { cmp: null, status: 'no-cmp' };
+    var hasCookies = entries.some(function(e){ var rq = e && e.request; return rq && ((rq.cookies && rq.cookies.length) || (rq.headers || []).some(function(h){ return h && /^cookie$/i.test(h.name || ''); })); });
+    var urls = out.map(function(r){ return r.url; });
+    var cmp = CMPS.filter(function(m){ return urls.some(function(u){ return m.loader.test(u); }); })[0];
+    var other = !cmp && CMP_UNREADABLE.filter(function(m){ return urls.some(function(u){ return m.loader.test(u); }); })[0];
+    if (cmp) res.cmp = cmp.n; else if (other) { res.cmp = other.n; res.status = 'unreadable-cmp'; return res; }
+    else return res;
+    if (!hasCookies) { res.status = 'no-cookies'; return res; }
+    if (!siteHost) { res.status = 'no-site'; return res; }
+    var obs = [];
+    entries.forEach(function(e, i){
+      var r = out[i]; if (!r || r.time == null) return;
+      var h; try { h = new URL(r.url).hostname.toLowerCase(); } catch(x){ return; }
+      if (h !== siteHost) return;
+      obs.push({ t: r.time, answered: !!cmp.answered(harCookies(e.request)) });
+    });
+    if (!obs.length) { res.status = 'no-site'; return res; }
+    res.status = 'ok';
+    out.forEach(function(r){
+      if (r.time == null) return;
+      var laterUnanswered = obs.some(function(o){ return o.t >= r.time && !o.answered; });
+      var earlierAnswered = obs.some(function(o){ return o.t <= r.time && o.answered; });
+      /* both at once would mean the marker vanished (cookies cleared mid-capture) - don't guess */
+      r.consent = laterUnanswered && !earlierAnswered ? 'before' : earlierAnswered && !laterUnanswered ? 'after' : null;
+    });
+    return res;
+  }
+
   function requestsFromHar(text){
     var har = JSON.parse(text);
     var entries = har && har.log && har.log.entries;
     if (!Array.isArray(entries)) throw new Error('Not a HAR file - expected log.entries.');
-    var siteHost = null, out = [], pages = {};
+    var siteHost = null, out = [], kept = [], pages = {};
     (har.log.pages || []).forEach(function(pg){ if (pg && pg.id) pages[pg.id] = pg.title || null; });
     entries.forEach(function(e){
       var rq = e && e.request; if (!rq || !rq.url || !/^https?:/i.test(rq.url)) return;
@@ -1421,9 +1500,12 @@
       }
       var t = e.startedDateTime ? Date.parse(e.startedDateTime) : NaN;
       out.push({ url: rq.url, body: rq.postData && rq.postData.text ? rq.postData.text : null,
-                 time: isNaN(t) ? null : t, pageTitle: e.pageref && pages[e.pageref] ? pages[e.pageref] : null });
+                 time: isNaN(t) ? null : t, pageTitle: e.pageref && pages[e.pageref] ? pages[e.pageref] : null,
+                 consent: null });
+      kept.push(e);
     });
-    return { requests: out, siteHost: siteHost, total: entries.length };
+    var consentTiming = harConsentTiming(kept, out, siteHost);
+    return { requests: out, siteHost: siteHost, total: entries.length, consentTiming: consentTiming };
   }
 
   /* ---------- public entry point ---------- */

@@ -1878,6 +1878,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
               This site has server-side tracking set up
               <span id="dq-ssgtm-desc" class="sr-only">Server-side tracking, also called sGTM or a server container, routes tag data through your own server before it reaches Google, Meta, etc, instead of the browser sending it directly. Most sites do not have this set up - leave unchecked unless you know yours does.</span>
             </label>
+            <span class="dq-sep"></span>
+            <label class="dq-ssw" for="dq-preconsent" title="Tick this if you captured these requests in a fresh private window without clicking anything on the cookie banner. Every advertising or analytics request is then checked for having fired before consent. A pasted request cannot show this by itself, so only tick it if it is true.">
+              <input type="checkbox" id="dq-preconsent" aria-describedby="dq-preconsent-desc">
+              Captured before answering the cookie banner
+              <span id="dq-preconsent-desc" class="sr-only">Tick this if you captured these requests in a fresh private window without clicking anything on the cookie banner. Every advertising or analytics request is then checked for having fired before consent. A pasted request cannot show this by itself, so only tick it if it is true.</span>
+            </label>
             <span class="dq-sep aud-spec"></span>
             <label class="id-label aud-spec" for="dq-host" style="white-space:nowrap">Container hostname <span style="font-weight:600;text-transform:none;letter-spacing:0">(only needed if it is not on your site's own domain)</span></label>
             <input id="dq-host" class="dq-inp aud-spec" type="text" spellcheck="false" placeholder="metrics.yoursite.com">
@@ -2405,6 +2411,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       rerun();
     });
   }
+  /* "Captured before answering the cookie banner" - passed to TD.analyzeRequest() as
+     beforeConsent, which switches on the engine's "Fired before consent" rules. Deliberately
+     NOT persisted: left ticked by accident it would fail every pixel in the next, unrelated
+     paste. lastBeforeConsent records what the current results were decoded with, for exports. */
+  var PRECON = document.getElementById('dq-preconsent'), lastBeforeConsent = false;
+  if (PRECON) PRECON.addEventListener('change', function(){ rerun(); });
   /* Shared state, read/written by both run() and the "Ignore"/filter handlers below -
      kept live across those so ignoring a finding doesn't need a full re-decode. */
   var metas = [], order = [], activeFilter = null;
@@ -2483,10 +2495,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return b.length ? '<span class="rq-facts">' + b.join('') + '</span>' : '';
   }
 
-  function renderOne(req, i, myHost, metas, siteHost, hasServerSide){
+  function renderOne(req, i, myHost, metas, siteHost, hasServerSide, beforeConsent){
     var result = TD.analyzeRequest(
       { url: req.url, body: req.body, bare: !!req.bare },
-      { myHost: myHost, siteHost: siteHost, hasServerSide: hasServerSide }
+      { myHost: myHost, siteHost: siteHost, hasServerSide: hasServerSide,
+        /* the checkbox says "all of these", a HAR's cookies can say it per request */
+        beforeConsent: !!beforeConsent || req.consent === 'before' }
     );
     lastResults[i] = result.ok ? result : null;
     if (!result.ok) {
@@ -2963,8 +2977,13 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   /* ---------- guided test journey ----------
      One paste box per step; every platform seen anywhere in the journey is checked for that
      step's event via TD.checkJourney(). Pastes are not stored anywhere. */
+  /* pre:true marks the "before accepting cookies" step: it has no funnel stage, isn't sent to
+     TD.checkJourney(), and its requests are analysed with beforeConsent so the engine's
+     "Fired before consent" rules run on them. */
+  var PRESTEP = { pre:true, title:'Before accepting cookies', how:'Open the site in a fresh private (incognito) window and do not touch the cookie banner. Capture straight away.' };
   var JOURNEYS = {
     ecom: [
+      PRESTEP,
       { stage:0, title:'Land on the site', how:'Open the homepage or a campaign landing page, then capture.' },
       { stage:1, title:'View a product', how:'Open any product page, then capture.' },
       { stage:2, title:'Add it to the basket', how:'Click add to basket, then capture straight away - before the page changes.' },
@@ -2972,6 +2991,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       { stage:4, title:'Complete a test purchase', how:'Use a test order or a low-value product, then capture on the order confirmation page.' }
     ],
     lead: [
+      PRESTEP,
       { stage:0, title:'Land on the page with the form', how:'Open the landing page, then capture.' },
       { stage:5, title:'Submit the form', how:'Submit with test details, then capture on the thank-you page (or straight after submitting if there isn\u2019t one).' }
     ]
@@ -2983,7 +3003,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (!JSTEPS) return;
     document.querySelectorAll('.dq-jtype').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.j === jType)); });
     JSTEPS.innerHTML = JOURNEYS[jType].map(function(st, k){
-      return '<li class="dq-jstep"><div class="dq-jstep-h"><strong>' + esc(st.title) + '</strong> <span class="dq-jstage">' + esc(TD.checkJourney([]).stages[st.stage]) + ' event expected</span></div>'
+      return '<li class="dq-jstep"><div class="dq-jstep-h"><strong>' + esc(st.title) + '</strong> <span class="dq-jstage">' + (st.pre ? 'Nothing should track yet' : esc(TD.checkJourney([]).stages[st.stage]) + ' event expected') + '</span></div>'
         + '<div class="dq-hint">' + esc(st.how) + '</div>'
         + '<textarea class="dq-ta dq-jin" rows="2" spellcheck="false" data-step="' + k + '" aria-label="Requests captured at step ' + (k + 1) + ': ' + esc(st.title) + '" placeholder="Paste what fired at this step"></textarea>'
         + '<button class="id-btn dq-toggle dq-jopen" type="button" data-step="' + k + '">Open this step in the decoder</button></li>';
@@ -2996,22 +3016,51 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (/^\{[\s\S]*"log"\s*:/.test(t)) { try { return TD.requestsFromHar(t).requests; } catch(e){} }
     return extract(t);
   }
+  /* The journey's "before accepting cookies" step, from results analysed with beforeConsent.
+     Lists what fired that shouldn't have (the engine's fail/warn "Fired before consent"
+     findings) and notes Google hits that were correctly cookieless. '' if not captured. */
+  function preConsentSummary(results){
+    if (!results || !results.length) return '';
+    var bad = [], ok = [];
+    results.forEach(function(r){
+      if (!r || !r.ok || !r.platform) return;
+      var f = r.findings.filter(function(x){ return /^Fired before consent/.test(x.title); })[0];
+      if (!f) return;
+      /* the tag ID tells apart two tags of one platform (e.g. two GA4 properties, one with
+         consent mode and one without), which would otherwise read as the same label in both lists */
+      var bits = [r.fields && r.fields.pixelId, r.event && (r.event.name || r.event.label)].filter(Boolean);
+      var lbl = shortName(r.platform.name) + (bits.length ? ' (' + bits.join(', ') + ')' : '');
+      var list = (f.severity === 'fail' || f.severity === 'warn') ? bad : ok;
+      if (list.indexOf(lbl) === -1) list.push(lbl);
+    });
+    return '<div class="dq-jsum ' + (bad.length ? 'is-gap' : 'is-ok') + '">'
+      + (bad.length
+          ? '<strong>Fired before consent:</strong> ' + esc(bad.join(', ')) + '. These tracked the visitor before they answered the cookie banner. Open this step in the decoder for each finding and how to fix it.'
+          : '<strong>Nothing tracked before consent.</strong> No advertising or analytics request fired before the cookie banner was answered.')
+      + (ok.length ? ' ' + esc(ok.join(', ')) + ' sent cookieless consent-mode pings, which is expected.' : '')
+      + '</div>';
+  }
   function runJourney(){
     if (!JSTEPS) return;
-    var steps = JOURNEYS[jType].map(function(st, k){
+    /* idx[j] = position in JOURNEYS[jType] of the j-th funnel step sent to checkJourney */
+    var steps = [], idx = [], pre = null;
+    JOURNEYS[jType].forEach(function(st, k){
       var ta = JSTEPS.querySelector('.dq-jin[data-step="' + k + '"]');
       var reqs = reqsFromText(ta ? ta.value : '');
-      return { stage: st.stage, results: reqs.map(function(r){ return TD.analyzeRequest({ url:r.url, body:r.body, bare:!!r.bare }, {}); }) };
+      var results = reqs.map(function(r){ return TD.analyzeRequest({ url:r.url, body:r.body, bare:!!r.bare }, { beforeConsent: !!st.pre }); });
+      if (st.pre) { pre = results; return; }
+      steps.push({ stage: st.stage, results: results }); idx.push(k);
     });
     var J = TD.checkJourney(steps);
     var captured = J.rows.filter(function(r){ return r.captured; }).length;
-    if (!captured) { JOUT.innerHTML = ''; return; }
+    var h = preConsentSummary(pre);
+    if (!captured) { JOUT.innerHTML = h; if (h) glossify(JOUT); return; }
     var gaps = [];
-    J.rows.forEach(function(r, k){
+    J.rows.forEach(function(r, j){
       if (!r.captured) return;
-      Object.keys(r.cells).forEach(function(p){ if (r.cells[p] === 'no') gaps.push(shortName(p) + ' at \u201c' + JOURNEYS[jType][k].title.toLowerCase() + '\u201d'); });
+      Object.keys(r.cells).forEach(function(p){ if (r.cells[p] === 'no') gaps.push(shortName(p) + ' at \u201c' + JOURNEYS[jType][idx[j]].title.toLowerCase() + '\u201d'); });
     });
-    var h = '<div class="dq-jsum ' + (gaps.length ? 'is-gap' : 'is-ok') + '">'
+    h += '<div class="dq-jsum ' + (gaps.length ? 'is-gap' : 'is-ok') + '">'
       + captured + ' of ' + J.rows.length + ' step' + (J.rows.length === 1 ? '' : 's') + ' captured. '
       + (!J.platforms.length ? 'No tracking platform recognised in what was pasted yet.'
          : gaps.length ? '<strong>Missing:</strong> ' + esc(gaps.join('; ')) + '.'
@@ -3020,8 +3069,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (J.platforms.length) {
       h += '<div class="tbl-scroll" tabindex="0" role="region" aria-label="Journey results by step and platform, scroll horizontally to see all columns"><table class="id-table dq-score"><thead><tr><th>Step</th>'
         + J.platforms.map(function(p){ return '<th>' + esc(shortName(p)) + '</th>'; }).join('') + '<th>Also fired</th></tr></thead><tbody>';
-      J.rows.forEach(function(r, k){
-        h += '<tr><td><strong>' + (k + 1) + '. ' + esc(JOURNEYS[jType][k].title) + '</strong></td>'
+      J.rows.forEach(function(r, j){
+        h += '<tr><td><strong>' + (idx[j] + 1) + '. ' + esc(JOURNEYS[jType][idx[j]].title) + '</strong></td>'
           + J.platforms.map(function(p){
               if (!r.captured) return '<td class="dq-sc-na" title="Not captured yet">&ndash;</td>';
               return r.cells[p] === 'yes' ? '<td class="dq-sc-ok" title="Received the ' + esc(J.stages[r.stage].toLowerCase()) + ' event">&#10003;</td>'
@@ -3048,6 +3097,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       var ta = JSTEPS.querySelector('.dq-jin[data-step="' + b.dataset.step + '"]');
       var text = ta ? ta.value.trim() : '';
       if (!text) { ta && ta.focus(); return; }
+      /* the decoder's checkbox follows the step, so the findings there match the journey's */
+      if (PRECON) PRECON.checked = !!JOURNEYS[jType][+b.dataset.step].pre;
       var reqs = reqsFromText(text);
       if (/^\{/.test(text) && reqs.length) {
         var har = null; try { har = TD.requestsFromHar(text); } catch(x){}
@@ -3144,6 +3195,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       ? 'Tag & tracking check - showing ' + metas.length + ' of ' + totalCount + ' request' + (totalCount===1?'':'s') + ', filtered: ' + filterLabel
       : 'Tag & tracking check - ' + metas.length + ' request' + (metas.length===1?'':'s') + ' decoded';
     var lines = [header];
+    if (lastBeforeConsent) lines.push('Captured before the cookie banner was answered.');
     var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
       .map(function(s){ return tally[s] + ' ' + sevLabel(s, tally[s]); });
     if (tallyBits.length) lines.push(tallyBits.join(', '));
@@ -3200,7 +3252,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + ((filterLabel && totalCount != null && totalCount !== metas.length)
           ? 'Showing ' + metas.length + ' of ' + totalCount + ' request' + (totalCount===1?'':'s') + ', filtered: ' + esc(filterLabel)
           : metas.length + ' request' + (metas.length===1?'':'s') + ' decoded')
-      + (tallyBits.length ? ' - ' + tallyBits.join(', ') : '') + '</div>';
+      + (tallyBits.length ? ' - ' + tallyBits.join(', ') : '')
+      + (lastBeforeConsent ? ' - captured before the cookie banner was answered' : '') + '</div>';
     var pl = pasteLevelLines(currentAnalysis());
     if (pl.length) h += '<div class="dqp-find dqp-warn"><span class="dqp-sev">' + (filterLabel ? 'Across the requests in this report' : 'Across the whole paste') + '</span>'
       + pl.map(function(x){ return '<div class="dqp-detail">' + esc(x) + '</div>'; }).join('') + '</div>';
@@ -3249,6 +3302,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var sm = raw.match(/^#\s*site:\s*([a-z0-9.\-]+)/im);
     var siteHost = src ? src.siteHost : (sm ? sm[1].toLowerCase() : null);
     var hasServerSide = !!(SSGTM && SSGTM.checked);
+    var beforeConsent = lastBeforeConsent = !!(PRECON && PRECON.checked);
     activeFilter = null;
     if (!src && !raw) { OUT.innerHTML = ''; lastResults = []; lastAnalysis = null; announce(''); return; }
     var reqs = src ? src.reqs : extract(raw);
@@ -3258,7 +3312,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       return;
     }
     metas = []; lastResults = []; var parts = [];
-    reqs.slice(0, MAXREQ).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide)); });
+    reqs.slice(0, MAXREQ).forEach(function(r, i){ parts.push(renderOne(r, i, myHost, metas, siteHost, hasServerSide, beforeConsent)); });
     lastAnalysis = TD.analyzePaste(lastResults, { expectedEvents: splitList(EXPIN && EXPIN.value), expectedIds: splitList(IDSIN && IDSIN.value) });
 
     /* group by platform, ordered worst-first, so the summary works as a table of contents */
@@ -3282,6 +3336,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
         + g.items.join('') + '</section>';
     }).join('');
     var html = (src && src.note ? '<div class="dq-srcnote">' + src.note + '</div>' : '')
+      + (src && src.consentNote && !beforeConsent ? '<div class="dq-srcnote">' + src.consentNote + '</div>' : '')
+      + (beforeConsent ? '<div class="dq-srcnote"><strong>Checked as captured before consent.</strong> Any advertising or analytics request below was treated as firing before the visitor answered the cookie banner. Untick the box above if that is not how these were captured.</div>' : '')
       + renderSummary(metas, order) + renderAnswers(lastAnalysis)
       + renderTools(cards, reqs.length > MAXREQ ? '<div class="dq-count">Only the first ' + MAXREQ + ' were decoded - paste fewer at a time to see the rest.</div>' : '');
     OUT.innerHTML = html;
@@ -3442,17 +3498,14 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       var wasPlat = activeFilter && activeFilter.type === 'plat' && activeFilter.value === plat;
       activeFilter = wasPlat ? null : { type: 'plat', value: plat };
       applyFilter();
-      if (!wasPlat) {
-        var target = Array.prototype.filter.call(OUT.querySelectorAll('.dq-group'), function(g){ return g.dataset.plat === plat; })[0]
-          || OUT.querySelector('.dq-reqs');
-        if (target) target.scrollIntoView({ behavior:'smooth', block:'start' });
-      }
+      /* No scroll here on purpose - the page stays put; the list below is filtered in place. */
       var again = Array.prototype.filter.call(OUT.querySelectorAll('.dq-plat-go'), function(x){ return x.dataset.plat === plat; })[0];
       if (again) again.focus({ preventScroll:true });
       return;
     }
     if ((b = e.target.closest('.dq-ev-go'))) {
-      /* jump to the request(s) behind this event: filter to the platform, open them, scroll */
+      /* open the request(s) behind this event: filter to the platform and open them, without
+         scrolling the page (the scroll-to-request jump was removed on request, 2026-11-25) */
       var p2 = b.dataset.plat, ev = b.dataset.ev;
       activeFilter = { type: 'plat', value: p2 };
       applyFilter();
@@ -3462,7 +3515,6 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       });
       hits.forEach(function(d){ d.open = true; });
       if (hits[0]) {
-        hits[0].scrollIntoView({ behavior:'smooth', block:'start' });
         var sm = hits[0].querySelector('summary');
         if (sm) sm.focus({ preventScroll:true });
       }
@@ -3561,6 +3613,31 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     b.addEventListener('click', function(){ EXPIN.value = TPL[b.dataset.tpl] || ''; saveExpectations(); });
   });
 
+  /* What a HAR's cookies said about consent timing (TD.requestsFromHar()'s consentTiming plus
+     each request's consent:'before'|'after'|null), as one sentence for above the results.
+     Tracking hits only - the banner's own requests and library downloads aren't counted. */
+  function harConsentNote(ct, reqs){
+    if (!ct) return '';
+    var hits = reqs.filter(function(r){
+      var a = TD.analyzeRequest({ url: r.url, body: r.body }, {});
+      return a.ok && a.platform && a.platform.name !== 'Cookie banner' && !/\.js(\?|$)/i.test(r.url.split('#')[0]);
+    });
+    var cmp = ct.cmp ? esc(ct.cmp) : 'the cookie banner';
+    if (ct.status === 'ok') {
+      var b = hits.filter(function(r){ return r.consent === 'before'; }).length,
+          a = hits.filter(function(r){ return r.consent === 'after'; }).length,
+          u = hits.length - b - a;
+      return '<strong>Consent timing, read from the file\u2019s cookies (' + cmp + '):</strong> '
+        + (b ? b + ' tracking request' + (b === 1 ? '' : 's') + ' fired <strong>before</strong> the cookie banner was answered and ' + (b === 1 ? 'is' : 'are') + ' checked as such below. ' : 'nothing fired before the cookie banner was answered. ')
+        + (a ? a + ' fired after it was answered (accepting or declining - the cookie doesn\u2019t say which). ' : '')
+        + (u ? u + ' couldn\u2019t be placed either side, so ' + (u === 1 ? 'isn\u2019t' : 'aren\u2019t') + ' checked for it.' : '');
+    }
+    if (ct.status === 'no-cookies') return '<strong>Consent timing: not available.</strong> This file has no cookies in it, so it can\u2019t show which requests fired before the cookie banner was answered. Chrome leaves cookies out of HAR exports by default; DevTools has a setting to export a HAR with sensitive data, which keeps them. Treat that file like a password, because it holds login cookies (this page reads it locally and never uploads it). Or, if you captured without touching the banner, tick <strong>Captured before answering the cookie banner</strong> instead.';
+    if (ct.status === 'unreadable-cmp') return '<strong>Consent timing: not available.</strong> This site\u2019s cookie banner (' + cmp + ') stores the visitor\u2019s choice outside cookies, so a HAR file can\u2019t show when it was answered. If you captured without touching the banner, tick <strong>Captured before answering the cookie banner</strong> instead.';
+    if (ct.status === 'no-site') return '';
+    return '';
+  }
+
   /* HAR import: read locally with FileReader, keep only requests a known vendor sent */
   var HARIN = document.getElementById('dq-har'), HARBTN = document.getElementById('dq-har-btn');
   if (HARIN && HARBTN) {
@@ -3588,7 +3665,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
           return;
         }
         IN.value = '';
-        run({ reqs: tracking, siteHost: parsed.siteHost,
+        run({ reqs: tracking, siteHost: parsed.siteHost, consentNote: harConsentNote(parsed.consentTiming, tracking),
           note: 'Decoded from <strong>' + esc(file.name) + '</strong>: ' + tracking.length + ' tracking request' + (tracking.length === 1 ? '' : 's') + ' out of ' + parsed.total + ' in the file' + (parsed.siteHost ? ', site <span class="mono">' + esc(parsed.siteHost) + '</span>' : '') + '.' });
       };
       reader.readAsText(file);

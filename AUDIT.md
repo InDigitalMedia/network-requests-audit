@@ -548,6 +548,44 @@ warning naming just those two.
   It's plausible (sGTM or a custom loader could strip it), but there's no documented rule to hang
   it on, so it would be a guess.
 
+## 2026-11-25: flagging requests captured before consent
+
+Reported: requests captured without accepting the cookie banner weren't flagged as pre-consent.
+The engine already had the rules (`beforeConsent` → "Fired before consent" findings), but only
+`scripts/scan-url.js` switched them on, because a pasted URL doesn't record when it fired
+relative to the banner.
+
+- [x] **Decode tab checkbox**, "Captured before answering the cookie banner" (`#dq-preconsent`).
+  It re-decodes with `beforeConsent`, shows a banner above the results, and adds a line to both
+  exports. Not persisted, so a forgotten tick can't fail every pixel in the next paste.
+- [x] **Guided journey "Before accepting cookies" step** (first step of both journeys). It's
+  analysed with `beforeConsent` and summarised separately ("Fired before consent: Meta
+  (id, event)…", plus Google hits that were correctly cookieless). Labels include the tag ID so
+  two tags of one platform aren't confused. "Open this step in the decoder" sets the checkbox to
+  match the step.
+- [x] **Engine:** vendor library downloads (`*.js` paths: bat.js, insight.min.js, events.js…) no
+  longer get "Fired before consent", matching scan-url.js's existing script exclusion. Before
+  this, a pre-consent paste would have failed every library load as well as the real hits.
+- [x] **Automatic, from a HAR import's cookies.** `requestsFromHar()` now marks each request
+  `consent: 'before'|'after'|null` (`harConsentTiming()`, `CMPS` table) and returns
+  `consentTiming: {cmp, status}`. The logic: the platform's "answered" cookie (OneTrust
+  `OptanonAlertBoxClosed`, Cookiebot `CookieConsent`, CookieYes `action:yes`, Didomi
+  `didomi_token`, TrustArc `notice_gdpr_prefs`) only appears, never goes. So a site request
+  *at or after* a hit that still lacks it means the hit fired before an answer, and one *at or
+  before* the hit that has it means after. Third-party hits never carry the site's cookies, which
+  is why it reads the surrounding site requests. The Decode tab shows a note with the counts, and
+  "before" hits get the before-consent findings. It only reads cookie names (plus CookieYes's
+  action flag); no values are kept.
+  - **Limits, stated in the UI rather than guessed around:** Chrome's default HAR export strips
+    cookies (status `no-cookies`; the note explains the with-sensitive-data export and warns the
+    file holds login cookies). Usercentrics/Osano keep the choice outside cookies
+    (`unreadable-cmp`). A hit with no later site request can't be placed (null). "After" means
+    *answered*, which includes declining.
+  - [ ] **Possible next step:** read *which* answer was given (for example OneTrust's
+    `OptanonConsent` `groups=`), so a non-Google pixel firing after a decline is flagged too.
+    Needs per-platform category-ID knowledge (C0004 = targeting on OneTrust's defaults, but sites
+    can rename groups), so it's left out for now.
+
 ## Deferred / not yet added
 BMAD Method was installed into this project (`.claude/skills`, `_bmad/`, `_bmad-output/`) but hasn't
 been used yet for planning/tracking this work. Could route these items through a BMAD workflow

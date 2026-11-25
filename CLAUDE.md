@@ -194,9 +194,13 @@ just downloads and double-clicks the file.)
   from `describeEvent()`, shown on each collapsed Decode row; descriptive only, never affects
   findings — add new event names to its `EVENT_PURPOSE` map) or `{ok:false, error, request}` if `input.url` doesn't
   parse as a URL. Full field-by-field documentation is in the file's header comment.
-  `beforeConsent` is only set by `scripts/scan-url.js` (an experimental local scan-by-URL tool),
-  which knows a hit fired before the cookie banner was answered; a paste can't know that, so
-  `index.html` never sets it.
+  `beforeConsent` means the caller *knows* a hit fired before the cookie banner was answered — a
+  paste can't show that by itself. It's set by `scripts/scan-url.js` (an experimental local
+  scan-by-URL tool), by the Decode tab's "Captured before answering the cookie banner" checkbox
+  (`#dq-preconsent`, deliberately not persisted), and by the guided journey's pre-consent step
+  (`PRESTEP`, `pre:true`, kept out of `TD.checkJourney()` and summarised by
+  `preConsentSummary()`). Vendor library downloads (`*.js` paths) never get the before-consent
+  findings — they aren't tracking hits.
 - `fields` on each result (`extractFields()`, driven by the `FIELDMAP` table) — value, currency,
   order ID, dedup ID, pixel ID, page path and consent, read off each platform's own param names.
   Adding a platform means adding its `FIELDMAP` row too, or its rows show no facts line.
@@ -205,7 +209,12 @@ just downloads and double-clicks the file.)
   function's logic is unchanged; concatenated in `analyzeRequest()` before the verdict.
 - `analyzePaste(results, {expectedEvents, expectedIds})` — the Decode tab's "At a glance" panel:
   per-platform scorecard, funnel grid (`STAGES`), cross-platform notes, expected/unexpected
-  checks. `requestsFromHar(text)` — HAR import (each request also gets `time` and `pageTitle`).
+  checks. `requestsFromHar(text)` — HAR import (each request also gets `time`, `pageTitle` and
+  `consent: 'before'|'after'|null`, worked out from the consent platform's "answered" cookie on
+  the site's own requests — `harConsentTiming()`/`CMPS`; `consentTiming.status` says when it
+  can't be, e.g. `'no-cookies'` for Chrome's default sanitized export). `index.html`'s
+  `harConsentNote()` turns it into the note above the results, and `renderOne()` passes
+  `consent === 'before'` through as `beforeConsent`.
   `checkJourney(steps)` — the guided journey: per step, did each platform get that step's event.
 - `PLATFORMS` — the vendor registry: each entry has a hostname/path matcher `t()`, display name `n`,
   kind `k`, and a documented-parameters map `d` (values tagged `'d'` documented / `'p'`
