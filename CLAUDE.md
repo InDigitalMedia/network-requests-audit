@@ -62,7 +62,7 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      `chrome.scripting.executeScript` in `world:'MAIN'`, permissions `activeTab`+`scripting` only).
      `extension/bookmarklet.source.js` must stay a byte-identical copy of the root file — after
      editing the root, `cp` it across; `network-guard.sh` fails on drift or widened permissions.
-     The Check tab's "Add the Chrome extension" button (`#bm-ext`) stays hidden until
+     The How to use tab's (`p-check`) "Add the Chrome extension" button (`#bm-ext`) stays hidden until
      `EXT_STORE_URL` (just above the audience-view code) is set to the Web Store listing URL; the
      guard pins that value to `''` or a `chromewebstore.google.com/detail/` URL. `privacy.html`
      (root, deployed with the site) is the store's privacy policy — keep it true if permissions
@@ -168,7 +168,7 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      the parameter table rendering.
 
 4. **HTML body** (~line 604–1600): one page, tab-panel switched (not separate documents). Panels in
-   source order: Masthead → stat cards → "the chain" explainer → tab controls → **Check** (Marketing
+   source order: Masthead → stat cards → "the chain" explainer → tab controls → **How to use** (`p-check`; Marketing
    task-based walkthrough) → **Start here** → **Google & GA4** → **Server-side (sGTM)** → **Consent**
    → **Platforms** (reference table driven by `tag-detector.js`'s `PLATFORMS`) → **Your setup** →
    **Debugging** → **Decode** (the interactive tool, backed by script block 3 + `tag-detector.js`) →
@@ -248,7 +248,7 @@ just downloads and double-clicks the file.)
 
 The Marketing/Specialist toggle (`setView`) is the central UX fact about this codebase: most panels
 and reference detail are specialist-only (`aud-spec`), while Marketing view shows only three
-task-oriented tabs (Check / Start here / Decode) with jargon and sourcing hidden. When adding
+task-oriented tabs (Basics / How to use / Decode — Basics is first and the default landing tab) with jargon and sourcing hidden. When adding
 content, decide deliberately which audience it belongs to and tag the class accordingly — don't
 assume specialist-only is the default.
 

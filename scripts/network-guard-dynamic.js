@@ -75,7 +75,7 @@ function extractBmCode(html) {
     for (const t of await page.locator('#tabs button').all()) { if (await t.isVisible()) await t.click(); }
   }
 
-  // Check tab's "Add the Chrome extension" link (#bm-ext-link) - deliberately NOT
+  // How to use tab's "Add the Chrome extension" link (#bm-ext-link) - deliberately NOT
   // clicked: it's a plain off-site link to the Chrome Web Store, which the visitor
   // chooses to follow (network-guard.sh statically pins EXT_STORE_URL to '' or a
   // chromewebstore.google.com/detail/ URL). Here we only check the wiring: hidden
@@ -85,7 +85,7 @@ function extractBmCode(html) {
       const box = document.getElementById('bm-ext'), a = document.getElementById('bm-ext-link');
       return box && a ? { hidden: box.hidden, href: a.getAttribute('href') } : null;
     });
-    if (!ext) errors.push('Chrome extension link (#bm-ext / #bm-ext-link) missing from the Check tab');
+    if (!ext) errors.push('Chrome extension link (#bm-ext / #bm-ext-link) missing from the How to use tab');
     else if (!ext.hidden && !/^https:\/\/chromewebstore\.google\.com\/detail\//.test(ext.href)) {
       violations.push('Chrome extension link is visible but points at ' + ext.href + ' (expected a chromewebstore.google.com/detail/ URL)');
     }

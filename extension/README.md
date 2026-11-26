@@ -72,7 +72,7 @@ cp bookmarklet.source.js extension/bookmarklet.source.js
    few days.
 6. **Once it's approved,** copy the listing URL (`https://chromewebstore.google.com/detail/…`) into
    `var EXT_STORE_URL = '';` in `index.html`. That un-hides the "Add the Chrome extension" button
-   on the Check tab. Run the network guard and redeploy.
+   on the How to use tab. Run the network guard and redeploy.
 
 ### Updates
 
