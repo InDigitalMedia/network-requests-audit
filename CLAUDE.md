@@ -62,7 +62,9 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      regenerate the `BM` line after editing it; there is no build step that does this automatically.
      It also reads event/command *names* (never values - they can hold PII) from `window.dataLayer`
      (`dlN`) into a "What the page told Tag Manager" panel section and a `# dataLayer: a | b` line in
-     its copy; the Decode tab's optional "Add the page's dataLayer" box (`#dq-dl`, never persisted,
+     its copy; on the Decode tab it's opt-in via the "Decode the dataLayer" tick box next to
+     Decode/Clear (`#dq-dlon`, choice remembered in `id-dq-dlon`, off by default) — ticking it
+     also reveals the optional paste box (`#dq-dlbox`/`#dq-dl`, never persisted,
      `parseDataLayer()` keeps names only from a console one-liner, a JSON dump or that line) wins
      over the paste's line and also applies to HAR imports; `dataLayerNote()` (in `run()`) turns the names into a note marking
      which events a decoded request matches, and flags a GA4 `config` whose automatic page_view

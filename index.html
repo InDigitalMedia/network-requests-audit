@@ -571,6 +571,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-dl-chip { border:1px solid var(--line); border-radius:4px; padding:1px 7px; font-size:12px; }
 .dq-dl-p { margin:7px 0 0; }
 .dq-dl-snip { flex:1 1 260px; min-width:0; font-size:11.5px; padding:7px 9px; border:1px solid var(--line); border-radius:var(--r-ctl); word-break:break-all; user-select:all; }
+.dq-dlbox { margin-top:12px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r-ctl); }
+.dq-dlbox[hidden] { display:none; }
 .dq-dl-in { width:100%; box-sizing:border-box; font-family:inherit; resize:vertical; }
 
 /* "At a glance" panel */
@@ -1927,6 +1929,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <button class="id-btn" id="dq-go" type="button">Decode</button>
             <button class="id-btn" id="dq-clear" type="button">Clear</button>
             <span class="dq-sep"></span>
+            <label class="dq-ssw" for="dq-dlon" title="Also show what the page told Tag Manager (its dataLayer events, in order) and check them against the decoded requests. Uses the dataLayer line in a bookmarklet copy, or one you add below.">
+              <input type="checkbox" id="dq-dlon" aria-describedby="dq-dlon-desc" aria-controls="dq-dlbox">
+              Decode the dataLayer
+              <span id="dq-dlon-desc" class="sr-only">Also show what the page told Tag Manager, its dataLayer events in order, and check them against the decoded requests. Uses the dataLayer line in a bookmarklet copy, or one you add in the box that appears.</span>
+            </label>
+            <span class="dq-sep"></span>
             <label class="dq-ssw" for="dq-ssgtm" title="Server-side tracking (also called sGTM or a server container) routes tag data through your own server before it reaches Google/Meta/etc, instead of the browser sending it directly. Most sites do not have this set up - leave unchecked unless you know yours does.">
               <input type="checkbox" id="dq-ssgtm" aria-describedby="dq-ssgtm-desc">
               This site has server-side tracking set up
@@ -1941,6 +1949,16 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <span class="dq-sep aud-spec"></span>
             <label class="id-label aud-spec" for="dq-host" style="white-space:nowrap">Container hostname <span style="font-weight:600;text-transform:none;letter-spacing:0">(only needed if it is not on your site's own domain)</span></label>
             <input id="dq-host" class="dq-inp aud-spec" type="text" spellcheck="false" placeholder="metrics.yoursite.com">
+          </div>
+          <div class="dq-dlbox" id="dq-dlbox" hidden>
+            <p class="dq-hint" style="margin-top:0">A bookmarklet copy already includes the dataLayer - nothing to add. For a DevTools paste or a HAR import, open DevTools &rarr; <strong>Console</strong> on the site, run this line (it copies event names only, never the values pushed with them) and paste the result below:</p>
+            <div class="dq-row">
+              <code class="mono dq-dl-snip" id="dq-dl-snip">copy(dataLayer.map(function(e){return !e?'':typeof e[0]==='string'?(e[0]==='event'?e[1]:/^(config|consent)$/.test(e[0])?e[0]+' '+e[1]:''):e.event||''}).filter(Boolean).join(' | '))</code>
+              <button class="id-btn dq-toggle" id="dq-dl-copy" type="button">Copy line</button>
+            </div>
+            <label class="id-label" for="dq-dl" style="display:block;margin-top:10px">dataLayer <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <textarea id="dq-dl" class="dq-inp dq-inp--wide dq-dl-in" rows="3" spellcheck="false" placeholder="gtm.js | config G-ABC123XYZ | gtm.dom | button"></textarea>
+            <p class="dq-hint" id="dq-dl-msg" style="margin-top:8px">Also accepts a full <span class="mono">JSON.stringify(dataLayer)</span> dump - only the event and command names are kept. Not saved.</p>
           </div>
           <div class="dq-row">
             <button class="id-btn" id="dq-har-btn" type="button">Import HAR file</button>
@@ -1960,19 +1978,6 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
               <label class="id-label" for="dq-ids" style="display:block;margin-top:14px">This client's pixel and tag IDs</label>
               <input id="dq-ids" class="dq-inp dq-inp--wide" type="text" spellcheck="false" placeholder="G-ABC123XYZ, 998877665544, 1234567">
               <p class="dq-hint" style="margin-top:8px">Separate with commas. Use any of the platforms' own names for events (purchase, Purchase and CompletePayment all count as a purchase). Any pixel or tag ID in a paste that isn't listed is flagged - that catches a pixel left behind by a previous agency, or one belonging to a different client. Remembered in this browser only.</p>
-            </div>
-          </details>
-          <details class="fix dq-dlbox" id="dq-dlbox">
-            <summary>Add the page's dataLayer - optional, shows what the site asked its tags to do</summary>
-            <div class="fix-b">
-              <p class="dq-hint">Useful when an event shows in Tag Assistant but not below - e.g. a GA4 <span class="mono">page_view</span> sent on load inside a request body. On the site, open DevTools &rarr; <strong>Console</strong>, run this line (it copies event names only, never the values pushed with them), then paste the result here:</p>
-              <div class="dq-row">
-                <code class="mono dq-dl-snip" id="dq-dl-snip">copy(dataLayer.map(function(e){return !e?'':typeof e[0]==='string'?(e[0]==='event'?e[1]:/^(config|consent)$/.test(e[0])?e[0]+' '+e[1]:''):e.event||''}).filter(Boolean).join(' | '))</code>
-                <button class="id-btn dq-toggle" id="dq-dl-copy" type="button">Copy line</button>
-              </div>
-              <label class="id-label" for="dq-dl" style="display:block;margin-top:10px">dataLayer</label>
-              <textarea id="dq-dl" class="dq-inp dq-inp--wide dq-dl-in" rows="3" spellcheck="false" placeholder="gtm.js | config G-ABC123XYZ | gtm.dom | button"></textarea>
-              <p class="dq-hint" id="dq-dl-msg" style="margin-top:8px">Also accepts a full <span class="mono">JSON.stringify(dataLayer)</span> dump - only the event and command names are kept. The bookmarklet's copy already includes this, so you only need it for DevTools pastes and HAR imports. Not saved.</p>
             </div>
           </details>
           <details class="fix dq-journey" id="dq-journey">
@@ -2612,7 +2617,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return pick ? (OWNER_SHORT[pick.remedy.who] || pick.remedy.who) : null;
   }
   function splitList(v){ return String(v || '').split(/[,\n]/).map(function(x){ return x.trim(); }).filter(Boolean); }
-  var EXPIN = document.getElementById('dq-expected'), IDSIN = document.getElementById('dq-ids'), DLIN = document.getElementById('dq-dl');
+  var EXPIN = document.getElementById('dq-expected'), IDSIN = document.getElementById('dq-ids'), DLIN = document.getElementById('dq-dl'), DLON = document.getElementById('dq-dlon');
   try { if (EXPIN) EXPIN.value = localStorage.getItem('id-dq-expected') || ''; if (IDSIN) IDSIN.value = localStorage.getItem('id-dq-ids') || ''; } catch(e){}
 
   /* Parameter dictionaries, platform registry, extraction/parsing, consent decoding,
@@ -3501,6 +3506,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return names.map(function(n){ return String(n).replace(/[\r\n|]+/g, ' ').trim().slice(0, 60); }).filter(Boolean).slice(0, 200);
   }
   function dataLayerNames(raw){
+    if (!(DLON && DLON.checked)) return [];
     var box = DLIN && DLIN.value.trim();
     if (box) return parseDataLayer(box) || [];
     var m = raw && raw.match(/^#\s*dataLayer:[ \t]*(.+)$/im);
@@ -3938,6 +3944,17 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     msg.innerHTML = !v ? msg.dataset.base : n === null ? '<strong>Couldn&rsquo;t read that as JSON.</strong> Paste the output of the line above, or names separated by <span class="mono">|</span>.' : '<strong>' + n.length + ' event' + (n.length === 1 ? '' : 's') + ' read.</strong> ' + (OUT.innerHTML ? 'Shown above the results.' : 'Decode a request to compare them.');
   }
   if (DLIN) DLIN.addEventListener('change', function(){ dlStatus(); rerun(); });
+  /* "Decode the dataLayer" tick box - the on/off choice is remembered (it holds no data);
+     the box's contents never are */
+  function dlToggle(){ var box = document.getElementById('dq-dlbox'); if (box) box.hidden = !DLON.checked; }
+  if (DLON) {
+    try { DLON.checked = localStorage.getItem('id-dq-dlon') === '1'; } catch(e){}
+    dlToggle();
+    DLON.addEventListener('change', function(){
+      try { localStorage.setItem('id-dq-dlon', DLON.checked ? '1' : '0'); } catch(e){}
+      dlToggle(); rerun();
+    });
+  }
   var DLCOPY = document.getElementById('dq-dl-copy');
   if (DLCOPY) DLCOPY.addEventListener('click', function(){
     copyText(document.getElementById('dq-dl-snip').textContent, function(ok){ DLCOPY.textContent = ok ? 'Copied' : 'Select and copy it'; setTimeout(function(){ DLCOPY.textContent = 'Copy line'; }, 1800); });

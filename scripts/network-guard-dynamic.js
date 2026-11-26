@@ -115,7 +115,7 @@ function extractBmCode(html) {
   await page.click('#dq-go');
   await page.waitForTimeout(60);
   // Optional dataLayer box (#dq-dl): JSON dump with a PII-shaped value, copy-line button, then cleared.
-  await page.click('#dq-dlbox summary');
+  await page.check('#dq-dlon');
   await page.click('#dq-dl-copy');
   await page.fill('#dq-dl', '[{"event":"gtm.js"},{"0":"config","1":"G-ABC123"},{"event":"button","email":"jane.doe@example.com"}]');
   await page.dispatchEvent('#dq-dl', 'change'); await page.waitForTimeout(60);
