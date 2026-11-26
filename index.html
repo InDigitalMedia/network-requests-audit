@@ -974,12 +974,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <p class="bm-p"><strong>Two platforms need one extra click.</strong> TikTok and Snapchat hide their data inside the request rather than in its address, so the panel will name them but show no detail. Click <strong>Record payloads</strong> in the panel, repeat the action, then click the bookmark again. It only works for actions that stay on the same page.</p>
             <p class="bm-p"><strong>Can't see your bookmarks bar?</strong> Press Cmd+Shift+B on a Mac, or Ctrl+Shift+B on Windows. If dragging does not work, use <strong>Copy the code</strong> instead, then create a new bookmark manually and paste it into the address or URL field.</p>
             <p class="bm-p"><strong>On a phone or tablet?</strong> Bookmarklets are unreliable on mobile browsers - do this step on a desktop browser instead.</p>
-            <details class="fix" id="bm-diy">
+            <details class="fix" id="bm-diy" data-bm-diy>
               <summary>Prefer a toolbar button? Make your own Chrome extension (about 2 minutes)</summary>
               <div class="fix-b">
                 <p class="bm-p" style="margin-top:0">This turns the same checker into an icon on Chrome's toolbar, with no bookmarks bar needed. You don't need any code or software, just Chrome. The extension is built in this page and can only read the tab you click it on, at the moment you click.</p>
                 <ol class="fix-steps" style="margin-top:10px">
-                  <li><button class="id-btn" id="bm-diy-dl" type="button">Download the extension</button> <span class="bm-note" id="bm-diy-msg" style="display:inline;text-align:left"></span></li>
+                  <li><button class="id-btn" id="bm-diy-dl" data-bm-diy-dl type="button">Download the extension</button> <span class="bm-note" id="bm-diy-msg" data-bm-diy-msg style="display:inline;text-align:left"></span></li>
                   <li>Open the downloaded <strong>check-tracking-extension.zip</strong> (double-click it). You get a folder called <strong>check-tracking-extension</strong>. Move it somewhere permanent, like your Documents folder. Chrome loads it from there every time, so don't delete it.</li>
                   <li>In Chrome, type <strong>chrome://extensions</strong> into the address bar and press Enter.</li>
                   <li>Turn on <strong>Developer mode</strong> (the switch at the top right).</li>
@@ -1874,6 +1874,21 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
               <li>Click <strong>Copy all for the decoder</strong> in that panel, then come back here and paste into the box below.</li>
               <li>If the panel names TikTok or Snapchat but shows no detail, click <strong>Record payloads</strong> in the panel, repeat whatever action you're checking, then click the bookmark again before copying - those two send their data in a way this needs an extra step to see.</li>
             </ol>
+            <details class="fix" data-bm-diy>
+              <summary>Prefer a toolbar button? Make your own Chrome extension (about 2 minutes)</summary>
+              <div class="fix-b">
+                <p class="bm-p" style="margin-top:0">This turns the same checker into an icon on Chrome's toolbar, with no bookmarks bar needed. You don't need any code or software, just Chrome. The extension is built in this page and can only read the tab you click it on, at the moment you click.</p>
+                <ol class="fix-steps" style="margin-top:10px">
+                  <li><button class="id-btn" data-bm-diy-dl type="button">Download the extension</button> <span class="bm-note" data-bm-diy-msg style="display:inline;text-align:left"></span></li>
+                  <li>Open the downloaded <strong>check-tracking-extension.zip</strong> (double-click it). You get a folder called <strong>check-tracking-extension</strong>. Move it somewhere permanent, like your Documents folder. Chrome loads it from there every time, so don't delete it.</li>
+                  <li>In Chrome, type <strong>chrome://extensions</strong> into the address bar and press Enter.</li>
+                  <li>Turn on <strong>Developer mode</strong> (the switch at the top right).</li>
+                  <li>Click <strong>Load unpacked</strong> and choose the <strong>check-tracking-extension</strong> folder.</li>
+                  <li>Click the jigsaw-piece icon on Chrome's toolbar and pin <strong>Check tracking</strong>. From now on, click that icon wherever these steps say to click the bookmark.</li>
+                </ol>
+                <p class="bm-p"><strong>Good to know:</strong> this copy doesn't update itself. If the checker changes, download it again, replace the folder and click the refresh arrow on the extension in chrome://extensions. If your company manages your Chrome, Developer mode may be switched off. If so, use the bookmark instead. Chrome may also show a "developer mode extensions" reminder when it starts, which is safe to close.</p>
+              </div>
+            </details>
           </div>
           <div class="bm-r">
             <a class="bm-btn" data-bm-link href="#">Check tracking</a>
@@ -2210,7 +2225,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     });
   });
 
-  /* ---- "Make your own Chrome extension" (How to use tab, #bm-diy) ----
+  /* ---- "Make your own Chrome extension" ([data-bm-diy]: How to use tab #bm-diy + Decode tab) ----
      Builds an unpacked-extension zip entirely in this page and hands it to the
      visitor as a Blob download - nothing is fetched. Contents mirror extension/
      (manifest.json + background.js, permissions activeTab + scripting only),
@@ -2219,9 +2234,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
      If you change extension/manifest.json permissions or background.js, change
      DIY_MANIFEST / DIY_BG here too. */
   (function(){
-    var btn = document.getElementById('bm-diy-dl');
-    if (!btn) return;
-    var msg = document.getElementById('bm-diy-msg');
+    var btns = document.querySelectorAll('[data-bm-diy-dl]');
+    if (!btns.length) return;
     var ICON128 = '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';
     var DIY_MANIFEST = JSON.stringify({
       manifest_version: 3,
@@ -2277,7 +2291,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
     }
 
-    btn.addEventListener('click', function(){
+    Array.prototype.forEach.call(btns, function(btn){ btn.addEventListener('click', function(){
+      var msg = btn.closest('[data-bm-diy]').querySelector('[data-bm-diy-msg]');
       try {
         var bin = atob(ICON128), icon = new Uint8Array(bin.length);
         for (var i = 0; i < bin.length; i++) icon[i] = bin.charCodeAt(i);
@@ -2297,7 +2312,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       } catch (e) {
         msg.textContent = 'Sorry, the download failed in this browser. Use the bookmark instead.';
       }
-    });
+    }); });
   })();
 
   /* ---- Chrome extension link ----
@@ -2312,7 +2327,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     document.getElementById('bm-ext-link').setAttribute('href', EXT_STORE_URL);
     document.getElementById('bm-ext').hidden = false;
     document.getElementById('bm-ext-p').hidden = false;
-    var diy = document.getElementById('bm-diy'); if (diy) diy.hidden = true; /* store version supersedes the DIY copy */
+    document.querySelectorAll('[data-bm-diy]').forEach(function(d){ d.hidden = true; }); /* store version supersedes the DIY copy */
   }
 
   /* ---- audience view ---- */

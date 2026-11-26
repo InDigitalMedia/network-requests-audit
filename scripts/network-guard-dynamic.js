@@ -98,6 +98,10 @@ function extractBmCode(html) {
     await page.click('#bm-diy > summary');
     const [zip] = await Promise.all([page.waitForEvent('download'), page.click('#bm-diy-dl')]);
     await zip.delete();
+    await page.click('#tab-decode');
+    await page.click('#p-decode [data-bm-diy] > summary');
+    const [zip2] = await Promise.all([page.waitForEvent('download'), page.click('#p-decode [data-bm-diy-dl]')]);
+    await zip2.delete();
   }
 
   // Decode: every canned example, plus a paste carrying real-shaped PII.
