@@ -73,7 +73,14 @@ check_pattern "navigator.sendBeacon usage" 'sendBeacon' "$FILE" "$BM_LINE"
 check_pattern "new WebSocket(...)"         'new WebSocket\(' "$FILE"
 check_pattern "new EventSource(...)"       'new EventSource\(' "$FILE"
 check_pattern "external <script src>"      '<script[^>]*\bsrc=["'"'"']?(https?:|//)' "$FILE"
-check_pattern "external <link href>"       '<link[^>]*\bhref=' "$FILE"
+# <link href> is banned except the inline favicon lines: rel icon/apple-touch-icon
+# with a data:image/png;base64 href, alone on their own line (a data: URI is
+# decoded in-page, never fetched - and declaring one stops the browser's
+# automatic /favicon.ico request). Anything else on such a line still fails.
+FAVICON_OK='^[0-9]+:<link rel="(icon|apple-touch-icon)"( type="image/png")?( sizes="[0-9]+x[0-9]+")? href="data:image/png;base64,[A-Za-z0-9+/=]+">$'
+link_hits() { grep -nE '<link[^>]*\bhref=' "$1" | grep -vE "$FAVICON_OK" || true; }
+LH=$(link_hits "$FILE")
+if [ -n "$LH" ]; then echo "  [FAIL] external <link href>"; echo "$LH" | cut -c1-200 | sed 's/^/    /'; STATIC_FAIL=1; fi
 check_pattern "external <img src> (non-data:)" '<img[^>]*\bsrc="https?:' "$FILE"
 check_pattern "<form> element"             '<form[ >]' "$FILE"
 check_pattern "CSS @import"                '@import' "$FILE"
@@ -179,7 +186,9 @@ echo "  The extension's public privacy policy. Plain static page: no scripts or 
 PRIV=privacy.html
 PRIV_FAIL=0
 if [ -f "$PRIV" ]; then
-  for pat in '<script' '<link[^>]*href=' '<img[^>]*src="https?:' '<iframe' '<form[ >]' '@import' 'url\(.{0,2}https?:'; do
+  LH=$(link_hits "$PRIV")
+  if [ -n "$LH" ]; then echo "  [FAIL] $PRIV: <link href> (only data: favicons allowed)"; echo "$LH" | cut -c1-200 | sed 's/^/    /'; STATIC_FAIL=1; PRIV_FAIL=1; fi
+  for pat in '<script' '<img[^>]*src="https?:' '<iframe' '<form[ >]' '@import' 'url\(.{0,2}https?:'; do
     hits=$(grep -nE "$pat" "$PRIV" || true)
     if [ -n "$hits" ]; then echo "  [FAIL] $PRIV: /$pat/"; echo "$hits" | sed 's/^/    /'; STATIC_FAIL=1; PRIV_FAIL=1; fi
   done

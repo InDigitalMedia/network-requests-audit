@@ -10,7 +10,9 @@ Meta/TikTok/LinkedIn/Microsoft/Pinterest/Snapchat/Reddit/X ad pixels, consent mo
 correctly, by decoding pasted network request URLs/bodies. Built and maintained by In Digital as a
 client-facing/internal diagnostic tool.
 
-Fonts, the logo and all CSS are embedded inline in `index.html` (base64 fonts, data-URI logo). The
+Fonts, the logo, the favicon and all CSS are embedded inline in `index.html` (base64 fonts, data-URI
+logo; favicon + apple-touch-icon as `data:image/png` `<link>` lines in `<head>`, also in `privacy.html` —
+`network-guard.sh` allows exactly that `<link>` shape and nothing else). The
 Decode tab's detection/verdict engine lives in `tag-detector.js`, loaded via a plain
 `<script src="tag-detector.js">` (not an ES module — see that file's header for why: a module
 script is blocked cross-origin when `index.html` is opened directly via `file://`, which a classic
