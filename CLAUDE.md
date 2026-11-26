@@ -68,6 +68,12 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      (root, deployed with the site) is the store's privacy policy — keep it true if permissions
      change. Upload zip: `scripts/package-extension.sh` → `dist/` (git-ignored). See
      `extension/README.md`.
+   - "Make your own Chrome extension" (`#bm-diy`, How to use tab) — builds an unpacked-extension
+     zip in-page (tiny stored-zip writer, Blob download, no fetch) for people to "Load unpacked"
+     without the Web Store or this repo. Its `checker.js` is the decoded `BM` string, so it tracks
+     the bookmarklet automatically; `DIY_MANIFEST`/`DIY_BG` are hand-mirrored from
+     `extension/manifest.json`/`background.js` — keep permissions identical. Hidden once
+     `EXT_STORE_URL` is set.
    - `selectTab(b, focus)` / `readHash()` / `writeHash()` / `restoreFromHash()` — tab selection is
      shareable via `location.hash` (`#p=<tab>&q=<search term>`, written with `history.replaceState`).
      Route any new way of changing the active tab or search term through `selectTab`/`writeHash` so

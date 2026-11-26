@@ -91,6 +91,15 @@ function extractBmCode(html) {
     }
   }
 
+  // How to use tab's "Make your own Chrome extension" download (#bm-diy-dl): the zip
+  // is assembled in-page from the BM string + inline manifest/icon and saved as a Blob.
+  if (await page.locator('#bm-diy-dl').count()) {
+    await page.click('#tab-check');
+    await page.click('#bm-diy > summary');
+    const [zip] = await Promise.all([page.waitForEvent('download'), page.click('#bm-diy-dl')]);
+    await zip.delete();
+  }
+
   // Decode: every canned example, plus a paste carrying real-shaped PII.
   await page.click('#tab-decode');
   for (const eg of ['ga4ok', 'ga4bad', 'meta', 'fl', 'gbd', 'pii', 'ft']) {

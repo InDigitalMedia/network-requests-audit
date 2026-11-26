@@ -972,6 +972,21 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
             <p class="bm-p"><strong>Two platforms need one extra click.</strong> TikTok and Snapchat hide their data inside the request rather than in its address, so the panel will name them but show no detail. Click <strong>Record payloads</strong> in the panel, repeat the action, then click the bookmark again. It only works for actions that stay on the same page.</p>
             <p class="bm-p"><strong>Can't see your bookmarks bar?</strong> Press Cmd+Shift+B on a Mac, or Ctrl+Shift+B on Windows. If dragging does not work, use <strong>Copy the code</strong> instead, then create a new bookmark manually and paste it into the address or URL field.</p>
             <p class="bm-p"><strong>On a phone or tablet?</strong> Bookmarklets are unreliable on mobile browsers - do this step on a desktop browser instead.</p>
+            <details class="fix" id="bm-diy">
+              <summary>Prefer a toolbar button? Make your own Chrome extension (about 2 minutes)</summary>
+              <div class="fix-b">
+                <p class="bm-p" style="margin-top:0">This turns the same checker into an icon on Chrome's toolbar, with no bookmarks bar needed. You don't need any code or software, just Chrome. The extension is built in this page and can only read the tab you click it on, at the moment you click.</p>
+                <ol class="fix-steps" style="margin-top:10px">
+                  <li><button class="id-btn" id="bm-diy-dl" type="button">Download the extension</button> <span class="bm-note" id="bm-diy-msg" style="display:inline;text-align:left"></span></li>
+                  <li>Open the downloaded <strong>check-tracking-extension.zip</strong> (double-click it). You get a folder called <strong>check-tracking-extension</strong>. Move it somewhere permanent, like your Documents folder. Chrome loads it from there every time, so don't delete it.</li>
+                  <li>In Chrome, type <strong>chrome://extensions</strong> into the address bar and press Enter.</li>
+                  <li>Turn on <strong>Developer mode</strong> (the switch at the top right).</li>
+                  <li>Click <strong>Load unpacked</strong> and choose the <strong>check-tracking-extension</strong> folder.</li>
+                  <li>Click the jigsaw-piece icon on Chrome's toolbar and pin <strong>Check tracking</strong>. From now on, click that icon wherever these steps say to click the bookmark.</li>
+                </ol>
+                <p class="bm-p"><strong>Good to know:</strong> this copy doesn't update itself. If the checker changes, download it again, replace the folder and click the refresh arrow on the extension in chrome://extensions. If your company manages your Chrome, Developer mode may be switched off. If so, use the bookmark instead. Chrome may also show a "developer mode extensions" reminder when it starts, which is safe to close.</p>
+              </div>
+            </details>
             <p class="bm-p" id="bm-ext-p" hidden><strong>Using Chrome?</strong> Install the Chrome extension instead. It does exactly the same thing from an icon on your toolbar, with no bookmarks bar needed, and it keeps itself up to date. Click its icon where these steps say to click the bookmark.</p>
           </div>
           <div class="bm-r">
@@ -2193,6 +2208,96 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     });
   });
 
+  /* ---- "Make your own Chrome extension" (How to use tab, #bm-diy) ----
+     Builds an unpacked-extension zip entirely in this page and hands it to the
+     visitor as a Blob download - nothing is fetched. Contents mirror extension/
+     (manifest.json + background.js, permissions activeTab + scripting only),
+     except the injected script is the decoded BM string above (the minified
+     twin of bookmarklet.source.js) and one 128px icon stands in for all sizes.
+     If you change extension/manifest.json permissions or background.js, change
+     DIY_MANIFEST / DIY_BG here too. */
+  (function(){
+    var btn = document.getElementById('bm-diy-dl');
+    if (!btn) return;
+    var msg = document.getElementById('bm-diy-msg');
+    var ICON128 = 'iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAGWElEQVR42u3dO0gcWxwG8DGKBjWuFkasjKZTZDsFQbcwBEVhCYgWlhqxsxARRBhURAvRgKCFxYZE7K18woJphKDbqWAhJqlEXQQfmKj/u2fv/sN4r7l3HzOzM+d8Hwx5ENSc+c0538zs7GqaBSEib2Tri2yByBaMbEeEJJqj2NgFYmPp1ZycyA/oj/2wYew7yxKOjbHfKTvdE9l0HOFpmyHE2HvStfN1HO2OmRV0O3e8D0e8Y2cEn9U7fwbj7PjMWLXWBzG2rknQtG4Q2/khjKnrEkoZQWzno+i5uyB6cORjJvAkAwBrvkSdAG0fmUnkPB+RM754AOAij8QXi+K5vIvIHR2nfDg19ODoxyyAtR9d4PGLORC14jcCCGA8lEvACADlT8EyaHwBJ6JmvAJAnx3faXFxkUZHR0nX9ZS3Dx8+mPJ1nLiNj4/bCaDPtvW/ubmZsrOzSUw6qW4tLS2Un59vytdy2ib+X7b2ALLprp9ZADIyMmhubo4GBwejvweAlBK07fzfTADz8/N0fn5Ob9++lQ6BzQCONLu+k9kAfv36RXt7e1RXVycVApsBkGsB3N3d0e3tLa2vr1NeXh4AqAbg/v6eHh4eor+K5izLLAAACQAQEQiur6+ptbVVCgQAkCAARvD9+3d69eoVAKgIQET8eW1tzfV9AACSBMB9YGxszNVLAQAkCYARXF1dRa8UuhUBAKQAgBF8+/aNysrKAEBFANwHVlZWKDc3FwBUBMB9YGRkxHVLAQCYAIARnJ2dUUVFhasQAIBJAHgp+Pr1K+Xk5ACAigAYwfT0ND179gwAVATAfeDdu3eUlZUFAKoBYASnp6fU0dHh+D4AABYA4KVA3C+oqqoCABUBMILNzU0qKioCABUBcB+YmppybB8AAAsBMILLy0tqb293ZB8AAIsBGO8XVFZWAoCKALgPbGxsUGFhIQCoCICXgvfv3zvqIhEA2ATAuBTU1tY6pg8AgI0AeCn48uULlZaWAoCKAMQsIB4ymZ2dpefPnwOAagCMfaCrqyvtfQAA0gCAERwfH1NNTU1aEQBAmgBwH9ja2qLq6uq0lUIASCMA7gPb29vk8XgAQDUAxvsF4ntkZmYCgGoAGIF48rizs9P2pQAAHACAEZycnFBxcbGtCADAIQC4FC4tLdl6VgAADgLACHp7e22bBQDAYQD4eUOv12sLAgBwGACeBQ4ODqigoAAAVATACMSbXVo9CwCAQwEwgp6eHksRAICDAfBNIysvFQOAgwHwLLC/v08vXrwAABUBMIJPnz5ZMgsAgAsAMILu7m7TnzwGAJcAEH0gHA5HHzo1cyYAAJcA4FkgFArR69evAUBFAHzrWNwvMOvzCwDARQAYwc3NDQ0MDJjyvCEAuAwAIxC3jt+8eZNyHwAAFwLgPrC7uxt9UyoAUBAA9wFxvyCVPgAALgVg7AP9/f1J9wEAcDEAYx9obGxMqg8AgMsBcB/Y2dmh8vJyAFARAPeBz58/J9wHAEACAIzg4uIi4beuBwBJADCCw8PDhJYCAJAIAPeB5eXluF8/AACSARCzgPiMw4WFhbgeNQMAyQAYS+Hw8PD/PmQCABICYAQ/f/6khoaG/yyFACApAEYg3q+4pKQEAFQEwKVwdXX1j30AACQHwAiGhoae7AMAoAAA7gP19fX/6gMAoAAAYx94+fLlIwQAoAgAXgomJycfLQUAoBAAMQtcX1+T3+//PQsAgEIAGMGPHz9+f74hACgGgJcC8VE2YucDgIIAGMHExET0ppGUAJqamgAgjj7Q1tYmJ4D19fXoE7UfP35MeRNv1yIGTLbw5x1LCUAcsWZtMu58IwIpASDODAAAAKI6gCMMg7I5EgCCGAdlExQAAhgHZRMQAPowDsqmTwDwYhyUjVcTifwmjLFQLmGNgx6g6PpvAODHeCgXv2YMrgcodv7/z0T+Use4KBP9KQAelEE1yp/Y19pTwSyg6NGPLqDw2v8EAB/GSdr4tHgS+YczGCvpMqMlEsJdQpkS1BJN7KwghLFzfUJ/bP1xIsCpoYynfJgJcOQnigCdwEVrvmk7H2cHkrf9JBD4cLHImRd54j7PNwmCjoLomKKna+lIrBvomBHSdsTrlqz1SWIQLyoJYFaw/GgXY+zXnBz6+4WmfbEfNogZIukjPBgbQzGWXiv21V9BhS3eaHo7NAAAAABJRU5ErkJggg==';
+    var DIY_MANIFEST = JSON.stringify({
+      manifest_version: 3,
+      name: 'Check tracking (personal copy)',
+      short_name: 'Check tracking',
+      version: '1.0.0',
+      description: 'Lists the marketing tags firing on the current page. Nothing leaves your browser.',
+      action: { default_title: 'Check tracking on this page', default_icon: { '128': 'icon128.png' } },
+      icons: { '128': 'icon128.png' },
+      permissions: ['activeTab', 'scripting'],
+      background: { service_worker: 'background.js' },
+      minimum_chrome_version: '111'
+    }, null, 2);
+    var DIY_BG = [
+      '/* Clicking the toolbar icon injects checker.js into the current tab.',
+      '   world MAIN so "Record payloads" patches the page\'s own fetch/XHR/beacon. */',
+      'chrome.action.onClicked.addListener(function (tab) {',
+      '  if (!tab || tab.id === undefined) return;',
+      '  chrome.scripting.executeScript({ target: { tabId: tab.id }, files: [\'checker.js\'], world: \'MAIN\' })',
+      '    .catch(function () {',
+      '      chrome.action.setBadgeBackgroundColor({ color: \'#d92d20\', tabId: tab.id });',
+      '      chrome.action.setBadgeText({ text: \'!\', tabId: tab.id });',
+      '      chrome.action.setTitle({ title: "Can\'t check this page (Chrome blocks extensions here)", tabId: tab.id });',
+      '    });',
+      '});',
+      ''
+    ].join('\n');
+
+    var CRC_T = (function(){
+      var t = [], c, n, k;
+      for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+      return t;
+    })();
+    function crc32(b){ var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+    function u8(str){ return new TextEncoder().encode(str); }
+    /* Minimal "stored" (uncompressed) zip writer - enough for a handful of small files. */
+    function makeZip(files){
+      var parts = [], central = [], offset = 0;
+      var now = new Date();
+      var dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+      var dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+      function le(n, bytes){ var a = []; for (var i = 0; i < bytes; i++) a.push((n >>> (8 * i)) & 0xFF); return a; }
+      files.forEach(function(f){
+        var name = u8(f.name), crc = crc32(f.data), size = f.data.length;
+        var common = [].concat(le(20,2), le(0,2), le(0,2), le(dosTime,2), le(dosDate,2), le(crc,4), le(size,4), le(size,4), le(name.length,2), le(0,2));
+        var local = new Uint8Array([].concat(le(0x04034b50,4), common));
+        parts.push(local, name, f.data);
+        central.push(new Uint8Array([].concat(le(0x02014b50,4), le(20,2), common, le(0,2), le(0,2), le(0,2), le(0,4), le(offset,4))), name);
+        offset += local.length + name.length + size;
+      });
+      var cdSize = central.reduce(function(n, a){ return n + a.length; }, 0);
+      var end = new Uint8Array([].concat(le(0x06054b50,4), le(0,2), le(0,2), le(files.length,2), le(files.length,2), le(cdSize,4), le(offset,4), le(0,2)));
+      return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
+    }
+
+    btn.addEventListener('click', function(){
+      try {
+        var bin = atob(ICON128), icon = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) icon[i] = bin.charCodeAt(i);
+        var dir = 'check-tracking-extension/';
+        var blob = makeZip([
+          { name: dir + 'manifest.json', data: u8(DIY_MANIFEST) },
+          { name: dir + 'background.js', data: u8(DIY_BG) },
+          { name: dir + 'checker.js', data: u8(decodeURIComponent(BM.replace(/^javascript:/, ''))) },
+          { name: dir + 'icon128.png', data: icon }
+        ]);
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'check-tracking-extension.zip';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        msg.textContent = 'Downloaded. Now follow the steps below.';
+      } catch (e) {
+        msg.textContent = 'Sorry, the download failed in this browser. Use the bookmark instead.';
+      }
+    });
+  })();
+
   /* ---- Chrome extension link ----
      The same checker packaged as a Chrome extension (see extension/README.md).
      Paste the Chrome Web Store listing URL here once it's published; while this
@@ -2205,6 +2310,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     document.getElementById('bm-ext-link').setAttribute('href', EXT_STORE_URL);
     document.getElementById('bm-ext').hidden = false;
     document.getElementById('bm-ext-p').hidden = false;
+    var diy = document.getElementById('bm-diy'); if (diy) diy.hidden = true; /* store version supersedes the DIY copy */
   }
 
   /* ---- audience view ---- */
