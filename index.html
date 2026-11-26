@@ -570,6 +570,8 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
 .dq-dl-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
 .dq-dl-chip { border:1px solid var(--line); border-radius:4px; padding:1px 7px; font-size:12px; }
 .dq-dl-p { margin:7px 0 0; }
+.dq-dl-snip { flex:1 1 260px; min-width:0; font-size:11.5px; padding:7px 9px; border:1px solid var(--line); border-radius:var(--r-ctl); word-break:break-all; user-select:all; }
+.dq-dl-in { width:100%; box-sizing:border-box; font-family:inherit; resize:vertical; }
 
 /* "At a glance" panel */
 .dq-ans-banner {
@@ -1960,6 +1962,19 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
               <p class="dq-hint" style="margin-top:8px">Separate with commas. Use any of the platforms' own names for events (purchase, Purchase and CompletePayment all count as a purchase). Any pixel or tag ID in a paste that isn't listed is flagged - that catches a pixel left behind by a previous agency, or one belonging to a different client. Remembered in this browser only.</p>
             </div>
           </details>
+          <details class="fix dq-dlbox" id="dq-dlbox">
+            <summary>Add the page's dataLayer - optional, shows what the site asked its tags to do</summary>
+            <div class="fix-b">
+              <p class="dq-hint">Useful when an event shows in Tag Assistant but not below - e.g. a GA4 <span class="mono">page_view</span> sent on load inside a request body. On the site, open DevTools &rarr; <strong>Console</strong>, run this line (it copies event names only, never the values pushed with them), then paste the result here:</p>
+              <div class="dq-row">
+                <code class="mono dq-dl-snip" id="dq-dl-snip">copy(dataLayer.map(function(e){return !e?'':typeof e[0]==='string'?(e[0]==='event'?e[1]:/^(config|consent)$/.test(e[0])?e[0]+' '+e[1]:''):e.event||''}).filter(Boolean).join(' | '))</code>
+                <button class="id-btn dq-toggle" id="dq-dl-copy" type="button">Copy line</button>
+              </div>
+              <label class="id-label" for="dq-dl" style="display:block;margin-top:10px">dataLayer</label>
+              <textarea id="dq-dl" class="dq-inp dq-inp--wide dq-dl-in" rows="3" spellcheck="false" placeholder="gtm.js | config G-ABC123XYZ | gtm.dom | button"></textarea>
+              <p class="dq-hint" id="dq-dl-msg" style="margin-top:8px">Also accepts a full <span class="mono">JSON.stringify(dataLayer)</span> dump - only the event and command names are kept. The bookmarklet's copy already includes this, so you only need it for DevTools pastes and HAR imports. Not saved.</p>
+            </div>
+          </details>
           <details class="fix dq-journey" id="dq-journey">
             <summary>Guided test journey - check a whole purchase or lead, step by step</summary>
             <div class="fix-b">
@@ -2597,7 +2612,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     return pick ? (OWNER_SHORT[pick.remedy.who] || pick.remedy.who) : null;
   }
   function splitList(v){ return String(v || '').split(/[,\n]/).map(function(x){ return x.trim(); }).filter(Boolean); }
-  var EXPIN = document.getElementById('dq-expected'), IDSIN = document.getElementById('dq-ids');
+  var EXPIN = document.getElementById('dq-expected'), IDSIN = document.getElementById('dq-ids'), DLIN = document.getElementById('dq-dl');
   try { if (EXPIN) EXPIN.value = localStorage.getItem('id-dq-expected') || ''; if (IDSIN) IDSIN.value = localStorage.getItem('id-dq-ids') || ''; } catch(e){}
 
   /* Parameter dictionaries, platform registry, extraction/parsing, consent decoding,
@@ -3460,11 +3475,39 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     'gtm.linkClick':'link click', 'gtm.formSubmit':'form submit', 'gtm.historyChange':'page change',
     'gtm.historyChange-v2':'page change', 'gtm.scrollDepth':'scroll', 'gtm.timer':'timer',
     'gtm.elementVisibility':'element visible', 'gtm.video':'video' };
-  function dataLayerNote(raw, results){
+  /* Names from the optional dataLayer box: a JSON dump (same rules as the bookmarklet's dlN -
+     gtag() Arguments serialise as {"0":"config","1":"G-.."}), the bookmarklet's "# dataLayer:"
+     line, or names separated by "|" / new lines. Returns null if JSON was given but unreadable.
+     Values are dropped here and the box is never persisted - a dataLayer can hold personal data. */
+  function parseDataLayer(text){
+    var t = String(text || '').trim().replace(/^#\s*dataLayer:\s*/i, '');
+    if (!t) return [];
+    var names = [];
+    if (/^[\[{]/.test(t)) {
+      var arr; try { arr = JSON.parse(t); } catch(e){ return null; }
+      if (!Array.isArray(arr)) arr = [arr];
+      arr.forEach(function(x){
+        var w = null;
+        if (x && typeof x === 'object') {
+          if (typeof x[0] === 'string') {
+            if (x[0] === 'event') w = x[1];
+            else if (x[0] === 'config') w = 'config ' + x[1] + (x[2] && x[2].send_page_view === false ? ' (no page_view)' : '');
+            else if (x[0] === 'consent') w = 'consent ' + x[1];
+          } else if (typeof x.event === 'string') w = x.event;
+        }
+        if (w && typeof w === 'string') names.push(w);
+      });
+    } else names = t.split(/\s*\|\s*|\s*\n\s*/);
+    return names.map(function(n){ return String(n).replace(/[\r\n|]+/g, ' ').trim().slice(0, 60); }).filter(Boolean).slice(0, 200);
+  }
+  function dataLayerNames(raw){
+    var box = DLIN && DLIN.value.trim();
+    if (box) return parseDataLayer(box) || [];
     var m = raw && raw.match(/^#\s*dataLayer:[ \t]*(.+)$/im);
-    if (!m) return '';
-    var names = m[1].split(' | ').map(function(s){ return s.trim(); }).filter(Boolean);
-    if (!names.length) return '';
+    return m ? parseDataLayer(m[1]) || [] : [];
+  }
+  function dataLayerNote(names, results){
+    if (!names || !names.length) return '';
     var seen = {}, ga4pv = false;
     results.forEach(function(r){
       if (!r || !r.event || !r.event.name) return;
@@ -3492,7 +3535,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     var notes = [];
     if (missing.length) notes.push('<strong>&ndash; not in the requests below:</strong> ' + missing.map(esc).join(', ')
       + '. Either the body carrying it wasn&rsquo;t captured, or the tag sends it under a different name. &#10003; means a decoded request has the same event name.');
-    if (cfg.length && !ga4pv) notes.push('<strong>GA4 ' + cfg.map(esc).join(', ') + ' was set up on this page</strong>, which sends an automatic <span class="mono">page_view</span>, but no GA4 <span class="mono">page_view</span> was decoded. It fired on load inside a batched request body, before the bookmarklet could record it. To check its parameters, use DevTools &rarr; Network &rarr; right-click the <span class="mono">collect</span> request &rarr; Copy as cURL, or import a HAR.');
+    if (cfg.length && !ga4pv) notes.push('<strong>GA4 ' + cfg.map(esc).join(', ') + ' was set up on this page</strong>, which sends an automatic <span class="mono">page_view</span>, but no GA4 <span class="mono">page_view</span> was decoded. It is sent on load inside a batched request body, which a bookmarklet copy can&rsquo;t include. To check its parameters, use DevTools &rarr; Network &rarr; right-click the <span class="mono">collect</span> request &rarr; Copy as cURL, or import a HAR.');
     return '<div class="dq-srcnote dq-dl"><strong>What the page told Tag Manager</strong> (its dataLayer, in order &ndash; what the site asked its tags to do, not proof a request was sent):'
       + '<div class="dq-dl-list">' + chips + '</div>'
       + notes.map(function(t){ return '<p class="dq-dl-p">' + t + '</p>'; }).join('') + '</div>';
@@ -3541,7 +3584,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     }).join('');
     var html = (src && src.note ? '<div class="dq-srcnote">' + src.note + '</div>' : '')
       + (src && src.consentNote && !beforeConsent ? '<div class="dq-srcnote">' + src.consentNote + '</div>' : '')
-      + (src ? '' : dataLayerNote(raw, lastResults))
+      + dataLayerNote(dataLayerNames(raw), lastResults)
       + (beforeConsent ? '<div class="dq-srcnote"><strong>Checked as captured before consent.</strong> Any advertising or analytics request below was treated as firing before the visitor answered the cookie banner. Untick the box above if that is not how these were captured.</div>' : '')
       + renderSummary(metas, order) + renderAnswers(lastAnalysis)
       + renderTools(cards, reqs.length > MAXREQ ? '<div class="dq-count">Only the first ' + MAXREQ + ' were decoded - paste fewer at a time to see the rest.</div>' : '');
@@ -3887,6 +3930,18 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     rerun();
   }
   if (EXPIN) EXPIN.addEventListener('change', saveExpectations);
+  /* optional dataLayer box - never persisted (see parseDataLayer) */
+  function dlStatus(){
+    var msg = document.getElementById('dq-dl-msg'); if (!msg || !DLIN) return;
+    var v = DLIN.value.trim(), n = v ? parseDataLayer(v) : [];
+    if (!msg.dataset.base) msg.dataset.base = msg.innerHTML;
+    msg.innerHTML = !v ? msg.dataset.base : n === null ? '<strong>Couldn&rsquo;t read that as JSON.</strong> Paste the output of the line above, or names separated by <span class="mono">|</span>.' : '<strong>' + n.length + ' event' + (n.length === 1 ? '' : 's') + ' read.</strong> ' + (OUT.innerHTML ? 'Shown above the results.' : 'Decode a request to compare them.');
+  }
+  if (DLIN) DLIN.addEventListener('change', function(){ dlStatus(); rerun(); });
+  var DLCOPY = document.getElementById('dq-dl-copy');
+  if (DLCOPY) DLCOPY.addEventListener('click', function(){
+    copyText(document.getElementById('dq-dl-snip').textContent, function(ok){ DLCOPY.textContent = ok ? 'Copied' : 'Select and copy it'; setTimeout(function(){ DLCOPY.textContent = 'Copy line'; }, 1800); });
+  });
   if (IDSIN) IDSIN.addEventListener('change', saveExpectations);
   var TPL = { ecom: 'page_view, view_item, add_to_cart, begin_checkout, purchase', lead: 'page_view, generate_lead' };
   document.querySelectorAll('.dq-tpl').forEach(function(b){
@@ -3953,7 +4008,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   }
 
   document.getElementById('dq-go').addEventListener('click', function(){ run(); });
-  document.getElementById('dq-clear').addEventListener('click', function(){ IN.value=''; OUT.innerHTML=''; harSource = null; lastResults = []; lastAnalysis = null; IN.focus(); });
+  document.getElementById('dq-clear').addEventListener('click', function(){ IN.value=''; if (DLIN) { DLIN.value=''; dlStatus(); } OUT.innerHTML=''; harSource = null; lastResults = []; lastAnalysis = null; IN.focus(); });
   HOSTIN.addEventListener('input', rerun);
   IN.addEventListener('keydown', function(e){ if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') run(); });
   IN.addEventListener('paste', function(){ setTimeout(function(){ run(); }, 30); });

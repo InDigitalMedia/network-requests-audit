@@ -114,6 +114,12 @@ function extractBmCode(html) {
   await page.fill('#dq-in', '# site: www.example.com\n# dataLayer: gtm.js | config G-ABC123 | button\nhttps://region1.analytics.google.com/g/collect?v=2&tid=G-ABC123&cid=1.2');
   await page.click('#dq-go');
   await page.waitForTimeout(60);
+  // Optional dataLayer box (#dq-dl): JSON dump with a PII-shaped value, copy-line button, then cleared.
+  await page.click('#dq-dlbox summary');
+  await page.click('#dq-dl-copy');
+  await page.fill('#dq-dl', '[{"event":"gtm.js"},{"0":"config","1":"G-ABC123"},{"event":"button","email":"jane.doe@example.com"}]');
+  await page.dispatchEvent('#dq-dl', 'change'); await page.waitForTimeout(60);
+  await page.fill('#dq-dl', ''); await page.dispatchEvent('#dq-dl', 'change');
   await page.fill('#dq-in', 'https://www.facebook.com/tr/?id=1&ev=Purchase&ud%5Bem%5D=jane.doe%40example.com&ud%5Bph%5D=%2B447700900123');
   await page.click('#dq-go');
   await page.waitForTimeout(100);

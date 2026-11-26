@@ -62,7 +62,9 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      regenerate the `BM` line after editing it; there is no build step that does this automatically.
      It also reads event/command *names* (never values - they can hold PII) from `window.dataLayer`
      (`dlN`) into a "What the page told Tag Manager" panel section and a `# dataLayer: a | b` line in
-     its copy; the Decode tab's `dataLayerNote()` (in `run()`) turns that line into a note marking
+     its copy; the Decode tab's optional "Add the page's dataLayer" box (`#dq-dl`, never persisted,
+     `parseDataLayer()` keeps names only from a console one-liner, a JSON dump or that line) wins
+     over the paste's line and also applies to HAR imports; `dataLayerNote()` (in `run()`) turns the names into a note marking
      which events a decoded request matches, and flags a GA4 `config` whose automatic page_view
      wasn't decoded (it's in a load-time batched body the bookmarklet can't see).
      `extension/` packages the same script as a Manifest V3 Chrome extension (toolbar click →
