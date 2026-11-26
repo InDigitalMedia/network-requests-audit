@@ -124,7 +124,7 @@
     // stylesheet !important of the same origin), so both the wrapper's display:flex and
     // each button's own width/display are re-asserted with !important below.
     var y = window.__idtagArmed, // y: is a "Record payloads" capture currently armed?
-      note = p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy below.' : y ? 'Recording - repeat the action you are checking (e.g. resubmit the form), then click this bookmark again on the same page to capture it.' : 'TikTok and Snapchat put their event data in a POST body, which this panel cannot see until you capture it: click <strong>Record payloads</strong>, repeat the action you are checking, then click this bookmark again on the same page.';
+      note = p.length ? '<strong>' + p.length + ' payload' + (1 === p.length ? '' : 's') + ' recorded</strong>, included in the copy below.' : y ? 'Recording - repeat the action you are checking (e.g. resubmit the form), then click this bookmark again on the same page to capture it.' : 'TikTok, Snapchat and batched GA4 events (e.g. clicks) put their event data in a POST body, which this panel cannot see until you capture it: click <strong>Record payloads</strong>, repeat the action you are checking, then click this bookmark again on the same page.';
     // BTN: the layout properties a hostile `button{...!important}` reset would fight over -
     // re-asserted with !important on every button below, on top of the plain (non-important)
     // all:initial that resets everything else. Kept as one constant so both buttons stay identical.

@@ -202,7 +202,7 @@ Chromium — confirmed empirically, not assumed — which would break the Decode
 just downloads and double-clicks the file.)
 
 - `analyzeRequest(input, options)` — the primary entry point and the contract a future automated
-  consumer builds against; treat its shape as stable. `input: {url, body?, bare?}`, `options:
+  consumer builds against; treat its shape as stable. `input: {url, body?, bare?, batch?}`, `options:
   {myHost?, siteHost?, hasServerSide?, beforeConsent?}`. Returns `{ok:true, request, platform,
   params, event, findings, verdict}` on success (`event` = `{name, label, purpose, conversion}`
   from `describeEvent()`, shown on each collapsed Decode row; descriptive only, never affects
@@ -215,6 +215,15 @@ just downloads and double-clicks the file.)
   (`PRESTEP`, `pre:true`, kept out of `TD.checkJourney()` and summarised by
   `preConsentSummary()`). Vendor library downloads (`*.js` paths) never get the before-consent
   findings — they aren't tracking hits.
+- `expandGa4Batches(reqs)` — GA4 batches several events into one `/g/collect` request (shared
+  params in the URL, one `en=…` line per event in the body). `extractRequests()` and
+  `requestsFromHar()` both run it, splitting such a request into one request per event (event
+  line merged over the URL, `batch: {index, count}` attached — pass it through to
+  `analyzeRequest`). `unAnsiC()` decodes Chrome's `--data-raw $'…'` cURL bodies, the form a
+  multi-line body always takes. A GA4 URL with no `en` and no body gets the "Event names are in
+  the request body" note (label "Events in request body") — the bookmarklet's resource list never
+  includes bodies, so this is the usual result for its copy. `scripts/scan-url.js` has its own
+  `splitBatched()` for the same job.
 - `fields` on each result (`extractFields()`, driven by the `FIELDMAP` table) — value, currency,
   order ID, dedup ID, pixel ID, page path and consent, read off each platform's own param names.
   Adding a platform means adding its `FIELDMAP` row too, or its rows show no facts line.

@@ -408,8 +408,12 @@
     var reqs = [];
     blocks.forEach(function(bl){
       var text = bl.text;
-      var bm = text.match(/--data(?:-raw|-binary|-urlencode)?\s+(['"])([\s\S]*?)\1/);
-      var body = bm ? bm[2] : null;
+      /* Chrome's "Copy as cURL" switches to bash ANSI-C quoting ($'...') whenever the body has
+         a newline - which every batched GA4 body does (one event per line, \r\n-separated).
+         Without this the plain-quote match below fails and the body is silently dropped. */
+      var am = text.match(/--data(?:-raw|-binary|-urlencode)?\s+\$'((?:\\[\s\S]|[^'\\])*)'/);
+      var bm = am ? null : text.match(/--data(?:-raw|-binary|-urlencode)?\s+(['"])([\s\S]*?)\1/);
+      var body = am ? unAnsiC(am[1]) : bm ? bm[2] : null;
       /* DevTools' "Copy as fetch" puts the body in a quoted "body": "..." field
          instead of a curl flag - without this, TikTok/Snapchat pastes from that
          menu item silently lose their POST body with no warning. */
@@ -430,7 +434,50 @@
       else if (/^\s*[\[{]/.test(line)) reqs.push({url:'https://unknown.invalid/unknown', body:line, bare:true});
       else if (bm2) reqs.push({url:'https://unknown.invalid/unknown', body:bm2[2], bare:true});
     }
-    return reqs;
+    return expandGa4Batches(reqs);
+  }
+
+  /* Undo bash $'...' escaping: \r \n \t \' \" \\ \xHH \uHHHH (what Chrome emits). */
+  function unAnsiC(s){
+    return s.replace(/\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|[\s\S])/g, function(_, c){
+      var m = { r:'\r', n:'\n', t:'\t', '0':'\0' };
+      if (c.charAt(0) === 'x' && c.length === 3) return String.fromCharCode(parseInt(c.slice(1), 16));
+      if (c.charAt(0) === 'u' && c.length === 5) return String.fromCharCode(parseInt(c.slice(1), 16));
+      return m.hasOwnProperty(c) ? m[c] : c;
+    });
+  }
+
+  /* GA4 batching: one /g/collect request can carry several events. The URL holds the shared
+     part (tid, cid, consent, page...) and the POST body holds one line per event
+     ("en=page_view&_et=..." CRLF "en=button&ep.x=..."). Split such a request into one request
+     per event, each with that event's line merged into the shared URL, so every event gets
+     its own row, name and findings. Lines are form-encoded (no literal whitespace), so any
+     whitespace run is a line break - this also covers a body whose newlines were flattened to
+     spaces on the way into a paste. Non-GA4 requests, JSON bodies and single-line bodies with
+     no event name pass through untouched. Each split request keeps every other field
+     (time, pageTitle, consent...) and gains batch: {index, count}. */
+  function expandGa4Batches(reqs){
+    var out = [];
+    reqs.forEach(function(r){
+      var body = r.body == null ? '' : String(r.body).trim();
+      var ga4 = /\/g\/collect/.test(r.url) || (/[?&]v=2(&|$)/.test(r.url) && /[?&]tid=G-/.test(r.url));
+      if (!ga4 || !body || /^[\[{]/.test(body)) { out.push(r); return; }
+      var lines = body.split(/\s+/).filter(function(l){ return /(^|&)en=/.test(l); });
+      if (!lines.length) { out.push(r); return; }
+      lines.forEach(function(l, i){
+        var c = {}; for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) c[k] = r[k];
+        /* the event line's values win over the shared URL's (same as scripts/scan-url.js) */
+        try {
+          var u = new URL(r.url);
+          new URLSearchParams(l).forEach(function(v, k){ u.searchParams.set(k, v); });
+          c.url = u.toString();
+        } catch(e){ c.url = r.url + (r.url.indexOf('?') === -1 ? '?' : '&') + l.replace(/^&+/, ''); }
+        c.body = null;
+        c.batch = { index: i + 1, count: lines.length };
+        out.push(c);
+      });
+    });
+    return out;
   }
 
   /* Parse params from query string, semicolon-path (Floodlight) and body. */
@@ -788,7 +835,7 @@
       if (get('v') === '1') F.push(['fail','Universal Analytics, not GA4','v=1 means this is a legacy Universal Analytics hit. UA was switched off in 2023-24, so this data goes nowhere. The tag should be removed.', CATEGORY.GA4]);
       if (absent('cid') && !/mp\/collect/.test(path)) F.push(['fail','No client ID','Without cid, GA4 has no pseudonymous identifier for this browser and cannot stitch events into a session or a user. Sessions will fragment and users will be over-counted.', CATEGORY.GA4]);
       if (has('en')) F.push(['info','Event: '+esc(get('en')),'This is the event name that will appear in GA4 reports. Check it against your measurement plan - a typo here creates a silent parallel event.', CATEGORY.EVENT_NAME]);
-      else if (!partial) F.push(['info','No event name','No en parameter, so this is likely an initial configuration hit rather than a tracked event.', CATEGORY.EVENT_NAME]);
+      else if (!partial && !/mp\/collect/.test(path)) F.push(['info','Event names are in the request body, not this address','GA4 usually batches events: the address carries only the shared details (measurement ID, client ID, consent, page) and each event - page_view, clicks and so on - is a separate line in the request body, which this paste does not include. That is normal, not a fault. To see the events, include the body: in DevTools right-click the request → <strong>Copy</strong> → <strong>Copy as cURL</strong>, or import a HAR file. With the <strong>Check tracking</strong> bookmark, click <strong>Record payloads</strong>, repeat the action, then click the bookmark again - that catches events like clicks, but not the page_view that fired as the page loaded.', CATEGORY.EVENT_NAME]);
       var eps = P.filter(function(p){ return /^epn?\./.test(p[0]); }).length;
       var ups = P.filter(function(p){ return /^upn?\./.test(p[0]); }).length;
       if (eps || ups) F.push(['info',eps+' event parameter'+(eps===1?'':'s')+', '+ups+' user propert'+(ups===1?'y':'ies'),'Custom dimensions must be registered in GA4 Admin before they appear in reports. Sending them is not the same as being able to report on them.', CATEGORY.CUSTOM_DIMENSIONS]);
@@ -1122,6 +1169,9 @@
         ? 'A custom event that looks like a conversion. Its meaning is defined in this site’s tag setup - check it against the measurement plan.'
         : 'A custom event specific to this site. Its meaning is defined in the tag setup - check it against the measurement plan.';
       label = String(ev);
+    } else if (/Analytics/.test(name) && !/mp\/collect/.test(path)) {
+      label = 'Events in request body';
+      purpose = 'GA4 batched this request: its events are in the POST body, which was not captured. Paste it with Copy as cURL (or import a HAR) to see each event.';
     } else {
       label = 'No event name';
       purpose = 'This ' + plat.k + ' carries no event name, so it is not clear which action it records. Open it to see every parameter.';
@@ -1505,6 +1555,7 @@
       kept.push(e);
     });
     var consentTiming = harConsentTiming(kept, out, siteHost);
+    out = expandGa4Batches(out);
     return { requests: out, siteHost: siteHost, total: entries.length, consentTiming: consentTiming };
   }
 
@@ -1524,6 +1575,8 @@
     var name = plat ? plat.n : null;
 
     var F = findings(plat, host, path, P, options.myHost || null, bare, options.siteHost || null, !!options.hasServerSide, !!options.beforeConsent);
+    /* set by expandGa4Batches() when one GA4 request carried several events */
+    if (input.batch && input.batch.count > 1) F.push(['info','Event '+input.batch.index+' of '+input.batch.count+' in one batched request','GA4 sent '+input.batch.count+' events together in a single request. Each is shown as its own row here: the shared details (IDs, consent, page) come from the request address, and this event\'s own parameters from its line in the request body.', CATEGORY.EVENT_NAME]);
     var event = describeEvent(plat, path, P);
     var fields = extractFields(plat, P);
     var partial = F.some(function(f){ return f[3] === CATEGORY.PARTIAL_PASTE; });
@@ -1553,6 +1606,7 @@
   return {
     analyzeRequest: analyzeRequest,
     extractRequests: extractRequests,
+    expandGa4Batches: expandGa4Batches,
     parseParams: parseParams,
     decodeGcs: decodeGcs,
     decodeGcd: decodeGcd,
