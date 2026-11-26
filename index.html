@@ -473,6 +473,19 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   border-radius:var(--r-pill); cursor:pointer;
 }
 .dq-ignore:hover { background:var(--ghost); color:var(--ink-1); }
+.dq-ign-wrap { flex:0 0 auto; margin-left:auto; display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.dq-ign-wrap .dq-ignore { margin-left:0; }
+.dq-ignore-all[hidden] { display:none; }
+.dq-find.dq-type-ignored .dq-ignore-all { border-color:var(--accent); color:var(--accent-txt); background:var(--wash); }
+/* "Ignored everywhere" bar under the request-list toolbar - types hidden with "Ignore all" */
+.dq-ignbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; padding:8px 12px;
+  border:1px dashed var(--line); border-radius:var(--r-card); font-size:12.5px; color:var(--ink-2); }
+.dq-ignbar[hidden] { display:none; }
+.dq-ignbar-l { font-weight:700; color:var(--ink-1); }
+.dq-ign-chip { border:1px solid var(--line); background:var(--surface-1); color:var(--ink-2); font-size:12px;
+  padding:3px 10px; border-radius:var(--r-pill); cursor:pointer; }
+.dq-ign-chip:hover { background:var(--ghost); color:var(--ink-1); }
+.dq-ign-chip .x { margin-left:6px; font-weight:700; }
 .dq-find.dq-ignored { opacity:0.55; }
 .dq-find.dq-ignored .dq-ft { text-decoration:line-through; }
 .dq-find.dq-ignored .dq-ignore { border-color:var(--accent); color:var(--accent-txt); background:var(--wash); }
@@ -2550,6 +2563,16 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
   /* Shared state, read/written by both run() and the "Ignore"/filter handlers below -
      kept live across those so ignoring a finding doesn't need a full re-decode. */
   var metas = [], order = [], activeFilter = null;
+  /* "Ignore all": finding types (typeKey of the title) ignored on every request. Kept in memory
+     across decodes, so a new paste of the same site stays quiet - but deliberately NOT persisted:
+     a type left hidden in localStorage would silently mask a real problem on the next client. */
+  var ignoredTypes = {};
+  /* A finding's "type": its title minus the per-request detail some titles carry - the consent
+     types listed after "Granted by default:" / "Never set by consent mode:" and a trailing
+     "(eventID)"-style key name - so e.g. every "Granted by default" warning groups together. */
+  function typeKey(title){
+    return String(title).replace(/:\s+[\w, ]*_[\w, ]*$/, '').replace(/\s*\([^)]*\)\s*$/, '');
+  }
   /* lastResults[i] is the raw TD.analyzeRequest() result behind metas[i] (null if unreadable);
      lastAnalysis is TD.analyzePaste() over all of them - the "At a glance" panel's source. */
   var lastResults = [], lastAnalysis = null, harSource = null;
@@ -2671,9 +2694,10 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     F.forEach(function(f, fi){
       var s = SEV[f.severity];
       var canIgnore = f.severity === 'warn' || f.severity === 'fail';
-      h += '<div class="dq-find '+s[2]+'" data-sev="'+f.severity+'" data-fi="'+fi+'"><div class="dq-fh"><span class="dq-sym">'+s[0]+'</span><span class="dq-sev">'+s[1]+'</span>'
+      h += '<div class="dq-find '+s[2]+'" data-sev="'+f.severity+'" data-fi="'+fi+'" data-key="'+esc(typeKey(f.title))+'"><div class="dq-fh"><span class="dq-sym">'+s[0]+'</span><span class="dq-sev">'+s[1]+'</span>'
         + '<span class="dq-ft">'+f.title+'</span>'
-        + (canIgnore ? '<button class="dq-ignore" type="button" title="Mark this finding as reviewed and not applicable - it will drop out of the verdict and summary above.">Ignore</button>' : '')
+        + (canIgnore ? '<span class="dq-ign-wrap"><button class="dq-ignore" type="button" title="Mark this finding as reviewed and not applicable - it will drop out of the verdict and summary above.">Ignore</button>'
+          + '<button class="dq-ignore dq-ignore-all" type="button" hidden title="Ignore this kind of finding on every request in this paste, and in anything you decode next, until you reload the page or choose Show again.">Ignore all</button></span>' : '')
         + '</div><div class="dq-fd">'+f.detail+'</div>'
         + fixHtml(f.remedy) + '</div>';
     });
@@ -2977,6 +3001,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       + '<label class="dq-ssw" title="Tag code downloads, cookie banner scripts, audience and remarketing pings - needed, but not events you report on"><input type="checkbox" id="dq-v-support"' + (view.hideSupport ? ' checked' : '') + '> Hide supporting requests <span id="dq-support-n" class="dq-tools-n"></span></label>'
       + '<input id="dq-v-q" class="dq-inp" type="search" spellcheck="false" placeholder="Filter: event, ID, page…" aria-label="Filter requests by event name, pixel ID, page or host" value="' + esc(view.q) + '">'
       + '</div>'
+      + '<div class="dq-ignbar" id="dq-ignbar" hidden></div>'
       + '<div class="dq-nomatch" hidden>Nothing matches the current filters.</div>'
       + '<div id="dq-cards">' + cardsHtml + '</div>' + (footHtml || '') + '</div>';
   }
@@ -3474,6 +3499,7 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     if (view.layout === 'timeline' && hasTimes()) layoutCards('timeline');
     else { view.layout = 'platform'; }
     applyFilter();
+    applyIgnoredTypes();
     glossify(OUT);
     var tally = computeTally(metas);
     var tallyBits = ['red','amber','green'].filter(function(s){ return tally[s]; })
@@ -3596,12 +3622,80 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
     applyFilter();
   }
 
+  /* the ignorable findings currently rendered, grouped by type key */
+  function findsByType(){
+    var by = {};
+    OUT.querySelectorAll('.dq-find[data-key]').forEach(function(fd){
+      if (!fd.querySelector('.dq-ignore-all')) return;
+      (by[fd.dataset.key] = by[fd.dataset.key] || []).push(fd);
+    });
+    return by;
+  }
+  function setFindIgnored(fd, on, viaType){
+    var reqDiv = fd.closest('.dq-req');
+    fd.classList.toggle('dq-ignored', on);
+    fd.classList.toggle('dq-type-ignored', !!viaType && on);
+    var b = fd.querySelector('.dq-ignore:not(.dq-ignore-all)');
+    if (b) b.textContent = on ? 'Ignored' : 'Ignore';
+    var idx = +reqDiv.dataset.idx, fi = +fd.dataset.fi;
+    if (metas[idx] && metas[idx].findings[fi]) metas[idx].findings[fi].ignored = on;
+    return reqDiv;
+  }
+  /* Labels each "Ignore all" button with how many of its type are in this paste (hidden when
+     there's only one - the single Ignore covers that) and redraws the "Ignored everywhere" bar. */
+  function refreshTypeControls(){
+    var by = findsByType();
+    Object.keys(by).forEach(function(k){
+      by[k].forEach(function(fd){
+        var b = fd.querySelector('.dq-ignore-all');
+        var on = !!ignoredTypes[k];
+        b.hidden = !on && by[k].length < 2;
+        b.textContent = on ? 'Show all again' : 'Ignore all ' + by[k].length;
+        b.setAttribute('aria-pressed', String(on));
+      });
+    });
+    var bar = OUT.querySelector('#dq-ignbar');
+    if (!bar) return;
+    var keys = Object.keys(ignoredTypes);
+    bar.hidden = !keys.length;
+    bar.innerHTML = keys.length ? '<span class="dq-ignbar-l">Ignored everywhere:</span>'
+      + keys.map(function(k){
+          var n = (by[k] || []).length;
+          return '<button type="button" class="dq-ign-chip" data-key="' + esc(k) + '" title="Show these findings again">'
+            + k + ' <span class="dq-tools-n">(' + n + ' here)</span><span class="x" aria-hidden="true">&times;</span><span class="sr-only">, show again</span></button>';
+        }).join('')
+      + (keys.length > 1 ? '<button type="button" class="dq-ign-chip" data-key="" title="Show every ignored type again">Show all again</button>' : '')
+      : '';
+  }
+  /* Applies ignoredTypes to the rendered findings: keys = which types changed (or all when
+     omitted, i.e. straight after a decode). Recomputes each touched request once. */
+  function applyIgnoredTypes(keys){
+    var by = findsByType(), touched = [];
+    (keys || Object.keys(by)).forEach(function(k){
+      var on = !!ignoredTypes[k];
+      (by[k] || []).forEach(function(fd){
+        if (!on && !fd.classList.contains('dq-type-ignored')) return; /* leave a single manual Ignore alone */
+        if (keys || on) { var r = setFindIgnored(fd, on, true); if (touched.indexOf(r) === -1) touched.push(r); }
+      });
+    });
+    touched.forEach(recalcRequest);
+    if (touched.length) refreshAfterIgnore();
+    refreshTypeControls();
+  }
+  function setTypeIgnored(key, on){
+    var keys = key ? [key] : Object.keys(ignoredTypes);
+    keys.forEach(function(k){ if (on) ignoredTypes[k] = 1; else delete ignoredTypes[k]; });
+    applyIgnoredTypes(keys);
+    announce(on ? 'Ignoring every "' + stripHtml(key) + '" finding.' : 'Showing ' + (key ? '"' + stripHtml(key) + '" findings' : 'all ignored findings') + ' again.');
+  }
+
   function toggleIgnore(btn){
     var findDiv = btn.closest('.dq-find');
     var reqDiv = btn.closest('.dq-req');
     if (!findDiv || !reqDiv) return;
     var idx = +reqDiv.dataset.idx, fi = +findDiv.dataset.fi;
     var ignored = findDiv.classList.toggle('dq-ignored');
+    findDiv.classList.remove('dq-type-ignored');
     btn.textContent = ignored ? 'Ignored' : 'Ignore';
     if (metas[idx] && metas[idx].findings[fi]) metas[idx].findings[fi].ignored = ignored;
     recalcRequest(reqDiv);
@@ -3616,6 +3710,12 @@ ul.plain strong { color:var(--ink-1); font-weight:700; }
       if (t) t.click();
       return;
     }
+    if ((b = e.target.closest('.dq-ignore-all'))) {
+      var k = b.closest('.dq-find').dataset.key;
+      setTypeIgnored(k, !ignoredTypes[k]);
+      return;
+    }
+    if ((b = e.target.closest('.dq-ign-chip'))) { setTypeIgnored(b.dataset.key, false); return; }
     if ((b = e.target.closest('.dq-ignore'))) { toggleIgnore(b); return; }
     if ((b = e.target.closest('.dq-filter-chip'))) {
       var wasSev = activeFilter && activeFilter.type === 'sev' && activeFilter.value === b.dataset.filter;

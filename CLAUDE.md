@@ -150,6 +150,12 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      replays it when a setting changes). Expected events / client IDs live in
      `#dq-expected`/`#dq-ids`, persisted to `id-dq-expected`/`id-dq-ids`. `MAXREQ` caps a decode
      at 60 requests.
+   - "Ignore all" (`ignoredTypes`, `typeKey()`, `applyIgnoredTypes()`, `#dq-ignbar`) — ignores one
+     finding *type* on every request. `typeKey()` groups by title minus per-request detail (the
+     consent-type list after "Granted by default:"/"Never set by consent mode:", a trailing
+     "(eventID)"). Survives re-decodes in memory but is deliberately never persisted. Re-applied at
+     the end of `run()` before the tally/announcement; un-ignoring a type leaves single manual
+     Ignores alone (they lack the `dq-type-ignored` class).
    - `layoutCards('platform'|'timeline')` — switches the request list between grouped-by-platform
      and fire order split by page. It *moves* the existing `.dq-req` nodes into `#dq-cards` rather
      than re-rendering, so open state and Ignore toggles survive. Timeline only appears when

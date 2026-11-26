@@ -125,7 +125,13 @@ function extractBmCode(html) {
     await page.locator('.dq-req').first().locator('> summary').click();
     await page.waitForTimeout(40);
   }
-  if (await page.locator('.dq-ignore').count()) { await page.locator('.dq-ignore').first().click(); await page.waitForTimeout(40); }
+  if (await page.locator('.dq-ignore:not(.dq-ignore-all)').count()) { await page.locator('.dq-ignore:not(.dq-ignore-all)').first().click(); await page.waitForTimeout(40); }
+  // "Ignore all" (a whole finding type) and the "Ignored everywhere" bar's Show again chip.
+  await page.evaluate(() => {
+    const b = document.querySelector('.dq-ignore-all'); if (b) { b.hidden = false; b.click(); }
+    const c = document.querySelector('.dq-ign-chip'); if (c) c.click();
+  });
+  await page.waitForTimeout(40);
   if (await page.locator('.dq-filter-chip').count()) {
     await page.locator('.dq-filter-chip').first().click(); await page.waitForTimeout(40);
     await page.locator('.dq-filter-chip.is-active').click(); await page.waitForTimeout(40);
