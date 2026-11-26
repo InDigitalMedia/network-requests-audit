@@ -110,6 +110,10 @@ function extractBmCode(html) {
     await page.click('.dq-eg[data-eg="' + eg + '"]');
     await page.waitForTimeout(40);
   }
+  // Bookmarklet copy with a "# dataLayer:" line - renders the "What the page told Tag Manager" note.
+  await page.fill('#dq-in', '# site: www.example.com\n# dataLayer: gtm.js | config G-ABC123 | button\nhttps://region1.analytics.google.com/g/collect?v=2&tid=G-ABC123&cid=1.2');
+  await page.click('#dq-go');
+  await page.waitForTimeout(60);
   await page.fill('#dq-in', 'https://www.facebook.com/tr/?id=1&ev=Purchase&ud%5Bem%5D=jane.doe%40example.com&ud%5Bph%5D=%2B447700900123');
   await page.click('#dq-go');
   await page.waitForTimeout(100);

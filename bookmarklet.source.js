@@ -149,6 +149,45 @@
       }) + '</div>'
     }), m += '</div>'
   } else m = '<div style="padding:16px 14px;color:#101828;"><strong>Nothing found.</strong><br><br>Likely reasons, in order:<br>1. An ad blocker is stopping the requests.<br>2. You have not accepted the cookie banner yet.<br>3. This page has no tracking on it.<br><br>Reload and click the bookmark again before deciding.</div>';
+  // dlN: event and command NAMES from the page's GTM/gtag `window.dataLayer`, in order
+  //      (capped at 60). Only names are read - never the values pushed with them, which
+  //      can hold personal data. Object pushes contribute their `event`; gtag() pushes
+  //      (Arguments objects) contribute `event <name>` -> <name>, `config <id>` and
+  //      `consent default|update`; `js`/`set`/`get` and plain variable pushes are skipped.
+  //      Shows what the site ASKED its tags to do, including load-time events (the
+  //      automatic GA4 page_view) whose request bodies this panel can't see.
+  var dlN = [];
+  try {
+    var dlQ = window.dataLayer;
+    if (dlQ && dlQ.length)
+      for (var dlI = 0; dlI < dlQ.length && dlN.length < 60; dlI++) {
+        var dlX = dlQ[dlI], dlW = null;
+        if (dlX && 'object' == typeof dlX)
+          if ('string' == typeof dlX[0]) {
+            var dlC = dlX[0];
+            'event' === dlC ? dlW = dlX[1] : 'config' === dlC ? dlW = 'config ' + dlX[1] + (dlX[2] && !1 === dlX[2].send_page_view ? ' (no page_view)' : '') : 'consent' === dlC && (dlW = 'consent ' + dlX[1])
+          } else 'string' == typeof dlX.event && (dlW = dlX.event);
+        // "|" and line breaks are stripped so the "# dataLayer:" copy line stays one line.
+        dlW && 'string' == typeof dlW && dlN.push(dlW.replace(/[\r\n|]+/g, ' ').slice(0, 60))
+      }
+  } catch (dlE) {}
+  if (dlN.length) {
+    // dlL: friendly labels for GTM's built-in events. dlP: [name, count] with consecutive
+    // repeats collapsed (e.g. gtm.timer x12).
+    var dlL = {'gtm.js': 'page load', 'gtm.dom': 'page ready', 'gtm.load': 'fully loaded', 'gtm.click': 'click', 'gtm.linkClick': 'link click', 'gtm.formSubmit': 'form submit', 'gtm.historyChange': 'page change', 'gtm.historyChange-v2': 'page change', 'gtm.scrollDepth': 'scroll', 'gtm.timer': 'timer', 'gtm.elementVisibility': 'element visible', 'gtm.video': 'video'},
+      dlP = [];
+    dlN.forEach(function(t) {
+      var e = dlP[dlP.length - 1];
+      e && e[0] === t ? e[1]++ : dlP.push([t, 1])
+    });
+    m += '<div style="border-top:1px solid #e5e4e4;padding:9px 14px 10px;"><div style="font-weight:700;font-size:10.5px;color:#6a7282;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;">What the page told Tag Manager</div><div>' + dlP.map(function(t, e) {
+      var o = t[0],
+        n = dlL[o] ? dlL[o] + ' (' + o + ')' : /^config G-/.test(o) && !/\(no page_view\)$/.test(o) ? o + ' (sends page_view)' : o;
+      return '<span style="display:inline-block;border:1px solid #e5e4e4;border-radius:4px;padding:1px 6px;margin:0 4px 4px 0;font-size:11px;color:#101828;">' + (e + 1) + '. ' + n.replace(/[<>&"]/g, function(t) {
+        return '&#' + t.charCodeAt(0) + ';'
+      }) + (t[1] > 1 ? ' &times;' + t[1] : '') + '</span>'
+    }).join('') + '</div><div style="margin-top:4px;color:#6a7282;font-size:11px;line-height:1.5;">From the page\'s dataLayer, in order. This is what the site asked its tags to do, not proof that a request was sent' + (a.length ? ' - included in the copy.' : '.') + '</div></div>'
+  }
   s.innerHTML = u + m, document.documentElement.appendChild(s), document.getElementById('__idx').onclick = function() {
     s.parentNode.removeChild(s)
   };
@@ -213,6 +252,9 @@
     var t = l.length ? l : a, // t: hits to copy - named-platform hits if any, else everything.
       e = ['# site: ' + location.hostname], // e: output lines, starting with a site header comment.
       o = {}; // o: dedup map so a recorded-payload URL isn't listed twice.
+    // dataLayer names as a comment line: the decoder ignores "#" lines as requests,
+    // and index.html's run() reads this one into its "What the page told Tag Manager" note.
+    dlN.length && e.push('# dataLayer: ' + dlN.join(' | '));
     p.forEach(function(t) {
       o[t.u] = 1, e.push('curl \'' + t.u + '\' --data-raw \'' + String(t.b).replace(/'/g, '\'\\\'\'') + '\'')
     }), t.forEach(function(t) {

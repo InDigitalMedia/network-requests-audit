@@ -60,6 +60,11 @@ inline `<script>` blocks. The detection/verdict logic itself lives in the siblin
      platform (see `AUDIT.md` for the known drift risk here). `bookmarklet.source.js` (sibling file)
      is a readable, commented reference copy of this exact logic — see its header for how to
      regenerate the `BM` line after editing it; there is no build step that does this automatically.
+     It also reads event/command *names* (never values - they can hold PII) from `window.dataLayer`
+     (`dlN`) into a "What the page told Tag Manager" panel section and a `# dataLayer: a | b` line in
+     its copy; the Decode tab's `dataLayerNote()` (in `run()`) turns that line into a note marking
+     which events a decoded request matches, and flags a GA4 `config` whose automatic page_view
+     wasn't decoded (it's in a load-time batched body the bookmarklet can't see).
      `extension/` packages the same script as a Manifest V3 Chrome extension (toolbar click →
      `chrome.scripting.executeScript` in `world:'MAIN'`, permissions `activeTab`+`scripting` only).
      `extension/bookmarklet.source.js` must stay a byte-identical copy of the root file — after
